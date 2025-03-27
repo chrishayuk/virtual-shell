@@ -58,3 +58,9 @@ try:
     register_provider("s3", S3StorageProvider)
 except ImportError:
     pass  # S3 dependencies not available
+
+try:
+    from virtual_shell.filesystem.providers.pyodide import PyodideStorageProvider
+    register_provider("pyodide", PyodideStorageProvider)
+except ImportError:
+    pass  # pyodite storage provider not available
