@@ -1,55 +1,107 @@
 """
-pyodide_main.py - Pyodide-compatible main entry point for PyodideShell
+pyodide_main.py - Pyodide-Safe Shell Initialization
 """
 import sys
-import os
-import json
-from virtual_shell.shell_interpreter import ShellInterpreter
+import traceback
+
+def comprehensive_diagnostics():
+    """
+    Comprehensive system and input method diagnostics
+    """
+    print("\n### SYSTEM DIAGNOSTICS ###")
+    
+    # Python environment info
+    print(f"Python Version: {sys.version}")
+    print(f"Python Executable: {sys.executable}")
+    print(f"Current Working Directory: {sys.path}")
+    
+    # Check for Pyodide
+    try:
+        import js
+        print("\nPyodide environment detected")
+    except ImportError:
+        print("\nStandard Python environment")
+    
+    # Input method investigation
+    print("\n### INPUT METHOD INVESTIGATION ###")
+    try:
+        import nodepy
+        print("Nodepy module available")
+        
+        print("\nNodepy module contents:")
+        print(dir(nodepy))
+        
+        print("\nAttempting to retrieve input method details:")
+        try:
+            input_func = nodepy.input
+            print(f"Input function: {input_func}")
+            print(f"Input function type: {type(input_func)}")
+        except Exception as func_error:
+            print(f"Error retrieving input function: {func_error}")
+    
+    except ImportError:
+        print("Nodepy module not found")
+    except Exception as e:
+        print(f"Unexpected nodepy investigation error: {e}")
+
+def run_shell_diagnostics():
+    """
+    Run diagnostic checks for the shell
+    """
+    try:
+        from virtual_shell.shell_interpreter import ShellInterpreter
+        
+        # Create shell interpreter
+        print("\n### SHELL INTERPRETER DIAGNOSTICS ###")
+        shell = ShellInterpreter()
+        
+        # Print filesystem provider info
+        print(f"Filesystem Provider: {shell.fs.get_provider_name()}")
+        
+        # Investigate shell methods
+        print("\nAvailable ShellInterpreter methods:")
+        for method in dir(shell):
+            if not method.startswith('_'):
+                print(f"  - {method}")
+        
+        # Prompt generation test
+        try:
+            prompt = shell.prompt()
+            print(f"\nGenerated Prompt: {prompt}")
+        except Exception as prompt_error:
+            print(f"Prompt generation error: {prompt_error}")
+        
+        # Mock input and command execution
+        print("\n### COMMAND EXECUTION TEST ###")
+        test_commands = ['pwd', 'ls', 'help']
+        for cmd in test_commands:
+            try:
+                print(f"\nTesting command: {cmd}")
+                result = shell.execute(cmd)
+                print(f"Command result: {result}")
+            except Exception as cmd_error:
+                print(f"Command '{cmd}' execution error: {cmd_error}")
+    
+    except ImportError as import_error:
+        print(f"Shell interpreter import error: {import_error}")
+        traceback.print_exc()
+    
+    except Exception as shell_error:
+        print(f"Unexpected shell error: {shell_error}")
+        traceback.print_exc()
 
 def pyodide_main():
-    """Run an interactive shell in the Pyodide environment"""
-    print("Starting PyodideShell in Pyodide environment...")
+    """
+    Main entry point with comprehensive diagnostics
+    """
+    # Run comprehensive diagnostics
+    comprehensive_diagnostics()
     
-    # Create shell interpreter with memory provider
-    shell = ShellInterpreter()
+    # Run shell system checks
+    run_shell_diagnostics()
     
-    # Print provider info
-    print(f"Using filesystem provider: {shell.fs.get_provider_name()}")
-    
-    # Synchronous shell loop for Pyodide
-    while shell.running:
-        # Print prompt
-        prompt = shell.prompt()
-        sys.stdout.write(prompt)
-        sys.stdout.flush()
-        
-        # Run a special version of input that works with Pyodide
-        cmd_line = input()
-        
-        # Echo the typed command so you can see it
-        print(cmd_line)
-        
-        # Make sure cmd_line is actually a string
-        if hasattr(cmd_line, 'strip'):
-            cmd_line = cmd_line.strip()
-        else:
-            # Debug the object type
-            print(f"DEBUG: cmd_line is type {type(cmd_line)}")
-            # Try to convert it to a string
-            try:
-                cmd_line = str(cmd_line)
-            except:
-                cmd_line = ""
-        
-        # Execute command
-        try:
-            result = shell.execute(cmd_line)
-            if result:
-                print(result)
-        except Exception as e:
-            print(f"Error executing command: {e}")
-    
-    print("Goodbye from PyodideShell!")
+    # Print final message
+    print("\nDiagnostic complete. Please check the output for any issues.")
 
 if __name__ == "__main__":
     pyodide_main()

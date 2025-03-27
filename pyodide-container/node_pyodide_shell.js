@@ -167,17 +167,42 @@ print("sys.path:", sys.path)
     process.exit(1);
   }
   
-  // Register a synchronous node input function for Pyodide
   pyodide.registerJsModule("nodepy", {
-    input(prompt) {
-      // This is a blocking synchronous call, which works for simple shells
+    // This async function echoes each character as it's typed.
+    async input(prompt) {
       process.stdout.write(prompt);
-      return readlineSync.question('');
+      return await new Promise((resolve) => {
+        let input = "";
+        // Set raw mode so we capture every keystroke.
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
+        
+        function onData(char) {
+          if (char === "\r" || char === "\n") {
+            // When Enter is pressed, disable raw mode and resolve
+            process.stdout.write("\n");
+            process.stdin.setRawMode(false);
+            process.stdin.pause();
+            process.stdin.removeListener("data", onData);
+            resolve(input);
+          } else if (char === "\u0003") {
+            // Ctrl+C
+            process.exit();
+          } else {
+            process.stdout.write(char);
+            input += char;
+          }
+        }
+        
+        process.stdin.on("data", onData);
+      });
     },
     print(text) {
       console.log(text);
     }
   });
+  
   
   // Add the bridge to Python
   await pyodide.runPythonAsync(`
