@@ -1,108 +1,85 @@
 """
-pyodide_main.py - Event Loop Aware PyodideShell (With Visible Prompt)
+Enhanced Pyodide-Compatible Async Shell
 """
 import sys
-import os
 import asyncio
-import traceback
-import logging
-
-# Configure logging (but we'll disable it anyway)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('pyodide_shell_debug.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
-# Get the PyodideShell logger and disable it
-logger = logging.getLogger('PyodideShell')
-logger.disabled = True
-
-def create_debug_file(content):
-    """
-    Create a debug file with given content (if you ever re-enable logging).
-    """
-    try:
-        with open('pyodide_shell_debug.txt', 'w') as f:
-            f.write(str(content))
-    except Exception as e:
-        print(f"Failed to write debug file: {e}")
 
 async def safe_async_input(prompt=""):
     """
-    Gathers user input asynchronously via Node's raw-mode function.
-    Note: The 'prompt' parameter is unused if you're printing it in Python.
+    Async input gathering with improved handling
     """
     try:
         import nodepy
-        try:
-            input_result = await nodepy.input(prompt)
-            return str(input_result).strip()
-        except:
-            return ""
-    except:
+        
+        # Use await to ensure we get the full input
+        full_input = await nodepy.input(prompt)
+        
+        # Additional handling for edge cases
+        return full_input.strip() if full_input is not None else ""
+    except Exception as e:
+        print(f"Input error: {e}")
         return ""
 
 async def run_pyodide_shell():
     """
-    Main async loop: prints the prompt on Python side, reads commands asynchronously.
+    Async shell main loop with optimized input and error handling
     """
     try:
         from virtual_shell.shell_interpreter import ShellInterpreter
         shell = ShellInterpreter()
         
-        # Interactive shell loop
         while shell.running:
+            # Prepare prompt
+            prompt = shell.prompt()
+            sys.stdout.write(prompt)
+            sys.stdout.flush()
+
             try:
-                # Get the prompt from the shell
-                prompt = shell.prompt()
-
-                # Print it here in Python, so user sees it immediately
-                sys.stdout.write(prompt)
-                sys.stdout.flush()
-
-                # Collect user input WITHOUT re-printing the prompt on the Node side
+                # Await input with minimal overhead
                 cmd_line = await safe_async_input("")
-
-                # Handle exit commands
-                if cmd_line.lower() in ['exit', 'quit', 'q']:
+                
+                # Exit conditions
+                if cmd_line.lower() in {'exit', 'quit', 'q'}:
                     break
+                
+                # Skip empty lines
                 if not cmd_line:
                     continue
                 
-                # Execute the command
-                try:
-                    result = shell.execute(cmd_line)
-                    if result:
-                        print(result)
-                except Exception as exec_error:
-                    print(f"Error: {exec_error}")
+                # Execute command
+                result = shell.execute(cmd_line)
+                if result:
+                    print(result)
             
             except KeyboardInterrupt:
-                break
-            except Exception as loop_error:
-                print(f"Error: {loop_error}")
-                break
+                print("^C")
+                continue
+            except Exception as e:
+                print(f"Execution Error: {e}")
     
     except ImportError as import_error:
         print(f"Import error: {import_error}")
-    except Exception as init_error:
-        print(f"Initialization error: {init_error}")
+    except Exception as e:
+        print(f"Shell error: {e}")
     finally:
         print("PyodideShell session ended.")
 
 def pyodide_main():
     """
-    Entry point that runs the async shell loop until completion.
+    Robust entry point for Pyodide shell
     """
     try:
+        # Create an async main function
+        async def main():
+            await run_pyodide_shell()
+        
+        # Get or create event loop
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(run_pyodide_shell())
+        loop.run_until_complete(main())
+    
     except Exception as main_error:
         print(f"Fatal error: {main_error}")
+        import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":

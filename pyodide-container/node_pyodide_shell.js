@@ -107,29 +107,45 @@ os.environ['USER'] = 'pyodide'
         process.stdin.setRawMode(true);
         process.stdin.resume();
         process.stdin.setEncoding('utf8');
-
+  
         function onData(char) {
-          if (char === "\r" || char === "\n") {
-            process.stdout.write("\n");
-            process.stdin.setRawMode(false);
-            process.stdin.pause();
-            process.stdin.removeListener("data", onData);
-            resolve(input);
-          } else if (char === "\u0003") {
-            // Ctrl+C
-            process.stdout.write("^C\n");
-            input = "";
-            process.stdin.setRawMode(false);
-            process.stdin.pause();
-            process.stdin.removeListener("data", onData);
-            resolve(input);
-          } else {
-            // Echo each typed character
-            process.stdout.write(char);
-            input += char;
+          switch(char) {
+            case "\r":
+            case "\n":
+              process.stdout.write("\n");
+              process.stdin.setRawMode(false);
+              process.stdin.pause();
+              process.stdin.removeListener("data", onData);
+              resolve(input);
+              break;
+            
+            case "\u0003": // Ctrl+C
+              process.stdout.write("^C\n");
+              input = "";
+              process.stdin.setRawMode(false);
+              process.stdin.pause();
+              process.stdin.removeListener("data", onData);
+              resolve(input);
+              break;
+            
+            case "\u007f": // Backspace
+            case "\b":
+              if (input.length > 0) {
+                // Move cursor back, write space, move cursor back again
+                process.stdout.write("\b \b");
+                input = input.slice(0, -1);
+              }
+              break;
+            
+            default:
+              // Printable characters
+              if (char >= " " && char <= "~") {
+                process.stdout.write(char);
+                input += char;
+              }
           }
         }
-
+  
         process.stdin.on("data", onData);
       });
     },
@@ -137,7 +153,7 @@ os.environ['USER'] = 'pyodide'
       console.log(text);
     }
   });
-
+  
   // Override Python's built-in input/print with custom versions
   await pyodide.runPythonAsync(`
 import builtins, sys, nodepy
