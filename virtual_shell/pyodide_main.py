@@ -1,8 +1,12 @@
 """
-Enhanced Pyodide-Compatible Async Shell using Pyodide provider (with debug)
+Enhanced Pyodide-Compatible Async Shell with YAML Sandbox Configuration
 """
 import sys
 import asyncio
+import os
+
+# Default sandbox configuration to use
+DEFAULT_SANDBOX = "ai_sandbox"
 
 async def safe_async_input(prompt=""):
     """
@@ -22,31 +26,50 @@ async def safe_async_input(prompt=""):
 
 async def run_pyodide_shell():
     """
-    Async shell main loop with optimized input and error handling
+    Async shell main loop with YAML sandbox configuration
     """
     try:
-        # Import the provider manager and the shell interpreter
-        from virtual_shell.filesystem.provider_manager import ProviderManager
+        # Import the sandbox loader and shell interpreter
+        from virtual_shell.sandbox_loader import find_sandbox_config
         from virtual_shell.shell_interpreter import ShellInterpreter
 
-        # Debug: List available providers
-        try:
-            from virtual_shell.filesystem.providers import list_providers
-            providers = list_providers()
-        except Exception as e:
-            pass
-
-        # Create and initialize the Pyodide provider via the factory
-        provider = ProviderManager.create_provider("pyodide")
-        if not provider:
-            raise Exception("Failed to create Pyodide provider")
+        # Check for environment variables that might specify a sandbox
+        sandbox_yaml = os.environ.get("PYODIDE_SANDBOX", DEFAULT_SANDBOX)
         
-        # Check provider initialization status
-        if not provider.initialize():
-            raise Exception("Provider initialization failed")
-
-        # Pass the provider to the shell interpreter (assuming it accepts one)
-        shell = ShellInterpreter(provider)
+        # If sandbox specified by name, try to find its config file
+        if not sandbox_yaml.endswith(('.yaml', '.yml')) and '/' not in sandbox_yaml:
+            config_path = find_sandbox_config(sandbox_yaml)
+            if config_path:
+                sandbox_yaml = config_path
+            else:
+                print(f"Warning: Sandbox configuration '{sandbox_yaml}' not found, falling back to default")
+                # Try to find the default sandbox
+                default_path = find_sandbox_config(DEFAULT_SANDBOX)
+                if default_path:
+                    sandbox_yaml = default_path
+                else:
+                    sandbox_yaml = None
+                    
+        print(f"Initializing shell with sandbox configuration: {sandbox_yaml or 'default'}")
+        
+        # Create shell with the specified sandbox configuration
+        shell = ShellInterpreter(sandbox_yaml=sandbox_yaml)
+        
+        # Print sandbox info
+        print("Shell initialized with the following environment:")
+        print(f"Home directory: {shell.environ.get('HOME', '/home/user')}")
+        print(f"User: {shell.environ.get('USER', 'user')}")
+        
+        # Welcome message
+        fs_info = shell.fs.get_fs_info()
+        if "security" in fs_info:
+            security = fs_info["security"]
+            read_only = security.get("read_only", False)
+            print(f"Security mode: {'Read-only' if read_only else 'Restricted write'}")
+        
+        print("\nType 'help' for a list of available commands.")
+        print("Type 'exit' to quit the shell.")
+        print("-" * 60)
 
         while shell.running:
             # Prepare prompt
@@ -89,6 +112,11 @@ def pyodide_main():
     Robust entry point for Pyodide shell
     """
     try:
+        # Print startup banner
+        print("=" * 60)
+        print("PyodideShell - Secure Virtual Environment")
+        print("=" * 60)
+        
         # Create an async main function
         async def main():
             await run_pyodide_shell()
@@ -100,7 +128,4 @@ def pyodide_main():
     except Exception as main_error:
         print(f"Fatal error: {main_error}")
         import traceback
-        traceback.print_exc()
-
-if __name__ == "__main__":
-    pyodide_main()
+        traceback

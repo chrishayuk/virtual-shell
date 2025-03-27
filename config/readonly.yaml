@@ -1,0 +1,39 @@
+# Read-only sandbox configuration for PyodideShell
+# Prevents any modifications to the filesystem
+
+# Sandbox name and description
+name: "readonly"
+description: "Read-only environment with pre-populated content"
+
+# Security settings
+security:
+  profile: "readonly"     # Security profile for read-only access
+  read_only: true         # Enforce read-only mode
+  max_file_size: 0        # Prevent any file creation (0 bytes allowed)
+  allowed_paths:          # Allow access to all paths (for reading)
+    - "/"
+  denied_paths: []        # No additional path restrictions for reading
+  denied_patterns: []     # No pattern restrictions for reading
+
+# Filesystem provider settings
+filesystem:
+  provider: "memory"      # Provider to use
+  provider_args: {}       # Arguments for the provider
+
+# Environment variables
+environment:
+  HOME: "/home/user"
+  PATH: "/bin:/usr/bin"
+  USER: "user"
+  SHELL: "/bin/bash"
+  TERM: "xterm"
+  READONLY: "true"        # Indicator that we're in read-only mode
+
+# Initialization commands (executed during setup before applying read-only)
+initialization:
+  - "mkdir -p /home/user/documents"
+  - "mkdir -p /home/user/examples"
+  - "echo 'This is a read-only environment. All changes will be discarded.' > /home/user/README.txt"
+  - "echo 'Example 1: Simple text file' > /home/user/examples/example1.txt"
+  - "echo 'Example 2: JSON data' > /home/user/examples/example2.json"
+  - "echo '{\"name\":\"read-only test\",\"status\":\"active\"}' > /home/user/examples/data.json"

@@ -1,0 +1,47 @@
+# Default sandbox configuration for PyodideShell
+# This defines the security profile, filesystem provider, and environment settings
+
+# Sandbox name and description
+name: "default"
+description: "Default balanced security environment"
+
+# Security settings
+security:
+  profile: "default"      # Security profile to use (default, strict, readonly, untrusted, testing)
+  read_only: false        # Override read-only setting if needed
+  max_file_size: 10485760 # 10MB max file size (optional override)
+  max_total_size: 104857600 # 100MB total storage quota (optional override)
+  max_files: 1000         # Maximum number of files (optional override)
+  max_path_depth: 10      # Maximum path depth (optional override)
+  allowed_paths:          # Optional override for allowed paths
+    - "/"
+  denied_paths:           # Optional override for denied paths
+    - "/etc/passwd"
+    - "/etc/shadow"
+    - "/etc/ssh"
+  denied_patterns:        # Optional override for denied patterns
+    - "\\.\\."
+    - "\\.env"
+    - "\\.ssh"
+    - "\\.aws"
+    - "\\.config"
+
+# Filesystem provider settings
+filesystem:
+  provider: "memory"      # Provider to use (memory, sqlite, pyodide, s3)
+  provider_args: {}       # Arguments for the provider
+
+# Environment variables
+environment:
+  HOME: "/home/user"
+  PATH: "/bin:/usr/bin"
+  USER: "user"
+  SHELL: "/bin/bash"
+  TERM: "xterm"
+
+# Initialization commands (executed during setup)
+initialization:
+  - "mkdir -p /home/user"
+  - "mkdir -p /home/user/documents"
+  - "mkdir -p /tmp"
+  - "echo 'Welcome to the default sandbox environment.' > /home/user/README.txt"

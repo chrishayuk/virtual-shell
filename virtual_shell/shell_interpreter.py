@@ -6,39 +6,62 @@ from virtual_shell.filesystem import VirtualFileSystem
 from virtual_shell.commands.command_loader import CommandLoader
 
 class ShellInterpreter:
-    def __init__(self, fs_provider=None, fs_provider_args=None):
+    def __init__(self, fs_provider=None, fs_provider_args=None, sandbox_yaml=None):
         """
         Initialize the shell interpreter
         
         Args:
             fs_provider: Optional filesystem provider name
             fs_provider_args: Optional arguments for the filesystem provider
+            sandbox_yaml: Optional path to sandbox YAML configuration
         """
         # Initialize filesystem
-        if fs_provider:
+        if sandbox_yaml:
+            # Use sandbox YAML configuration
+            from virtual_shell.sandbox_loader import load_sandbox_config, create_filesystem_from_config
+            from virtual_shell.sandbox_loader import get_environment_from_config, find_sandbox_config
+            
+            try:
+                # Handle sandbox name (find configuration file) or direct path
+                if not sandbox_yaml.endswith(('.yaml', '.yml')) and '/' not in sandbox_yaml:
+                    config_path = find_sandbox_config(sandbox_yaml)
+                    if not config_path:
+                        raise ValueError(f"Sandbox configuration '{sandbox_yaml}' not found")
+                else:
+                    config_path = sandbox_yaml
+                
+                # Load and apply configuration
+                config = load_sandbox_config(config_path)
+                
+                # Create filesystem with configuration
+                self.fs = create_filesystem_from_config(config)
+                
+                # Set environment variables from configuration
+                self.environ = get_environment_from_config(config)
+                
+                # Update PWD to match filesystem
+                self.environ["PWD"] = self.fs.pwd()
+                
+                print(f"Using sandbox configuration: {config.get('name', 'custom')}")
+            except Exception as e:
+                print(f"Error loading sandbox configuration '{sandbox_yaml}': {e}")
+                print("Falling back to default configuration.")
+                self.fs = VirtualFileSystem()
+                self._setup_default_environment()
+        elif fs_provider:
             # Use specified provider
             try:
                 self.fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
+                self._setup_default_environment()
             except Exception as e:
                 print(f"Error initializing filesystem provider '{fs_provider}': {e}")
                 print("Falling back to memory provider.")
                 self.fs = VirtualFileSystem()  # Fallback to memory provider
+                self._setup_default_environment()
         else:
             # Use default provider
             self.fs = VirtualFileSystem()
-        
-        # Create user home directory
-        self.fs.mkdir("/home/user")
-        
-        # Set up environment
-        self.environ = {
-            "HOME": "/home/user",
-            "PATH": "/bin:/usr/bin",
-            "USER": "user",
-            "SHELL": "/bin/bash",
-            "PWD": self.fs.pwd(),
-            "TERM": "xterm",
-        }
+            self._setup_default_environment()
         
         # Command history
         self.history = []
@@ -52,7 +75,22 @@ class ShellInterpreter:
         # Register commands - using command loader for dynamic discovery
         self.commands = {}
         self._load_commands()
-    
+
+    def _setup_default_environment(self):
+        """Set up default environment variables and directories"""
+        # Create user home directory
+        self.fs.mkdir("/home/user")
+        
+        # Set up environment
+        self.environ = {
+            "HOME": "/home/user",
+            "PATH": "/bin:/usr/bin",
+            "USER": "user",
+            "SHELL": "/bin/bash",
+            "PWD": self.fs.pwd(),
+            "TERM": "xterm",
+        }
+
     def _load_commands(self):
         """Dynamically load all available commands"""
         # Use the command loader to discover commands

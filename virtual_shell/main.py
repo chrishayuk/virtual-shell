@@ -27,18 +27,23 @@ def parse_provider_args(provider_args_str):
                 args[key.strip()] = value.strip()
         return args
 
-def create_shell_interpreter(provider=None, provider_args=None):
-    """Create a shell interpreter with the specified provider"""
-    shell = ShellInterpreter(fs_provider=provider, fs_provider_args=provider_args)
+def create_shell_interpreter(provider=None, provider_args=None, sandbox_yaml=None):
+    """Create a shell interpreter with the specified provider or sandbox"""
+    if sandbox_yaml:
+        shell = ShellInterpreter(sandbox_yaml=sandbox_yaml)
+    else:
+        shell = ShellInterpreter(fs_provider=provider, fs_provider_args=provider_args)
     return shell
 
-def run_interactive_shell(provider=None, provider_args=None):
+def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
     """Run PyodideShell in interactive mode"""
-    shell = create_shell_interpreter(provider, provider_args)
+    shell = create_shell_interpreter(provider, provider_args, sandbox_yaml)
     
     try:
         # Print provider info
-        if provider:
+        if sandbox_yaml:
+            print(f"Using sandbox YAML configuration: {sandbox_yaml}")
+        elif provider:
             print(f"Using filesystem provider: {shell.fs.get_provider_name()}")
             
         while shell.running:
@@ -62,16 +67,17 @@ def run_interactive_shell(provider=None, provider_args=None):
     except Exception as e:
         print(f"Error in interactive shell: {e}")
 
-async def run_telnet_server(provider=None, provider_args=None):
+async def run_telnet_server(provider=None, provider_args=None, sandbox_yaml=None):
     """Run PyodideShell in telnet server mode"""
-    server = TelnetServer(fs_provider=provider, fs_provider_args=provider_args)
+    server = TelnetServer(fs_provider=provider, fs_provider_args=provider_args, 
+                         sandbox_yaml=sandbox_yaml)
     await server.start()
 
-def run_script(script_path, provider=None, provider_args=None):
+def run_script(script_path, provider=None, provider_args=None, sandbox_yaml=None):
     """Run a shell script"""
     from virtual_shell.script_runner import ScriptRunner
     
-    shell = create_shell_interpreter(provider, provider_args)
+    shell = create_shell_interpreter(provider, provider_args, sandbox_yaml)
     runner = ScriptRunner(shell)
     
     try:
@@ -102,7 +108,11 @@ def main():
     parser.add_argument('--telnet', action='store_true', help='Run as telnet server')
     parser.add_argument('--script', type=str, help='Script file to run')
     
-    # Provider options
+    # Sandbox configuration
+    parser.add_argument('--sandbox', type=str, help='Sandbox configuration to use (YAML file or name)')
+    parser.add_argument('--list-sandboxes', action='store_true', help='List available sandbox configurations')
+    
+    # Provider options (used if sandbox not specified)
     parser.add_argument('--fs-provider', type=str, default='memory', 
                         help='Filesystem provider to use (memory, sqlite, s3, etc.)')
     parser.add_argument('--fs-provider-args', type=str,
@@ -121,7 +131,9 @@ def main():
                 script=None, 
                 script_path=None,
                 fs_provider='memory',
-                fs_provider_args=None
+                fs_provider_args=None,
+                sandbox=None,
+                list_sandboxes=False
             )
     except SystemExit:
         # If argparse wants to exit, just use default args in Pyodide environment
@@ -131,40 +143,51 @@ def main():
                 script=None, 
                 script_path=None,
                 fs_provider='memory',
-                fs_provider_args=None
+                fs_provider_args=None,
+                sandbox=None,
+                list_sandboxes=False
             )
         else:
             # In a normal Python environment, let argparse handle errors
             return
     
+    # List available sandboxes if requested
+    if args.list_sandboxes:
+        from virtual_shell.sandbox_loader import list_available_configs
+        configs = list_available_configs()
+        print("Available sandbox configurations:")
+        for name in configs:
+            print(f"  {name}")
+        return
+        
     # Parse provider arguments if specified
     provider_args = parse_provider_args(args.fs_provider_args) if args.fs_provider_args else {}
     
     # List available providers if requested
     if args.fs_provider == 'list':
         print("Available filesystem providers:")
-        for name, desc in list_providers().items():
-            print(f"  {name}: {desc}")
+        for name in list_providers():
+            print(f"  {name}")
         return
     
     # Determine operation mode
     if args.telnet:
         # Run as telnet server
         print("Starting telnet server...")
-        asyncio.run(run_telnet_server(args.fs_provider, provider_args))
+        asyncio.run(run_telnet_server(args.fs_provider, provider_args, args.sandbox))
     elif args.script or args.script_path:
         # Run a script
         script = args.script or args.script_path
         print(f"Running script: {script}")
-        run_script(script, args.fs_provider, provider_args)
+        run_script(script, args.fs_provider, provider_args, args.sandbox)
     elif 'pyodide' in sys.modules:
         # Running in Pyodide/browser - interactive shell
         print("Detected Pyodide environment")
-        run_interactive_shell(args.fs_provider, provider_args)
+        run_interactive_shell(args.fs_provider, provider_args, args.sandbox)
     else:
         # Running in regular Python environment - interactive shell
         print("Starting interactive shell...")
-        run_interactive_shell(args.fs_provider, provider_args)
+        run_interactive_shell(args.fs_provider, provider_args, args.sandbox)
 
 # Make sure to actually call the main function
 if __name__ == "__main__":

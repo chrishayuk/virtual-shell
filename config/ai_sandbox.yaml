@@ -1,0 +1,47 @@
+# AI Sandbox configuration for PyodideShell
+# Restricted environment for AI code execution
+
+# Sandbox name and description
+name: "ai_sandbox"
+description: "Restricted environment for AI code execution"
+
+# Security settings
+security:
+  profile: "untrusted"    # Using the untrusted security profile
+  read_only: false        # Allow writing within restricted areas
+  max_file_size: 1048576  # 1MB max file size
+  max_total_size: 10485760 # 10MB total storage quota
+  max_files: 100          # Maximum number of files
+  max_path_depth: 3       # Maximum path depth
+  allowed_paths:          # Only allow access to sandbox directory
+    - "/sandbox"
+  denied_paths:           # Explicitly deny these paths
+    - "/etc"
+    - "/bin"
+    - "/home"
+    - "/usr"
+  denied_patterns:        # Block these file patterns
+    - "\\.\\."            # Path traversal pattern
+    - "^\\."              # Hidden files
+    - ".*\\.(exe|sh|bat|cmd)$"  # Executable files
+
+# Filesystem provider settings
+filesystem:
+  provider: "memory"      # Provider to use
+  provider_args: {}       # Arguments for the provider
+
+# Environment variables
+environment:
+  HOME: "/sandbox"
+  PATH: "/bin"
+  USER: "ai"
+  SHELL: "/bin/bash"
+  TERM: "xterm"
+  SANDBOX_MODE: "restricted"
+
+# Initialization commands (executed during setup)
+initialization:
+  - "mkdir -p /sandbox/input"
+  - "mkdir -p /sandbox/output"
+  - "echo 'AI Sandbox - Restricted Environment' > /sandbox/README.txt"
+  - "echo 'Use /sandbox/input for input files and /sandbox/output for results.' > /sandbox/USAGE.txt"
