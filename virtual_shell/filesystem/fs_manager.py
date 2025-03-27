@@ -16,14 +16,21 @@ class VirtualFileSystem:
     Modular virtual filesystem manager with pluggable storage providers
     """
     
-    def __init__(self, provider_name: Any = "memory", **provider_args):
+    def __init__(self, provider_name: Any = "memory", security_profile: str = None, **provider_args):
         """
         Initialize the virtual filesystem with the specified provider
 
         Args:
             provider_name: Either the name of the storage provider (str) or an already-created provider instance.
+            security_profile: Optional security profile to apply ("default", "strict", "readonly", etc.)
             **provider_args: Arguments to pass to the provider constructor
         """
+        # Extract security settings from provider_args if provided
+        security_args = {}
+        for key in list(provider_args.keys()):
+            if key.startswith('security_'):
+                security_args[key[9:]] = provider_args.pop(key)
+        
         # If provider_name is a string, look it up; otherwise, use the provided instance
         if isinstance(provider_name, str):
             self.provider = ProviderManager.create_provider(provider_name, **provider_args)
@@ -35,6 +42,15 @@ class VirtualFileSystem:
         
         # Initialize basic filesystem structure
         ProviderManager.initialize_basic_structure(self.provider)
+        
+        # Apply security wrapper if profile specified
+        if security_profile:
+            from virtual_shell.filesystem.security_config import create_secure_provider
+            self.provider = create_secure_provider(self.provider, security_profile, **security_args)
+            
+            # Make sure current_directory_path is accessible to the wrapper
+            if hasattr(self.provider, 'current_directory_path'):
+                self.provider.current_directory_path = self.current_directory_path
 
     
     def change_provider(self, provider_name: str, **provider_args) -> bool:
@@ -66,6 +82,62 @@ class VirtualFileSystem:
         
         # success
         return True
+    
+    def apply_security(self, profile: str = "default", **settings) -> bool:
+        """
+        Apply security restrictions to the filesystem
+        
+        Args:
+            profile: Security profile name ("default", "strict", "readonly", etc.)
+            **settings: Override specific security settings
+            
+        Returns:
+            True if security was applied successfully
+        """
+        try:
+            from virtual_shell.filesystem.security_config import create_secure_provider
+            self.provider = create_secure_provider(self.provider, profile, **settings)
+            
+            # Make sure current_directory_path is accessible to the wrapper
+            if hasattr(self.provider, 'current_directory_path'):
+                self.provider.current_directory_path = self.current_directory_path
+                
+            return True
+        except Exception as e:
+            print(f"Error applying security: {e}")
+            return False
+            
+    def get_security_violations(self) -> List[Dict]:
+        """
+        Get the security violation log
+        
+        Returns:
+            List of security violation events
+        """
+        if hasattr(self.provider, 'get_violation_log'):
+            return self.provider.get_violation_log()
+        return []
+        
+    def is_read_only(self) -> bool:
+        """
+        Check if the filesystem is in read-only mode
+        
+        Returns:
+            True if filesystem is read-only
+        """
+        if hasattr(self.provider, 'read_only'):
+            return self.provider.read_only
+        return False
+        
+    def set_read_only(self, read_only: bool = True) -> None:
+        """
+        Set the read-only mode for the filesystem
+        
+        Args:
+            read_only: Whether to set the filesystem to read-only
+        """
+        if hasattr(self.provider, 'read_only'):
+            self.provider.read_only = read_only
     
     def resolve_path(self, path: str) -> str:
         """
@@ -239,6 +311,11 @@ class VirtualFileSystem:
             return False
         
         self.current_directory_path = resolved_path
+        
+        # Update current directory in security wrapper if present
+        if hasattr(self.provider, 'current_directory_path'):
+            self.provider.current_directory_path = resolved_path
+            
         return True
     
     def pwd(self) -> str:
@@ -360,6 +437,14 @@ class VirtualFileSystem:
             "storage_stats": self.provider.get_storage_stats(),
             "total_files": len(self.find("/"))
         }
+        
+        # Add security info if applicable
+        if hasattr(self.provider, 'read_only'):
+            info["security"] = {
+                "read_only": self.provider.read_only,
+                "violations": len(self.get_security_violations()) if hasattr(self.provider, 'get_violation_log') else 0
+            }
+            
         return info
     
     def get_storage_stats(self) -> Dict:
