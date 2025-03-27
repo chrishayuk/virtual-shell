@@ -7,3 +7,6 @@ __pycache__/
 
 # build
 .pdm-build
+
+# javascript
+node_modules/
