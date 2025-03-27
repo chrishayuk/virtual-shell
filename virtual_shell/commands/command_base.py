@@ -1,5 +1,5 @@
 """
-virtual_shell/commands/command_base.py - base class for all shell commands
+virtual_shell/command_base.py - base class for all shell commands
 """
 class ShellCommand:
     """Base class for all shell commands"""

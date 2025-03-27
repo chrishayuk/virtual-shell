@@ -1,73 +1,110 @@
 """
-virtual_shell/telnet_server.py - Telnet server implementation for PyodideShell
+virtual_shell/telnet_server.py - Telnet server for PyodideShell
 """
-
 import asyncio
-from virtual_shell.shell_interpreter import ShellInterpreter
-from virtual_shell.filesystem import VirtualFileSystem
+from typing import Dict, List, Optional, Any, Set
 
-class TelnetServer:
-    def __init__(self, host='0.0.0.0', port=23):
-        self.host = host
-        self.port = port
-        self.sessions = {}
-        self.fs = VirtualFileSystem()
+from virtual_shell.shell_interpreter import ShellInterpreter
+
+
+class TelnetConnection:
+    """Class representing a telnet connection"""
     
-    async def handle_client(self, reader, writer):
-        """Handle a telnet client connection"""
-        session_id = id(writer)
-        addr = writer.get_extra_info('peername')
-        self.sessions[session_id] = {
-            'reader': reader,
-            'writer': writer,
-            'addr': addr,
-            'shell': ShellInterpreter(self.fs)
-        }
+    def __init__(self, reader, writer, fs_provider=None, fs_provider_args=None):
+        """
+        Initialize a telnet connection
         
-        print(f"New connection from {addr}")
+        Args:
+            reader: StreamReader for the connection
+            writer: StreamWriter for the connection
+            fs_provider: Optional filesystem provider name
+            fs_provider_args: Optional arguments for the filesystem provider
+        """
+        self.reader = reader
+        self.writer = writer
+        self.shell = ShellInterpreter(fs_provider, fs_provider_args)
+        self.addr = writer.get_extra_info('peername')
         
-        # Send welcome message
-        welcome_msg = self.fs.read_file("/etc/motd") or "Welcome to PyodideShell!\n"
-        writer.write(welcome_msg.encode())
-        
-        shell = self.sessions[session_id]['shell']
-        
+    async def handle(self):
+        """Handle the telnet connection"""
         try:
-            while shell.running:
+            # Send welcome message
+            welcome = "Welcome to PyodideShell Telnet Server!\r\n"
+            if self.shell.fs.get_provider_name() != "MemoryStorageProvider":
+                welcome += f"Using filesystem provider: {self.shell.fs.get_provider_name()}\r\n"
+            welcome += "\r\n"
+            self.writer.write(welcome.encode())
+            await self.writer.drain()
+            
+            while self.shell.running:
                 # Send prompt
-                prompt = shell.prompt()
-                writer.write(prompt.encode())
-                await writer.drain()
+                prompt = self.shell.prompt()
+                self.writer.write(prompt.encode())
+                await self.writer.drain()
                 
                 # Read command
-                data = await reader.readline()
+                data = await self.reader.readline()
+                if not data:
+                    break
+                    
                 cmd_line = data.decode().strip()
                 
-                if not cmd_line and not data:
-                    # Connection closed
-                    break
-                
                 # Execute command
-                result = shell.execute(cmd_line)
+                result = self.shell.execute(cmd_line)
                 if result:
-                    writer.write((result + "\n").encode())
-                    await writer.drain()
-                
-                if not shell.running:
-                    break
+                    self.writer.write((result + "\r\n").encode())
+                    await self.writer.drain()
+                    
+        except (ConnectionResetError, BrokenPipeError):
+            pass
         except Exception as e:
-            print(f"Error in session {session_id}: {e}")
+            try:
+                self.writer.write(f"Error: {e}\r\n".encode())
+                await self.writer.drain()
+            except:
+                pass
         finally:
-            writer.close()
-            await writer.wait_closed()
-            del self.sessions[session_id]
-            print(f"Connection from {addr} closed")
+            self.writer.close()
+            await self.writer.wait_closed()
+
+
+class TelnetServer:
+    """Telnet server for PyodideShell"""
     
+    def __init__(self, host='0.0.0.0', port=8023, fs_provider=None, fs_provider_args=None):
+        """
+        Initialize the telnet server
+        
+        Args:
+            host: Host to bind to
+            port: Port to bind to
+            fs_provider: Optional filesystem provider name
+            fs_provider_args: Optional arguments for the filesystem provider
+        """
+        self.host = host
+        self.port = port
+        self.fs_provider = fs_provider
+        self.fs_provider_args = fs_provider_args
+        self.connections: Set[TelnetConnection] = set()
+        
+    async def client_connected(self, reader, writer):
+        """Handle a client connection"""
+        conn = TelnetConnection(reader, writer, self.fs_provider, self.fs_provider_args)
+        addr = conn.addr
+        print(f"Client connected: {addr}")
+        
+        self.connections.add(conn)
+        try:
+            await conn.handle()
+        finally:
+            self.connections.remove(conn)
+            print(f"Client disconnected: {addr}")
+            
     async def start(self):
         """Start the telnet server"""
         server = await asyncio.start_server(
-            self.handle_client, self.host, self.port)
-        
+            self.client_connected, self.host, self.port)
+            
         addr = server.sockets[0].getsockname()
         print(f'Serving on {addr}')
         

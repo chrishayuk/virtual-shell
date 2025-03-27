@@ -1,9 +1,10 @@
 """
-tests/virtual_server/test_telnet_server.py
+tests/test_telnet_server.py
 """
 import asyncio
 import pytest
-from virtual_shell.telnet_server import TelnetServer
+from unittest.mock import Mock, patch
+from virtual_shell.telnet_server import TelnetServer, TelnetConnection
 
 # Fake stream reader that returns preset lines.
 class FakeStreamReader:
@@ -49,17 +50,31 @@ async def test_telnet_server_handle_client_exit():
     fake_reader = FakeStreamReader([b"exit\n", b""])
     fake_writer = FakeStreamWriter()
 
-    # Instantiate the TelnetServer.
-    server = TelnetServer()
-
-    # Before handling the client, capture the expected welcome message.
-    # The VirtualFileSystem is initialized with /etc/motd.
-    expected_welcome = server.fs.read_file("/etc/motd")
-    # expected_welcome should be something like:
-    # "Welcome to PyodideShell - A Virtual Filesystem in the Browser!\n"
-    
-    # Run the client handler.
-    await server.handle_client(fake_reader, fake_writer)
+    # Create a connection with a mock shell interpreter
+    with patch('virtual_shell.telnet_server.ShellInterpreter') as MockShell:
+        # Configure the mock shell
+        mock_shell = MockShell.return_value
+        mock_shell.running = True  # Initially running
+        mock_fs = Mock()
+        mock_fs.get_provider_name.return_value = "MemoryStorageProvider"
+        mock_shell.fs = mock_fs
+        
+        # Make sure execute("exit") sets running to False and returns "Goodbye!"
+        def mock_execute(cmd):
+            if cmd == "exit":
+                mock_shell.running = False
+                return "Goodbye!"
+            return None
+        mock_shell.execute.side_effect = mock_execute
+        
+        # Set up the prompt method
+        mock_shell.prompt.return_value = "user@pyodide:/$ "
+        
+        # Create the connection
+        connection = TelnetConnection(fake_reader, fake_writer)
+        
+        # Run the connection handler
+        await connection.handle()
 
     # Check that the writer was closed.
     assert fake_writer.closed is True
@@ -69,9 +84,8 @@ async def test_telnet_server_handle_client_exit():
 
     # The output should contain:
     # - The welcome message.
-    # - At least one prompt (which is based on the shell's environment, e.g. "user@pyodide:/...$ ")
+    # - At least one prompt (e.g. "user@pyodide:/...$ ").
     # - The output of executing "exit" (typically "Goodbye!").
-    assert expected_welcome in output
+    assert "Welcome to PyodideShell" in output
+    assert "user@pyodide:/" in output  # Check for prompt format
     assert "Goodbye!" in output
-    # Also, verify that after "exit" the shell stops sending further prompts.
-    # Since our fake reader sends only one
