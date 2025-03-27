@@ -250,12 +250,15 @@ if __name__ == "__main__":
     pyodide_main()
 `;
 
-  // Create a pyodide-specific main.py file
+  // Safely escape the content using JSON.stringify
+  const escapedContent = JSON.stringify(pyodideMainContent);
+
+  // Create a pyodide-specific main.py file and run it
   try {
     await pyodide.runPythonAsync(`
 # Create a pyodide-compatible main.py file
 with open('pyodide_main.py', 'w') as f:
-    f.write("""${pyodideMainContent}""")
+    f.write(${escapedContent})
     
 print("Created pyodide_main.py")
 
@@ -268,7 +271,7 @@ except Exception as e:
     print(f"Error executing pyodide_main.py: {e}")
     import traceback
     traceback.print_exc()
-    `);
+`);
   } catch (e) {
     console.error("Error running custom main script:", e);
     console.error(e.stack);
