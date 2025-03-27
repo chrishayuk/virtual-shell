@@ -3,56 +3,51 @@ const { loadPyodide } = require("pyodide");
 const fs = require('fs');
 const path = require('path');
 
-// Function to recursively load Python modules from directory
+// Function to recursively load Python modules into Pyodide
 function loadPythonModules(pyodide, dir) {
   if (!fs.existsSync(dir)) {
     const parentDir = path.join('..', dir);
     if (fs.existsSync(parentDir)) {
-      console.log(`Directory ${dir} not found, using ${parentDir} instead`);
       dir = parentDir;
     } else {
       throw new Error(`Could not find Python modules directory at ${dir} or ${parentDir}`);
     }
   }
 
-  // Create the base directory in Pyodide
+  // Ensure "virtual_shell" directory exists in the Pyodide filesystem
   pyodide.runPython(`
 import os
 os.makedirs('./virtual_shell', exist_ok=True)
   `);
 
+  // Recursively process a directory, copying .py files to the Pyodide FS
   function processDirectory(currentDir, pyodidePath) {
-    console.log(`Processing directory: ${currentDir} -> ${pyodidePath}`);
-
     pyodide.runPython(`
 import os
 os.makedirs('${pyodidePath}', exist_ok=True)
     `);
 
     const files = fs.readdirSync(currentDir);
-    files.forEach(file => {
+    for (const file of files) {
       const fullPath = path.join(currentDir, file);
       const pyodideFilePath = path.join(pyodidePath, file).replace(/\\/g, '/');
 
+      // Recurse into subdirectories
       if (fs.statSync(fullPath).isDirectory()) {
-        // Recursively handle subdirectories
         processDirectory(fullPath, pyodideFilePath);
-      } else if (file.endsWith('.py')) {
+      }
+      // Copy .py files
+      else if (file.endsWith('.py')) {
         const content = fs.readFileSync(fullPath, 'utf8');
         const base64Content = Buffer.from(content).toString('base64');
-
         pyodide.runPython(`
-import os
-import base64
+import os, base64
 os.makedirs(os.path.dirname('${pyodideFilePath}'), exist_ok=True)
 with open('${pyodideFilePath}', 'w') as f:
-    content = base64.b64decode('${base64Content}').decode('utf-8')
-    f.write(content)
+    f.write(base64.b64decode('${base64Content}').decode('utf-8'))
         `);
-
-        console.log(`Loaded file: ${pyodideFilePath}`);
       }
-    });
+    }
   }
 
   const baseDir = path.basename(dir);
@@ -60,79 +55,59 @@ with open('${pyodideFilePath}', 'w') as f:
 }
 
 async function runPyodideShell() {
-  console.log("Loading Pyodide... this may take a moment");
+  // Minimal console message
+  console.log("Initializing Pyodide shell...");
+
+  // Load Pyodide
   const pyodide = await loadPyodide();
-  console.log("Pyodide loaded successfully");
 
-  // Set up Python path and environment
+  // Configure Python environment
   await pyodide.runPythonAsync(`
-    import sys
-    import os
-    if '.' not in sys.path:
-        sys.path.insert(0, '.')
-    if './virtual_shell' not in sys.path:
-        sys.path.insert(0, './virtual_shell')
-    print("Initial sys.path:", sys.path)
-    os.makedirs('./virtual_shell', exist_ok=True)
-    os.environ['PYTHONPATH'] = './virtual_shell:' + os.environ.get('PYTHONPATH', '')
-    os.environ['HOME'] = '/home/pyodide'
-    os.environ['USER'] = 'pyodide'
-  `);
+import sys, os
 
-  // Locate the local "virtual_shell" directory to load
-  const vsPath = fs.existsSync('./virtual_shell') 
-               ? './virtual_shell' 
-               : (fs.existsSync('../virtual_shell') ? '../virtual_shell' : null);
+if '.' not in sys.path:
+    sys.path.insert(0, '.')
+if './virtual_shell' not in sys.path:
+    sys.path.insert(0, './virtual_shell')
+
+os.makedirs('./virtual_shell', exist_ok=True)
+
+os.environ['PYTHONPATH'] = './virtual_shell:' + os.environ.get('PYTHONPATH','')
+os.environ['HOME'] = '/home/pyodide'
+os.environ['USER'] = 'pyodide'
+`);
+
+  // Locate and verify local virtual_shell directory
+  const vsPath = fs.existsSync('./virtual_shell')
+    ? './virtual_shell'
+    : (fs.existsSync('../virtual_shell') ? '../virtual_shell' : null);
 
   if (!vsPath) {
-    console.error("Could not find virtual_shell directory in either current or parent directory");
+    console.error("Error: could not find 'virtual_shell' in current or parent directory.");
     process.exit(1);
   }
 
-  console.log(`Found virtual_shell at ${vsPath}`);
-  console.log(`Directory contents:`, fs.readdirSync(vsPath));
-
-  // Check if we have .py files
-  const hasPyFiles = fs.readdirSync(vsPath, { recursive: true })
-                      .some(file => file.endsWith('.py'));
+  // Check if there are Python files
+  const hasPyFiles = fs
+    .readdirSync(vsPath, { recursive: true })
+    .some(file => file.endsWith('.py'));
   if (!hasPyFiles) {
-    console.error("No Python files found in the virtual_shell directory");
+    console.error("Error: no Python files found in 'virtual_shell'.");
     process.exit(1);
   }
 
-  // Copy local Python files into Pyodide FS
-  try {
-    loadPythonModules(pyodide, vsPath);
-    console.log("Python modules loaded");
-    pyodide.runPython(`
-import os
-import sys
-print("Current working directory:", os.getcwd())
-print("Files in virtual_shell:")
-if os.path.exists('./virtual_shell'):
-    for root, dirs, files in os.walk('./virtual_shell'):
-        for file in files:
-            print(os.path.join(root, file))
-else:
-    print("virtual_shell directory not found in Pyodide filesystem")
-print("sys.path:", sys.path)
-    `);
-  } catch (e) {
-    console.error("Error loading Python modules:", e);
-    process.exit(1);
-  }
+  // Load Python modules into Pyodide
+  loadPythonModules(pyodide, vsPath);
 
-  // Register raw-mode input, but do NOT print the prompt here
+  // Set up raw-mode input without printing a prompt from Node
   pyodide.registerJsModule("nodepy", {
-    // Raw-mode input with live echo
     async input(_prompt) {
-      // Let Python do the prompt printing; we skip it here.
       return new Promise((resolve) => {
         let input = "";
         process.stdin.setRawMode(true);
         process.stdin.resume();
         process.stdin.setEncoding('utf8');
-        
+
         function onData(char) {
           if (char === "\r" || char === "\n") {
             process.stdout.write("\n");
@@ -143,50 +118,43 @@ print("sys.path:", sys.path)
           } else if (char === "\u0003") {
             // Ctrl+C
             process.stdout.write("^C\n");
-            // Decide how to handle. Let's just return empty string
             input = "";
             process.stdin.setRawMode(false);
             process.stdin.pause();
             process.stdin.removeListener("data", onData);
             resolve(input);
           } else {
-            // Echo typed character
+            // Echo each typed character
             process.stdout.write(char);
             input += char;
           }
         }
-        
+
         process.stdin.on("data", onData);
       });
     },
-
-    // Python's print ends up calling this
     print(text) {
       console.log(text);
     }
   });
 
-  // Override Python's built-in input and print
+  // Override Python's built-in input/print with custom versions
   await pyodide.runPythonAsync(`
-    import builtins
-    import nodepy
+import builtins, sys, nodepy
 
-    def custom_input(prompt=""):
-      return nodepy.input(prompt)
+def custom_input(prompt=""):
+    return nodepy.input(prompt)
+builtins.input = custom_input
 
-    builtins.input = custom_input
+orig_print = builtins.print
+def custom_print(*args, **kwargs):
+    r = orig_print(*args, **kwargs)
+    sys.stdout.flush()
+    return r
+builtins.print = custom_print
+`);
 
-    original_print = builtins.print
-    def custom_print(*args, **kwargs):
-      result = original_print(*args, **kwargs)
-      import sys
-      sys.stdout.flush()
-      return result
-
-    builtins.print = custom_print
-  `);
-
-  // Create and write pyodide_main.py
+  // Minimal Python shell content (no debug prints)
   const pyodideMainContent = `"""
 pyodide_main.py - Pyodide-compatible main entry point for PyodideShell
 """
@@ -195,9 +163,8 @@ import os
 from virtual_shell.shell_interpreter import ShellInterpreter
 
 def pyodide_main():
-    print("Starting PyodideShell in Pyodide environment...")
+    # Minimal start message
     shell = ShellInterpreter()
-    print(f"Using filesystem provider: {shell.fs.get_provider_name()}")
     while shell.running:
         prompt = shell.prompt()
         try:
@@ -209,21 +176,22 @@ def pyodide_main():
                 print(result)
         except Exception as e:
             print(f"Error: {e}")
+
+    # Minimal exit message
     print("Goodbye from PyodideShell!")
 
 if __name__ == "__main__":
     pyodide_main()
 `;
-  const escapedContent = JSON.stringify(pyodideMainContent);
 
+  // Create pyodide_main.py inside Pyodide
+  const escapedContent = JSON.stringify(pyodideMainContent);
   try {
     await pyodide.runPythonAsync(`
 with open('pyodide_main.py', 'w') as f:
     f.write(${escapedContent})
 
-print("Created pyodide_main.py")
 try:
-    print("Running pyodide_main.py...")
     from pyodide_main import pyodide_main
     pyodide_main()
 except Exception as e:
@@ -231,13 +199,13 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 `);
-  } catch (e) {
-    console.error("Error running custom main script:", e);
-    console.error(e.stack);
+  } catch (err) {
+    console.error("Failed to run Pyodide main script:", err);
   } finally {
-    // Keep Node.js alive forever (until Ctrl+C) so it doesn’t exit
+    // Keep the Node process alive indefinitely
     await new Promise(() => {});
   }
 }
 
+// Start the shell
 runPyodideShell();
