@@ -101,3 +101,58 @@ def test_get_node_info(vfs):
     node_info = vfs.get_node_info("/etc/motd")
     assert node_info is not None
     assert isinstance(node_info, FSNodeInfo)
+
+def test_cp_and_mv(vfs):
+    # Test copy file
+    vfs.write_file("/tmp/source.txt", "Copy content")
+    assert vfs.cp("/tmp/source.txt", "/tmp/destination.txt") is True
+    assert vfs.read_file("/tmp/destination.txt") == "Copy content"
+
+    # Test move file
+    assert vfs.mv("/tmp/source.txt", "/tmp/moved.txt") is True
+    assert vfs.read_file("/tmp/moved.txt") == "Copy content"
+    assert vfs.get_node_info("/tmp/source.txt") is None
+
+def test_find_and_search(vfs):
+    # Prepare test files
+    vfs.mkdir("/test_search")
+    vfs.write_file("/test_search/file1.txt", "Content 1")
+    vfs.write_file("/test_search/file2.txt", "Content 2")
+    vfs.write_file("/test_search/file3.log", "Content 3")
+
+    # Test find
+    found_files = vfs.find("/test_search")
+    assert len(found_files) == 3
+    assert set(found_files) == {
+        "/test_search/file1.txt", 
+        "/test_search/file2.txt", 
+        "/test_search/file3.log"
+    }
+
+    # Test search with pattern
+    txt_files = vfs.search("/test_search", "*.txt")
+    assert len(txt_files) == 2
+    assert set(txt_files) == {
+        "/test_search/file1.txt", 
+        "/test_search/file2.txt"
+    }
+
+def test_get_fs_info(vfs):
+    fs_info = vfs.get_fs_info()
+    assert isinstance(fs_info, dict)
+    assert "current_directory" in fs_info
+    assert "provider_name" in fs_info
+    assert "storage_stats" in fs_info
+    assert "total_files" in fs_info
+
+def test_change_provider(vfs):
+    # Ensure we can change provider
+    result = vfs.change_provider("memory")
+    assert result is True
+
+    # Verify the current directory is reset
+    assert vfs.pwd() == "/"
+
+    # Verify basic structure is maintained
+    basic_dirs = {"bin", "home", "tmp", "etc"}
+    assert set(vfs.ls("/")) >= basic_dirs
