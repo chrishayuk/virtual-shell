@@ -1,107 +1,145 @@
 """
-pyodide_main.py - Pyodide-Safe Shell Initialization
+pyodide_main.py - Event Loop Aware PyodideShell
 """
 import sys
+import os
+import asyncio
 import traceback
+import logging
 
-def comprehensive_diagnostics():
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('pyodide_shell_debug.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger('PyodideShell')
+
+def create_debug_file(content):
     """
-    Comprehensive system and input method diagnostics
+    Create a debug file with given content
     """
-    print("\n### SYSTEM DIAGNOSTICS ###")
-    
-    # Python environment info
-    print(f"Python Version: {sys.version}")
-    print(f"Python Executable: {sys.executable}")
-    print(f"Current Working Directory: {sys.path}")
-    
-    # Check for Pyodide
     try:
-        import js
-        print("\nPyodide environment detected")
-    except ImportError:
-        print("\nStandard Python environment")
+        with open('pyodide_shell_debug.txt', 'w') as f:
+            f.write(str(content))
+    except Exception as e:
+        print(f"Failed to write debug file: {e}")
+
+async def safe_async_input(prompt=""):
+    """
+    Safe async input method for Pyodide environment
+    """
+    logger.debug(f"Attempting to get input with prompt: {prompt}")
     
-    # Input method investigation
-    print("\n### INPUT METHOD INVESTIGATION ###")
     try:
         import nodepy
-        print("Nodepy module available")
         
-        print("\nNodepy module contents:")
-        print(dir(nodepy))
-        
-        print("\nAttempting to retrieve input method details:")
         try:
-            input_func = nodepy.input
-            print(f"Input function: {input_func}")
-            print(f"Input function type: {type(input_func)}")
-        except Exception as func_error:
-            print(f"Error retrieving input function: {func_error}")
+            # Await input 
+            input_result = await nodepy.input(prompt)
+            
+            # Convert and log result
+            result_str = str(input_result).strip()
+            logger.debug(f"Input result: {result_str}")
+            
+            return result_str
+        
+        except Exception as input_error:
+            logger.error(f"Async input error: {input_error}")
+            return ""
     
-    except ImportError:
-        print("Nodepy module not found")
     except Exception as e:
-        print(f"Unexpected nodepy investigation error: {e}")
+        logger.error(f"Nodepy input initialization error: {e}")
+        return ""
 
-def run_shell_diagnostics():
+async def run_pyodide_shell():
     """
-    Run diagnostic checks for the shell
+    Async shell loop designed for Pyodide environment
     """
+    logger.info("Starting PyodideShell interactive loop")
+    
     try:
         from virtual_shell.shell_interpreter import ShellInterpreter
         
         # Create shell interpreter
-        print("\n### SHELL INTERPRETER DIAGNOSTICS ###")
         shell = ShellInterpreter()
         
-        # Print filesystem provider info
-        print(f"Filesystem Provider: {shell.fs.get_provider_name()}")
+        # Log filesystem provider
+        logger.info(f"Filesystem Provider: {shell.fs.get_provider_name()}")
         
-        # Investigate shell methods
-        print("\nAvailable ShellInterpreter methods:")
-        for method in dir(shell):
-            if not method.startswith('_'):
-                print(f"  - {method}")
-        
-        # Prompt generation test
-        try:
-            prompt = shell.prompt()
-            print(f"\nGenerated Prompt: {prompt}")
-        except Exception as prompt_error:
-            print(f"Prompt generation error: {prompt_error}")
-        
-        # Mock input and command execution
-        print("\n### COMMAND EXECUTION TEST ###")
-        test_commands = ['pwd', 'ls', 'help']
-        for cmd in test_commands:
+        # Interactive shell loop
+        while shell.running:
             try:
-                print(f"\nTesting command: {cmd}")
-                result = shell.execute(cmd)
-                print(f"Command result: {result}")
-            except Exception as cmd_error:
-                print(f"Command '{cmd}' execution error: {cmd_error}")
+                # Generate prompt
+                prompt = shell.prompt()
+                logger.debug(f"Generated prompt: {prompt}")
+                
+                # Get input asynchronously
+                cmd_line = await safe_async_input(prompt)
+                logger.debug(f"Received command: {cmd_line}")
+                
+                # Exit conditions
+                if cmd_line.lower() in ['exit', 'quit', 'q']:
+                    logger.info("Exit command received")
+                    break
+                
+                # Skip empty commands
+                if not cmd_line:
+                    continue
+                
+                # Execute command
+                try:
+                    result = shell.execute(cmd_line)
+                    
+                    # Log and print result
+                    if result:
+                        logger.info(f"Command result: {result}")
+                        print(result)
+                
+                except Exception as exec_error:
+                    logger.error(f"Command execution error: {exec_error}")
+                    print(f"Error: {exec_error}")
+            
+            except KeyboardInterrupt:
+                logger.info("Keyboard interrupt received")
+                break
+            except Exception as loop_error:
+                logger.error(f"Shell loop error: {loop_error}")
+                print(f"Error: {loop_error}")
+                break
     
     except ImportError as import_error:
-        print(f"Shell interpreter import error: {import_error}")
-        traceback.print_exc()
-    
-    except Exception as shell_error:
-        print(f"Unexpected shell error: {shell_error}")
-        traceback.print_exc()
+        logger.error(f"Failed to import ShellInterpreter: {import_error}")
+        print(f"Import error: {import_error}")
+    except Exception as init_error:
+        logger.error(f"Shell initialization failed: {init_error}")
+        print(f"Initialization error: {init_error}")
+    finally:
+        logger.info("PyodideShell session ended.")
+        print("PyodideShell session ended.")
 
 def pyodide_main():
     """
-    Main entry point with comprehensive diagnostics
+    Main entry point for Pyodide shell
     """
-    # Run comprehensive diagnostics
-    comprehensive_diagnostics()
+    try:
+        # Get current event loop or create a new one
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        # Run the shell coroutine
+        loop.run_until_complete(run_pyodide_shell())
     
-    # Run shell system checks
-    run_shell_diagnostics()
-    
-    # Print final message
-    print("\nDiagnostic complete. Please check the output for any issues.")
+    except Exception as main_error:
+        logger.error(f"Fatal shell error: {main_error}")
+        print(f"Fatal error: {main_error}")
+        traceback.print_exc()
 
 if __name__ == "__main__":
     pyodide_main()
