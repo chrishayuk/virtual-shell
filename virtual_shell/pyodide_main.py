@@ -1,5 +1,5 @@
 """
-Enhanced Pyodide-Compatible Async Shell
+Enhanced Pyodide-Compatible Async Shell using Pyodide provider (with debug)
 """
 import sys
 import asyncio
@@ -25,9 +25,29 @@ async def run_pyodide_shell():
     Async shell main loop with optimized input and error handling
     """
     try:
+        # Import the provider manager and the shell interpreter
+        from virtual_shell.filesystem.provider_manager import ProviderManager
         from virtual_shell.shell_interpreter import ShellInterpreter
-        shell = ShellInterpreter()
+
+        # Debug: List available providers
+        try:
+            from virtual_shell.filesystem.providers import list_providers
+            providers = list_providers()
+        except Exception as e:
+            pass
+
+        # Create and initialize the Pyodide provider via the factory
+        provider = ProviderManager.create_provider("pyodide")
+        if not provider:
+            raise Exception("Failed to create Pyodide provider")
         
+        # Check provider initialization status
+        if not provider.initialize():
+            raise Exception("Provider initialization failed")
+
+        # Pass the provider to the shell interpreter (assuming it accepts one)
+        shell = ShellInterpreter(provider)
+
         while shell.running:
             # Prepare prompt
             prompt = shell.prompt()

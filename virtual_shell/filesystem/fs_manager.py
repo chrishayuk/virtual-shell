@@ -16,25 +16,26 @@ class VirtualFileSystem:
     Modular virtual filesystem manager with pluggable storage providers
     """
     
-    def __init__(self, provider_name: str = "memory", **provider_args):
+    def __init__(self, provider: Any = "memory", **provider_args):
         """
         Initialize the virtual filesystem with the specified provider
-        
+
         Args:
-            provider_name: Name of the storage provider to use
+            provider: Either the name of the storage provider (str) or an already-created provider instance.
             **provider_args: Arguments to pass to the provider constructor
         """
-        # Create and initialize provider
-        self.provider = ProviderManager.create_provider(
-            provider_name, 
-            **provider_args
-        )
-        
+        # If provider is a string, look it up; otherwise, use the provided instance
+        if isinstance(provider, str):
+            self.provider = ProviderManager.create_provider(provider, **provider_args)
+        else:
+            self.provider = provider
+
         # Initialize current directory
         self.current_directory_path = "/"
         
         # Initialize basic filesystem structure
         ProviderManager.initialize_basic_structure(self.provider)
+
     
     def change_provider(self, provider_name: str, **provider_args) -> bool:
         """
@@ -63,6 +64,7 @@ class VirtualFileSystem:
         # Reset current directory
         self.current_directory_path = "/"
         
+        # success
         return True
     
     def resolve_path(self, path: str) -> str:
@@ -75,7 +77,11 @@ class VirtualFileSystem:
         Returns:
             Fully resolved absolute path
         """
-        return PathResolver.resolve_path(self.current_directory_path, path)
+        # resolve the path
+        resolved = PathResolver.resolve_path(self.current_directory_path, path)
+
+        # path resolved
+        return resolved
     
     def mkdir(self, path: str) -> bool:
         """
@@ -87,24 +93,18 @@ class VirtualFileSystem:
         Returns:
             True if directory was created, False otherwise
         """
-        # Normalize and resolve path
         resolved_path = self.resolve_path(path)
-        
-        # Check if already exists
         if self.provider.get_node_info(resolved_path):
             return False
         
-        # Get parent path and directory name
         parent_path, dir_name = PathResolver.split_path(resolved_path)
-        
-        # Check if parent exists and is a directory
         parent_info = self.provider.get_node_info(parent_path)
         if not parent_info or not parent_info.is_dir:
             return False
         
-        # Create directory
         node_info = FSNodeInfo(dir_name, True, parent_path)
-        return self.provider.create_node(node_info)
+        result = self.provider.create_node(node_info)
+        return result
     
     def touch(self, path: str) -> bool:
         """
@@ -116,29 +116,22 @@ class VirtualFileSystem:
         Returns:
             True if file was created or exists, False otherwise
         """
-        # Resolve path
         resolved_path = self.resolve_path(path)
-        
-        # Check if already exists
         node_info = self.provider.get_node_info(resolved_path)
         if node_info:
             return not node_info.is_dir
         
-        # Get parent path and file name
         parent_path, file_name = PathResolver.split_path(resolved_path)
-        
-        # Check if parent exists and is a directory
         parent_info = self.provider.get_node_info(parent_path)
         if not parent_info or not parent_info.is_dir:
             return False
         
-        # Create file
         node_info = FSNodeInfo(file_name, False, parent_path)
         if not self.provider.create_node(node_info):
             return False
         
-        # Write empty content
-        return self.provider.write_file(resolved_path, "")
+        result = self.provider.write_file(resolved_path, "")
+        return result
     
     def write_file(self, path: str, content: str) -> bool:
         """
@@ -151,35 +144,26 @@ class VirtualFileSystem:
         Returns:
             True if write was successful, False otherwise
         """
-        # Resolve path
         resolved_path = self.resolve_path(path)
-        
-        # Check if path exists
         node_info = self.provider.get_node_info(resolved_path)
         
         if node_info:
-            # Fail if it's a directory
             if node_info.is_dir:
                 return False
-            
-            # Write to existing file
-            return self.provider.write_file(resolved_path, content)
+            result = self.provider.write_file(resolved_path, content)
+            return result
         
-        # Create new file
         parent_path, file_name = PathResolver.split_path(resolved_path)
-        
-        # Check if parent exists and is a directory
         parent_info = self.provider.get_node_info(parent_path)
         if not parent_info or not parent_info.is_dir:
             return False
         
-        # Create file
         node_info = FSNodeInfo(file_name, False, parent_path)
         if not self.provider.create_node(node_info):
             return False
         
-        # Write content
-        return self.provider.write_file(resolved_path, content)
+        result = self.provider.write_file(resolved_path, content)
+        return result
     
     def read_file(self, path: str) -> Optional[str]:
         """
@@ -191,16 +175,12 @@ class VirtualFileSystem:
         Returns:
             File content or None if file doesn't exist or is a directory
         """
-        # Resolve path
         resolved_path = self.resolve_path(path)
-        
-        # Check if path exists and is a file
         node_info = self.provider.get_node_info(resolved_path)
         if not node_info or node_info.is_dir:
             return None
-        
-        # Read content
-        return self.provider.read_file(resolved_path)
+        content = self.provider.read_file(resolved_path)
+        return content
     
     def ls(self, path: str = None) -> List[str]:
         """
@@ -212,16 +192,12 @@ class VirtualFileSystem:
         Returns:
             List of directory contents
         """
-        # Resolve path
         resolved_path = self.resolve_path(path) if path is not None else self.current_directory_path
-        
-        # Check if path exists and is a directory
         node_info = self.provider.get_node_info(resolved_path)
         if not node_info or not node_info.is_dir:
             return []
-        
-        # List contents
-        return self.provider.list_directory(resolved_path)
+        contents = self.provider.list_directory(resolved_path)
+        return contents
     
     def cd(self, path: str) -> bool:
         """
@@ -233,15 +209,11 @@ class VirtualFileSystem:
         Returns:
             True if directory change was successful, False otherwise
         """
-        # Resolve path
         resolved_path = self.resolve_path(path)
-        
-        # Check if path exists and is a directory
         node_info = self.provider.get_node_info(resolved_path)
         if not node_info or not node_info.is_dir:
             return False
         
-        # Change directory
         self.current_directory_path = resolved_path
         return True
     
@@ -264,20 +236,16 @@ class VirtualFileSystem:
         Returns:
             True if removal was successful, False otherwise
         """
-        # Resolve path
         resolved_path = self.resolve_path(path)
-        
-        # Prevent deleting root
         if resolved_path == "/":
             return False
         
-        # Check if path exists
         node_info = self.provider.get_node_info(resolved_path)
         if not node_info:
             return False
         
-        # Delete node
-        return self.provider.delete_node(resolved_path)
+        result = self.provider.delete_node(resolved_path)
+        return result
     
     def cp(self, source: str, destination: str) -> bool:
         """
@@ -290,12 +258,13 @@ class VirtualFileSystem:
         Returns:
             True if copy was successful, False otherwise
         """
-        return FileOperations.copy(
+        result = FileOperations.copy(
             self.provider, 
             PathResolver, 
             source, 
             destination
         )
+        return result
     
     def mv(self, source: str, destination: str) -> bool:
         """
@@ -308,64 +277,13 @@ class VirtualFileSystem:
         Returns:
             True if move was successful, False otherwise
         """
-        return FileOperations.move(
+        result = FileOperations.move(
             self.provider, 
             PathResolver, 
             source, 
             destination
         )
-    
-    """
-    Additional methods for VirtualFileSystem in fs_manager.py
-    """
-    def rmdir(self, path: str) -> bool:
-        """
-        Remove an empty directory
-        
-        Args:
-            path: Path of the directory to remove
-        
-        Returns:
-            True if directory was removed, False otherwise
-        """
-        # Resolve path
-        resolved_path = self.resolve_path(path)
-        
-        # Check if path exists and is a directory
-        node_info = self.provider.get_node_info(resolved_path)
-        if not node_info or not node_info.is_dir:
-            return False
-        
-        # Prevent deleting root
-        if resolved_path == "/":
-            return False
-        
-        # Ensure directory is empty
-        contents = self.provider.list_directory(resolved_path)
-        if contents:
-            return False
-        
-        # Delete directory
-        return self.provider.delete_node(resolved_path)
-
-    def cp(self, source: str, destination: str) -> bool:
-        """
-        Copy a file or directory
-        
-        Args:
-            source: Source path
-            destination: Destination path
-        
-        Returns:
-            True if copy was successful, False otherwise
-        """
-        # Use the FileOperations copy method
-        return FileOperations.copy(
-            self.provider, 
-            PathResolver, 
-            source, 
-            destination
-        )
+        return result
     
     def find(self, path: str = "/", recursive: bool = True) -> List[str]:
         """
@@ -378,11 +296,12 @@ class VirtualFileSystem:
         Returns:
             List of found paths
         """
-        return SearchUtils.find(
+        results = SearchUtils.find(
             self.provider, 
             path, 
             recursive
         )
+        return results
     
     def search(self, path: str = "/", pattern: str = "*", recursive: bool = True) -> List[str]:
         """
@@ -396,12 +315,13 @@ class VirtualFileSystem:
         Returns:
             List of matching file paths
         """
-        return SearchUtils.search(
+        results = SearchUtils.search(
             self.provider, 
             path, 
             pattern, 
             recursive
         )
+        return results
     
     def get_fs_info(self) -> Dict[str, Any]:
         """
@@ -410,12 +330,13 @@ class VirtualFileSystem:
         Returns:
             Dictionary with filesystem metadata and stats
         """
-        return {
+        info = {
             "current_directory": self.current_directory_path,
             "provider_name": self.provider.__class__.__name__,
             "storage_stats": self.provider.get_storage_stats(),
             "total_files": len(self.find("/"))
         }
+        return info
     
     def get_storage_stats(self) -> Dict:
         """
@@ -424,7 +345,8 @@ class VirtualFileSystem:
         Returns:
             Dictionary of storage statistics
         """
-        return self.provider.get_storage_stats()
+        stats = self.provider.get_storage_stats()
+        return stats
     
     def cleanup(self) -> Dict:
         """
@@ -433,7 +355,8 @@ class VirtualFileSystem:
         Returns:
             Dictionary of cleanup results
         """
-        return self.provider.cleanup()
+        result = self.provider.cleanup()
+        return result
     
     def get_provider_name(self) -> str:
         """
@@ -442,7 +365,8 @@ class VirtualFileSystem:
         Returns:
             Name of the current storage provider
         """
-        return self.provider.__class__.__name__
+        provider_name = self.provider.__class__.__name__
+        return provider_name
     
     def get_node_info(self, path: str) -> Optional[FSNodeInfo]:
         """
@@ -455,7 +379,8 @@ class VirtualFileSystem:
             FSNodeInfo object or None if node doesn't exist
         """
         resolved_path = self.resolve_path(path)
-        return self.provider.get_node_info(resolved_path)
+        info = self.provider.get_node_info(resolved_path)
+        return info
     
     def get_node(self, path: str) -> Optional[Dict]:
         """
@@ -470,4 +395,5 @@ class VirtualFileSystem:
         node_info = self.get_node_info(path)
         if not node_info:
             return None
-        return node_info.to_dict()
+        node_dict = node_info.to_dict()
+        return node_dict
