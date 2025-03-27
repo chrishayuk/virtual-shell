@@ -1,0 +1,24 @@
+[project]
+name = "virtual-shell"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+# Console script to start the shell
+[project.scripts]
+virtual-shell = "virtual_shell.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=0.26.0",
+    "pytest>=8.3.5",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.hatch.build.targets.wheel]
+packages = ["virtual_shell"]
