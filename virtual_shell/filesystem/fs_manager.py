@@ -16,19 +16,19 @@ class VirtualFileSystem:
     Modular virtual filesystem manager with pluggable storage providers
     """
     
-    def __init__(self, provider: Any = "memory", **provider_args):
+    def __init__(self, provider_name: Any = "memory", **provider_args):
         """
         Initialize the virtual filesystem with the specified provider
 
         Args:
-            provider: Either the name of the storage provider (str) or an already-created provider instance.
+            provider_name: Either the name of the storage provider (str) or an already-created provider instance.
             **provider_args: Arguments to pass to the provider constructor
         """
-        # If provider is a string, look it up; otherwise, use the provided instance
-        if isinstance(provider, str):
-            self.provider = ProviderManager.create_provider(provider, **provider_args)
+        # If provider_name is a string, look it up; otherwise, use the provided instance
+        if isinstance(provider_name, str):
+            self.provider = ProviderManager.create_provider(provider_name, **provider_args)
         else:
-            self.provider = provider
+            self.provider = provider_name
 
         # Initialize current directory
         self.current_directory_path = "/"
@@ -79,7 +79,6 @@ class VirtualFileSystem:
         """
         # resolve the path
         resolved = PathResolver.resolve_path(self.current_directory_path, path)
-
         # path resolved
         return resolved
     
@@ -105,6 +104,31 @@ class VirtualFileSystem:
         node_info = FSNodeInfo(dir_name, True, parent_path)
         result = self.provider.create_node(node_info)
         return result
+    
+    def rmdir(self, path: str) -> bool:
+        """
+        Remove an empty directory
+        
+        Args:
+            path: Path of the directory to remove
+        
+        Returns:
+            True if directory was removed, False otherwise
+        """
+        resolved_path = self.resolve_path(path)
+        # Check if path exists and is a directory
+        node_info = self.provider.get_node_info(resolved_path)
+        if not node_info or not node_info.is_dir:
+            return False
+        # Prevent deleting root
+        if resolved_path == "/":
+            return False
+        # Ensure directory is empty
+        contents = self.provider.list_directory(resolved_path)
+        if contents:
+            return False
+        # Delete directory
+        return self.provider.delete_node(resolved_path)
     
     def touch(self, path: str) -> bool:
         """
