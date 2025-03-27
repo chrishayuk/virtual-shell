@@ -1,6 +1,6 @@
 # Virtual Shell Filesystem
 
-A modular virtual filesystem with pluggable storage providers designed for use in virtual shell environments, web applications, and educational tools.
+A modular virtual filesystem with pluggable storage providers and advanced management capabilities, designed for use in virtual shell environments, web applications, and educational tools.
 
 ## Features
 
@@ -11,7 +11,9 @@ A modular virtual filesystem with pluggable storage providers designed for use i
   - PyodideFS integration for web environments
   - AWS S3 storage
   - Easy to add custom providers
-- **Full Filesystem Operations**:
+- **Advanced Filesystem Management**:
+  - Snapshots and versioning
+  - Template-based filesystem setup
   - File and directory creation
   - Reading and writing files
   - Copying and moving files
@@ -30,6 +32,8 @@ pip install virtual-shell
 
 ```python
 from virtual_shell.filesystem import VirtualFileSystem
+from virtual_shell.filesystem.snapshot_manager import SnapshotManager
+from virtual_shell.filesystem.template_loader import TemplateLoader
 
 # Create filesystem with default memory provider
 fs = VirtualFileSystem()
@@ -43,10 +47,89 @@ fs.write_file("/home/user/documents/hello.txt", "Hello, Virtual World!")
 # Read from a file
 content = fs.read_file("/home/user/documents/hello.txt")
 print(f"File content: {content}")
+```
 
-# List directory contents
-files = fs.ls("/home/user/documents")
-print(f"Files: {files}")
+## Snapshot Management
+
+Snapshots allow you to save and restore filesystem states:
+
+```python
+# Create a snapshot manager
+snapshot_mgr = SnapshotManager(fs)
+
+# Create a snapshot
+initial_snapshot = snapshot_mgr.create_snapshot(
+    "project_start", 
+    "Initial project setup"
+)
+
+# Make some changes
+fs.write_file("/home/user/documents/notes.txt", "Project ideas")
+
+# Create another snapshot
+working_snapshot = snapshot_mgr.create_snapshot(
+    "first_draft", 
+    "Added initial notes"
+)
+
+# List available snapshots
+snapshots = snapshot_mgr.list_snapshots()
+for snap in snapshots:
+    print(f"Snapshot: {snap['name']} - {snap['description']}")
+
+# Restore to a previous state
+snapshot_mgr.restore_snapshot(initial_snapshot)
+
+# Export a snapshot
+snapshot_mgr.export_snapshot(working_snapshot, "/backup/snapshot.json")
+
+# Import a snapshot
+imported_snapshot = snapshot_mgr.import_snapshot("/backup/snapshot.json")
+```
+
+## Template Management
+
+Create and load filesystem templates easily:
+
+```python
+# Create template loader
+template_loader = TemplateLoader(fs)
+
+# Define a project template
+project_template = {
+    "directories": [
+        "/home/project/src",
+        "/home/project/tests"
+    ],
+    "files": [
+        {
+            "path": "/home/project/README.md",
+            "content": "# ${project_name}\n\n${project_description}"
+        },
+        {
+            "path": "/home/project/src/main.py",
+            "content": "def main():\n    print('Hello, ${project_name}!')"
+        }
+    ]
+}
+
+# Apply template with variable substitution
+template_loader.apply_template(
+    project_template, 
+    variables={
+        "project_name": "MyAwesomeProject",
+        "project_description": "A sample project created from a template"
+    }
+)
+
+# Load template from a file
+template_loader.load_template("project_template.yaml")
+
+# Quickly load multiple files
+template_loader.quick_load({
+    "/home/project/config.ini": "key=value",
+    "/home/project/requirements.txt": "requests==2.26.0"
+})
 ```
 
 ## Storage Providers
@@ -87,24 +170,6 @@ fs = VirtualFileSystem("s3",
                       region_name="us-east-1")
 ```
 
-## Switching Providers
-
-You can change the storage provider during runtime:
-
-```python
-# Start with memory provider
-fs = VirtualFileSystem("memory")
-
-# Create a file
-fs.write_file("/test.txt", "This is in memory")
-
-# Switch to SQLite provider
-fs.change_provider("sqlite", db_path=":memory:")
-
-# Create another file (in SQLite now)
-fs.write_file("/test2.txt", "This is in SQLite")
-```
-
 ## Advanced Operations
 
 ```python
@@ -141,6 +206,25 @@ register_provider("custom", MyCustomProvider)
 # Use your provider
 fs = VirtualFileSystem("custom", **provider_args)
 ```
+
+## Key Benefits
+
+- **Flexibility**: Switch between storage providers seamlessly
+- **Versioning**: Save and restore filesystem states
+- **Reproducibility**: Use templates to set up consistent environments
+- **Isolation**: Completely virtual filesystem with no host system dependencies
+
+## Use Cases
+
+- Development sandboxing
+- Educational environments
+- Web-based IDEs
+- Reproducible computing environments
+- Testing and simulation
+
+## Contributing
+
+Contributions are welcome! Please submit pull requests or open issues on our GitHub repository.
 
 ## License
 
