@@ -1,9 +1,9 @@
 # Default sandbox configuration for PyodideShell
-# This defines the security profile, filesystem provider, and environment settings
+# Comprehensive sandbox environment with integrated project template
 
 # Sandbox name and description
 name: "default"
-description: "Default balanced security environment"
+description: "Balanced security environment with starter project"
 
 # Security settings
 security:
@@ -15,6 +15,8 @@ security:
   max_path_depth: 10      # Maximum path depth (optional override)
   allowed_paths:          # Optional override for allowed paths
     - "/"
+    - "/home/user"
+    - "/home/user/project"
   denied_paths:           # Optional override for denied paths
     - "/etc/passwd"
     - "/etc/shadow"
@@ -31,6 +33,14 @@ filesystem:
   provider: "memory"      # Provider to use (memory, sqlite, pyodide, s3)
   provider_args: {}       # Arguments for the provider
 
+# Filesystem template for project initialization
+filesystem-template:
+  name: "default_project"
+  variables:
+    project_name: "sandbox_project"
+    project_description: "Default starter project in PyodideShell"
+    project_version: "0.1.0"
+
 # Environment variables
 environment:
   HOME: "/home/user"
@@ -38,10 +48,12 @@ environment:
   USER: "user"
   SHELL: "/bin/bash"
   TERM: "xterm"
+  PYTHONPATH: "/home/user/project/src"
+  PROJECT_HOME: "/home/user/project"
 
 # Initialization commands (executed during setup)
 initialization:
   - "mkdir -p /home/user"
   - "mkdir -p /home/user/documents"
   - "mkdir -p /tmp"
-  - "echo 'Welcome to the default sandbox environment.' > /home/user/README.txt"
+  - "echo 'Welcome to the default PyodideShell sandbox environment.' > /home/user/README.txt"

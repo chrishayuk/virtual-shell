@@ -1,0 +1,145 @@
+directories:
+  - /home/user/project
+  - /home/user/project/src
+  - /home/user/project/tests
+  - /home/user/project/docs
+  - /home/user/project/scripts
+
+files:
+  - path: /home/user/project/README.md
+    content: |
+      # ${project_name}
+
+      ## Project Overview
+      ${project_description}
+
+      ## Setup
+      ```bash
+      # Recommended: Create a virtual environment
+      python3 -m venv venv
+      source venv/bin/activate
+
+      # Install dependencies
+      pip install -r requirements.txt
+      ```
+
+      ## Running the Project
+      ```bash
+      # Run the main script
+      python -m ${project_name}.main
+      ```
+
+  - path: /home/user/project/requirements.txt
+    content: |
+      # Core dependencies
+      pytest>=7.0.0
+      
+      # Development tools
+      black>=22.0.0
+      mypy>=0.950
+      
+  - path: /home/user/project/setup.py
+    content: |
+      from setuptools import setup, find_packages
+
+      setup(
+          name="${project_name}",
+          version="${project_version}",
+          packages=find_packages(where='src'),
+          package_dir={'': 'src'},
+          install_requires=[
+              # Add project dependencies here
+          ],
+          extras_require={
+              'dev': [
+                  'pytest',
+                  'black',
+                  'mypy'
+              ]
+          }
+      )
+
+  - path: /home/user/project/src/${project_name}/__init__.py
+    content: |
+      """
+      ${project_name} - ${project_description}
+      """
+      __version__ = "${project_version}"
+
+  - path: /home/user/project/src/${project_name}/main.py
+    content: |
+      """Main entry point for the ${project_name} project."""
+
+      def greet(name: str = "PyodideShell User") -> str:
+          """
+          Generate a greeting message.
+          
+          Args:
+              name: Name to greet (default: PyodideShell User)
+          
+          Returns:
+              A personalized greeting message
+          """
+          return f"Hello, {name}! Welcome to {__name__}."
+
+      def main():
+          """
+          Main function demonstrating project structure.
+          """
+          print(greet())
+          return "Project initialized successfully"
+
+      if __name__ == '__main__':
+          result = main()
+          print(result)
+
+  - path: /home/user/project/tests/test_main.py
+    content: |
+      """Tests for the main module."""
+      from ${project_name}.main import greet, main
+
+      def test_greet():
+          """Test the greet function."""
+          assert greet("Test") == "Hello, Test! Welcome to ${project_name}.main."
+          assert greet() == "Hello, PyodideShell User! Welcome to ${project_name}.main."
+
+      def test_main():
+          """Test the main function."""
+          result = main()
+          assert result == "Project initialized successfully"
+
+  - path: /home/user/project/.gitignore
+    content: |
+      # Python
+      __pycache__/
+      *.py[cod]
+      *$py.class
+
+      # Virtual environment
+      venv/
+      .env
+      
+      # IDE
+      .vscode/
+      .idea/
+
+      # Testing and coverage
+      .pytest_cache/
+      .coverage
+      htmlcov/
+      
+      # Build and distribution
+      build/
+      dist/
+      *.egg-info/
+
+  - path: /home/user/project/scripts/run.py
+    content: |
+      #!/usr/bin/env python3
+      """
+      Script to run the ${project_name} project.
+      """
+      from ${project_name}.main import main
+
+      if __name__ == '__main__':
+          main()
