@@ -2,10 +2,12 @@
 virtual_shell/sandbox_loader.py - Load and apply sandbox configurations from YAML files
 """
 import os
+import json
 import yaml
 from typing import Dict, Any, Optional, List
 
 from virtual_shell.filesystem import VirtualFileSystem
+from virtual_shell.filesystem.template_loader import TemplateLoader
 
 
 def load_sandbox_config(config_path: str) -> Dict[str, Any]:
@@ -45,14 +47,14 @@ def find_sandbox_config(name: str) -> Optional[str]:
         # Config directory in the current path
         os.path.join(os.getcwd(), 'config'),
         # User config directory
-        os.path.expanduser("~/.config/pyodide-shell"),
+        os.path.expanduser("~/.config/virtual-shell"),
         # System config directory
-        "/etc/pyodide-shell",
+        "/etc/virtual-shell",
     ]
     
-    # Check if PYODIDE_SHELL_CONFIG_DIR environment variable is set
-    if 'PYODIDE_SHELL_CONFIG_DIR' in os.environ:
-        search_paths.insert(0, os.environ['PYODIDE_SHELL_CONFIG_DIR'])
+    # Check if VIRTUAL_SHELL_CONFIG_DIR environment variable is set
+    if 'VIRTUAL_SHELL_CONFIG_DIR' in os.environ:
+        search_paths.insert(0, os.environ['VIRTUAL_SHELL_CONFIG_DIR'])
     
     # Try different filename patterns
     file_patterns = [
@@ -74,6 +76,53 @@ def find_sandbox_config(name: str) -> Optional[str]:
     return None
 
 
+def _find_filesystem_template(name: str) -> Optional[str]:
+    """
+    Find a filesystem template file by name
+    
+    Args:
+        name: Name of the filesystem template
+        
+    Returns:
+        Path to the template file or None if not found
+    """
+    # Look in standard locations for template files
+    search_paths = [
+        # Current directory
+        os.getcwd(),
+        # Templates directory in the current path
+        os.path.join(os.getcwd(), 'templates'),
+        # User templates directory
+        os.path.expanduser("~/.virtual_shell/templates"),
+        # System templates directory
+        "/usr/share/virtual-shell/templates",
+    ]
+    
+    # Check if VIRTUAL_SHELL_TEMPLATE_DIR environment variable is set
+    if 'VIRTUAL_SHELL_TEMPLATE_DIR' in os.environ:
+        search_paths.insert(0, os.environ['VIRTUAL_SHELL_TEMPLATE_DIR'])
+    
+    # Try different filename patterns
+    file_patterns = [
+        f"{name}.yaml",
+        f"{name}.yml",
+        f"{name}_template.yaml",
+        f"{name}_template.yml",
+        f"{name}.json"
+    ]
+    
+    for path in search_paths:
+        if not os.path.exists(path):
+            continue
+            
+        for pattern in file_patterns:
+            template_path = os.path.join(path, pattern)
+            if os.path.exists(template_path):
+                return template_path
+    
+    return None
+
+
 def list_available_configs() -> List[str]:
     """
     List all available sandbox configurations
@@ -88,14 +137,14 @@ def list_available_configs() -> List[str]:
         # Config directory in the current path
         os.path.join(os.getcwd(), 'config'),
         # User config directory
-        os.path.expanduser("~/.config/pyodide-shell"),
+        os.path.expanduser("~/.config/virtual-shell"),
         # System config directory
-        "/etc/pyodide-shell",
+        "/etc/virtual-shell",
     ]
     
-    # Check if PYODIDE_SHELL_CONFIG_DIR environment variable is set
-    if 'PYODIDE_SHELL_CONFIG_DIR' in os.environ:
-        search_paths.insert(0, os.environ['PYODIDE_SHELL_CONFIG_DIR'])
+    # Check if VIRTUAL_SHELL_CONFIG_DIR environment variable is set
+    if 'VIRTUAL_SHELL_CONFIG_DIR' in os.environ:
+        search_paths.insert(0, os.environ['VIRTUAL_SHELL_CONFIG_DIR'])
     
     for path in search_paths:
         if not os.path.exists(path):
@@ -117,6 +166,55 @@ def list_available_configs() -> List[str]:
                     pass
     
     return configs
+
+
+def list_available_templates() -> List[str]:
+    """
+    List all available filesystem templates
+    
+    Returns:
+        List of template names
+    """
+    templates = []
+    search_paths = [
+        # Current directory
+        os.getcwd(),
+        # Templates directory in the current path
+        os.path.join(os.getcwd(), 'templates'),
+        # User templates directory
+        os.path.expanduser("~/.virtual_shell/templates"),
+        # System templates directory
+        "/usr/share/virtual-shell/templates",
+    ]
+    
+    # Check if VIRTUAL_SHELL_TEMPLATE_DIR environment variable is set
+    if 'VIRTUAL_SHELL_TEMPLATE_DIR' in os.environ:
+        search_paths.insert(0, os.environ['VIRTUAL_SHELL_TEMPLATE_DIR'])
+    
+    for path in search_paths:
+        if not os.path.exists(path):
+            continue
+            
+        for filename in os.listdir(path):
+            if filename.endswith(('.yaml', '.yml', '.json')):
+                try:
+                    template_path = os.path.join(path, filename)
+                    with open(template_path, 'r') as f:
+                        if filename.endswith('.json'):
+                            template_data = json.load(f)
+                        else:
+                            template_data = yaml.safe_load(f)
+                    
+                    # Validate template structure
+                    if isinstance(template_data, dict) and 'directories' in template_data:
+                        template_name = filename.split('.')[0]
+                        if template_name not in templates:
+                            templates.append(template_name)
+                except Exception:
+                    # Skip invalid templates
+                    pass
+    
+    return templates
 
 
 def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
@@ -158,6 +256,37 @@ def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
             if key != 'profile' and hasattr(fs.provider, key):
                 setattr(fs.provider, key, value)
     
+    # Handle filesystem template
+    if 'filesystem-template' in config:
+        # Get template details
+        template_config = config['filesystem-template']
+        
+        # Check if template name is specified
+        if 'name' not in template_config:
+            print("Warning: Filesystem template name not specified")
+        else:
+            template_name = template_config['name']
+            template_variables = template_config.get('variables', {})
+            
+            # Create template loader
+            template_loader = TemplateLoader(fs)
+            
+            try:
+                # Find the template file
+                template_path = _find_filesystem_template(template_name)
+                
+                if template_path:
+                    # Apply the template with variables
+                    template_loader.load_template(
+                        template_path, 
+                        variables=template_variables
+                    )
+                else:
+                    print(f"Warning: Filesystem template {template_name} not found")
+            
+            except Exception as e:
+                print(f"Error applying filesystem template: {e}")
+    
     # Execute initialization commands
     init_commands = config.get('initialization', [])
     if init_commands:
@@ -168,7 +297,6 @@ def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
         fs.provider._in_setup = False
     
     return fs
-
 
 def get_environment_from_config(config: Dict[str, Any]) -> Dict[str, str]:
     """

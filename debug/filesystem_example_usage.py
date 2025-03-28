@@ -2,7 +2,7 @@
 filesystem_example_usage.py - Example usage of the virtual filesystem
 """
 from virtual_shell.filesystem import VirtualFileSystem
-
+from virtual_shell.filesystem.template_loader import TemplateLoader
 
 def basic_example():
     """Basic usage example of the virtual filesystem"""
@@ -106,6 +106,81 @@ def advanced_operations():
     print(f"Filesystem info: {fs_info}")
 
 
+def template_example():
+    """Example demonstrating filesystem template usage"""
+    # Create filesystem
+    fs = VirtualFileSystem()
+    
+    # Create template loader
+    template_loader = TemplateLoader(fs)
+    
+    # Define a Python project template
+    python_project_template = {
+        "directories": [
+            "/projects/${project_name}",
+            "/projects/${project_name}/src",
+            "/projects/${project_name}/tests",
+            "/projects/${project_name}/docs"
+        ],
+        "files": [
+            {
+                "path": "/projects/${project_name}/README.md",
+                "content": "# ${project_name}\n\n## Description\n${project_description}\n\n## Setup\n```bash\npip install -r requirements.txt\n```"
+            },
+            {
+                "path": "/projects/${project_name}/requirements.txt",
+                "content": "# Project dependencies\npytest\nrequests\n"
+            },
+            {
+                "path": "/projects/${project_name}/src/${project_name}/__init__.py",
+                "content": "\"\"\"${project_name} package\"\"\"\n__version__ = '${project_version}'"
+            },
+            {
+                "path": "/projects/${project_name}/src/${project_name}/main.py",
+                "content": "def main():\n    print('Hello from ${project_name}!')\n\nif __name__ == '__main__':\n    main()"
+            },
+            {
+                "path": "/projects/${project_name}/tests/test_main.py",
+                "content": "from ${project_name}.main import main\n\ndef test_main():\n    assert main() is None"
+            }
+        ]
+    }
+    
+    # Variables for template substitution
+    template_variables = {
+        "project_name": "awesome_project",
+        "project_description": "A sample Python project created using filesystem template",
+        "project_version": "0.1.0"
+    }
+    
+    # Apply the template
+    print("===== Filesystem Template Example =====")
+    print("Applying Python project template...")
+    template_loader.apply_template(python_project_template, variables=template_variables)
+    
+    # Quick load additional files
+    additional_files = {
+        "/projects/awesome_project/LICENSE": "MIT License\nCopyright (c) 2024",
+        "/projects/awesome_project/.gitignore": "*.pyc\n__pycache__/\n.venv/"
+    }
+    print("\nQuick loading additional files...")
+    template_loader.quick_load(additional_files)
+    
+    # List created project structure
+    print("\nCreated project structure:")
+    project_paths = fs.find("/projects/awesome_project", recursive=True)
+    for path in sorted(project_paths):
+        print(path)
+    
+    # Verify file contents
+    print("\nREADME.md contents:")
+    readme_content = fs.read_file("/projects/awesome_project/README.md")
+    print(readme_content)
+    
+    print("\nMain script contents:")
+    main_script_content = fs.read_file("/projects/awesome_project/src/awesome_project/main.py")
+    print(main_script_content)
+
 if __name__ == "__main__":
     # Run examples
     print("===== Basic Example =====")
@@ -116,3 +191,6 @@ if __name__ == "__main__":
     
     print("\n===== Advanced Operations =====")
     advanced_operations()
+    
+    print("\n===== Template Example =====")
+    template_example()

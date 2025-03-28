@@ -11,6 +11,7 @@ from virtual_shell.sandbox_loader import (
     load_sandbox_config,
     find_sandbox_config,
     list_available_configs,
+    list_available_templates,
     create_filesystem_from_config,
     get_environment_from_config,
     _execute_initialization,
@@ -32,6 +33,14 @@ SAMPLE_CONFIG = {
     "filesystem": {
         "provider": "memory",
         "provider_args": {"compression_threshold": 1024}
+    },
+    "filesystem-template": {
+        "name": "python_project",
+        "variables": {
+            "project_name": "test_project",
+            "project_description": "A test project",
+            "project_version": "0.1.0"
+        }
     },
     "environment": {
         "HOME": "/test/home",
@@ -64,10 +73,34 @@ class TestSandboxLoader:
         named_config["name"] = "named_config"
         with open(self.named_config_path, 'w') as f:
             yaml.dump(named_config, f)
+        
+        # Create a sample filesystem template
+        self.template_dir = tempfile.TemporaryDirectory()
+        template_path = os.path.join(self.template_dir.name, "python_project.yaml")
+        template_data = {
+            "directories": [
+                "/home/${project_name}",
+                "/home/${project_name}/src",
+                "/home/${project_name}/tests"
+            ],
+            "files": [
+                {
+                    "path": "/home/${project_name}/README.md",
+                    "content": "# ${project_name}\n\n${project_description}"
+                },
+                {
+                    "path": "/home/${project_name}/src/main.py",
+                    "content": "def main():\n    print('Hello, ${project_name}!')"
+                }
+            ]
+        }
+        with open(template_path, 'w') as f:
+            yaml.safe_dump(template_data, f)
             
     def teardown_method(self):
         """Clean up after test"""
         self.temp_dir.cleanup()
+        self.template_dir.cleanup()
         
     def test_load_sandbox_config(self):
         """Test loading a sandbox configuration from a YAML file"""
@@ -193,3 +226,79 @@ class TestSandboxLoader:
         # Verify the filesystem state
         assert fs.get_node_info("/test/home") is not None
         assert fs.read_file("/test/home/test.txt") == "Test content"
+    
+    def test_load_sandbox_config_with_template(self):
+        """Test loading a sandbox configuration with a filesystem template"""
+        config = load_sandbox_config(self.config_path)
+        
+        assert "filesystem-template" in config
+        assert config["filesystem-template"]["name"] == "python_project"
+        assert config["filesystem-template"]["variables"]["project_name"] == "test_project"
+        
+    def test_create_filesystem_from_config_with_template(self):
+        """Test creating a filesystem from a configuration with a template"""
+        # Mock the template loader
+        with patch('virtual_shell.sandbox_loader.TemplateLoader') as mock_template_loader:
+            # Create a mock instance of the template loader
+            mock_loader_instance = MagicMock()
+            mock_template_loader.return_value = mock_loader_instance
+            
+            # Temporarily add the template directory to the search path
+            with patch('virtual_shell.sandbox_loader.os.environ', 
+                       {**os.environ, 'VIRTUAL_SHELL_TEMPLATE_DIR': self.template_dir.name}):
+                
+                # Create filesystem from config
+                fs = create_filesystem_from_config(SAMPLE_CONFIG)
+                
+                # Verify template loader was called with correct arguments
+                mock_template_loader.assert_called_once()
+                
+                # Verify template was loaded with correct parameters
+                mock_loader_instance.load_template.assert_called_once()
+                
+                # Check arguments of load_template
+                args, kwargs = mock_loader_instance.load_template.call_args
+                
+                assert 'variables' in kwargs
+                assert kwargs['variables']['project_name'] == 'test_project'
+                assert os.path.basename(args[0]) == 'python_project.yaml'
+    
+    def test_list_available_templates(self):
+        """Test listing available filesystem templates"""
+        # Temporarily add the template directory to the search path
+        with patch('virtual_shell.sandbox_loader.os.environ', 
+                   {**os.environ, 'VIRTUAL_SHELL_TEMPLATE_DIR': self.template_dir.name}):
+            
+            # List available templates
+            templates = list_available_templates()
+            
+            # Verify
+            assert "python_project" in templates
+    
+    def test_template_with_missing_name(self):
+        """Test handling of configuration with missing template name"""
+        # Create a config without a template name
+        config_copy = SAMPLE_CONFIG.copy()
+        del config_copy['filesystem-template']['name']
+        
+        # Mock the print function to check warning messages
+        with patch('builtins.print') as mock_print:
+            # Create filesystem from config
+            fs = create_filesystem_from_config(config_copy)
+            
+            # Verify warning was printed
+            mock_print.assert_called_with("Warning: Filesystem template name not specified")
+    
+    def test_template_with_nonexistent_template(self):
+        """Test handling of configuration with a non-existent template"""
+        # Create a config with a non-existent template
+        config_copy = SAMPLE_CONFIG.copy()
+        config_copy['filesystem-template']['name'] = 'nonexistent_template'
+        
+        # Mock the print function to check warning messages
+        with patch('builtins.print') as mock_print:
+            # Create filesystem from config
+            fs = create_filesystem_from_config(config_copy)
+            
+            # Verify warning was printed
+            mock_print.assert_called_with("Warning: Filesystem template nonexistent_template not found")
