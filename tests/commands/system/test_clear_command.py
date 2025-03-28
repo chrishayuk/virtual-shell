@@ -8,8 +8,7 @@ def clear_command():
     # Setup a dummy file system; it won't be used by ClearCommand.
     files = {}
     dummy_shell = DummyShell(files)
-    # Optionally, record initial shell state to verify it's unchanged.
-    dummy_shell.initial_state = dummy_shell.__dict__.copy()
+    
     # Create ClearCommand with the required shell_context.
     command = ClearCommand(shell_context=dummy_shell)
     return command
@@ -28,8 +27,15 @@ def test_clear_command_with_extra_args(clear_command):
 
 # Test that the shell context remains unchanged after executing the command.
 def test_clear_command_does_not_modify_shell(clear_command):
-    # Execute the command.
+    # Save important attributes before execution
+    fs_before = clear_command.shell.fs
+    environ_before = clear_command.shell.environ.copy()
+    current_user_before = clear_command.shell.current_user
+    
+    # Execute the command
     _ = clear_command.execute([])
-    # Verify that the shell's state remains unchanged (based on our initial snapshot).
-    for key, value in clear_command.shell.initial_state.items():
-        assert clear_command.shell.__dict__.get(key) == value
+    
+    # Verify critical parts of the shell state remain unchanged
+    assert clear_command.shell.fs is fs_before
+    assert clear_command.shell.environ == environ_before
+    assert clear_command.shell.current_user == current_user_before

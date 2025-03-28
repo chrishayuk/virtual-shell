@@ -4,11 +4,9 @@ class DummyFileSystem:
     def __init__(self, files):
         """
         Initialize the dummy filesystem with a dictionary.
-        'files' is a dictionary where:
-            - keys represent paths (as strings)
-            - values are either:
-                - dict for directories
-                - string for file contents
+        'files' is a dictionary where keys represent paths and values are:
+          - A dict for directories
+          - A string for file contents
         """
         self.files = files
         self.current_directory = "/"  # Default current directory
@@ -27,7 +25,7 @@ class DummyFileSystem:
         return True
 
     def rm(self, path):
-        # Remove a file (not a directory).
+        # Remove file (not directory)
         if self.exists(path) and self.is_file(path):
             del self.files[path]
             return True
@@ -35,9 +33,8 @@ class DummyFileSystem:
 
     def rmdir(self, path):
         if self.exists(path) and self.is_dir(path):
-            # Remove directory only if empty.
             if self.files[path]:
-                return False
+                return False  # Directory is not empty
             del self.files[path]
             return True
         return False
@@ -48,7 +45,7 @@ class DummyFileSystem:
         return True
 
     def cd(self, path):
-        # For simplicity, assume that 'path' is already resolved.
+        # Assume path is already resolved.
         if path == "/":
             self.current_directory = "/"
             return True
@@ -61,7 +58,6 @@ class DummyFileSystem:
         return self.current_directory
 
     def ls(self, path):
-        # If no path is provided, use the current directory.
         if path is None:
             path = self.current_directory
         if self.exists(path) and self.is_dir(path):
@@ -79,16 +75,27 @@ class DummyFileSystem:
     def is_dir(self, path):
         return self.exists(path) and isinstance(self.files[path], dict)
 
-    # Alias to support commands using "isdir" instead of "is_dir".
+    # Alias for is_dir
     isdir = is_dir
+
+    def get_size(self, path):
+        """
+        Return the size (in bytes) of a file.
+        For directories, return 0 (or you might sum contents if needed).
+        """
+        if self.is_file(path):
+            content = self.files[path]
+            return len(content)
+        return 0
 
     def resolve_path(self, path):
         """
         Resolve a given path to an absolute path.
-        If 'path' is already absolute (starts with '/'), return it.
-        Otherwise, join it with the current directory.
+        - If the path is "." or empty, return the current directory.
+        - If the path is already absolute (starts with '/'), return it.
+        - Otherwise, join it with the current directory.
         """
-        if not path:
+        if not path or path == ".":
             return self.current_directory
         if path.startswith("/"):
             return path
@@ -96,20 +103,12 @@ class DummyFileSystem:
         return f"{base}/{path}"
 
     def delete_file(self, path):
-        """
-        Delete a file from the filesystem.
-        Returns True if deletion was successful.
-        """
         if self.exists(path) and self.is_file(path):
             del self.files[path]
             return True
         return False
 
     def list_dir(self, path):
-        """
-        List directory entries for the given path.
-        Returns a list of names if the path is a directory; otherwise, returns an empty list.
-        """
         if self.exists(path) and self.is_dir(path):
             return list(self.files[path].keys())
         return []

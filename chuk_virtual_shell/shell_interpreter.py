@@ -47,6 +47,12 @@ class ShellInterpreter:
         # Record start time (useful for uptime commands).
         self.start_time = time.time()
 
+        # NEW: Set current_user based on environment.
+        self.current_user = self.environ.get("USER", "user")
+
+        # NEW: Provide a resolve_path method that delegates to the filesystem.
+        self.resolve_path = lambda path: self.fs.resolve_path(path)
+
         # Dynamically load commands.
         self.commands = {}
         self._load_commands()
@@ -214,3 +220,27 @@ class ShellInterpreter:
     def complete(self, text: str, state: int) -> Optional[str]:
         """Stub for tab completion (to be implemented)."""
         return None
+
+    # Helper method to check if a user exists.
+    def user_exists(self, target: str) -> bool:
+        """Return True if the target user exists, otherwise False."""
+        return target == self.environ.get("USER", "user")
+
+    # Helper method to check if a group exists.
+    def group_exists(self, target: str) -> bool:
+        """Return True if the target group exists, otherwise False."""
+        return target == "staff"
+
+    # Helper method to check if a node exists at the given path.
+    def exists(self, path: str) -> bool:
+        """Return True if a node exists at the given path, otherwise False."""
+        try:
+            return self.get_node_info(path) is not None
+        except Exception:
+            return False
+
+    # Get node information using the provider.
+    def get_node_info(self, path: str) -> Optional[object]:
+        """Return node information for the given path using the provider, or None if not found."""
+        resolved_path = self.resolve_path(path)
+        return self.fs.provider.get_node_info(resolved_path)

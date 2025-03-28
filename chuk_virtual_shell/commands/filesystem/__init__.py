@@ -15,6 +15,8 @@ from chuk_virtual_shell.commands.filesystem.rmdir import RmdirCommand
 from chuk_virtual_shell.commands.filesystem.more import MoreCommand
 from chuk_virtual_shell.commands.filesystem.du import DuCommand
 from chuk_virtual_shell.commands.filesystem.quota import QuotaCommand
+from chuk_virtual_shell.commands.filesystem.cp import CpCommand
+from chuk_virtual_shell.commands.filesystem.mv import MvCommand
 
 __all__ = [
     'MkdirCommand',
@@ -25,5 +27,7 @@ __all__ = [
     'RmdirCommand',
     'MoreCommand',
     'DuCommand',
-    'QuotaCommand'
+    'QuotaCommand',
+    'CpCommand',
+    'MvCommand'
 ]
