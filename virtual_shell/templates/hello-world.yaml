@@ -1,0 +1,48 @@
+directories:
+  - /home/${project_name}
+  - /home/${project_name}/src
+  - /home/${project_name}/tests
+
+files:
+  - path: /home/${project_name}/README.md
+    content: |
+      # ${project_name}
+
+      A simple Hello World Python project.
+
+      ## Usage
+      ```bash
+      python src/main.py
+      ```
+
+  - path: /home/${project_name}/src/main.py
+    content: |
+      def hello_world():
+          """Return a greeting message."""
+          return "Hello, World!"
+
+      def main():
+          """Print the greeting message."""
+          print(hello_world())
+
+      if __name__ == "__main__":
+          main()
+
+  - path: /home/${project_name}/tests/test_main.py
+    content: |
+      from src.main import hello_world
+
+      def test_hello_world():
+          """Test the hello_world function."""
+          assert hello_world() == "Hello, World!"
+
+  - path: /home/${project_name}/.gitignore
+    content: |
+      # Python
+      __pycache__/
+      *.py[cod]
+      .pytest_cache/
+
+  - path: /home/${project_name}/requirements.txt
+    content: |
+      pytest

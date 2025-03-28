@@ -10,3 +10,6 @@ __pycache__/
 
 # javascript
 node_modules/
+
+# snapshots
+snapshots/

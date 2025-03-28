@@ -11,6 +11,8 @@ dependencies = [
 # Console script to start the shell
 [project.scripts]
 virtual-shell = "virtual_shell.main:main"
+snapshot-cli = "virtual_shell.cli.snapshot_cli:main"
+filesystem-template-cli = "virtual_shell.cli.filesystem_template_cli:main"
 
 [dependency-groups]
 dev = [
