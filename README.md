@@ -235,8 +235,8 @@ Example:
 
 ```python
 # filesystem/providers/custom.py
-from virtual_shell.filesystem.provider_base import StorageProvider
-from virtual_shell.filesystem.node_info import FSNodeInfo
+from chuk_virtual_shell.provider_base import StorageProvider
+from chuk_virtual_shell.node_info import FSNodeInfo
 
 class CustomStorageProvider(StorageProvider):
     """Custom storage provider implementation"""
@@ -255,7 +255,7 @@ class CustomStorageProvider(StorageProvider):
 Then register in `providers/__init__.py`:
 
 ```python
-from virtual_shell.filesystem.providers.custom import CustomStorageProvider
+from chuk_virtual_shell.providers.custom import CustomStorageProvider
 register_provider("custom", CustomStorageProvider)
 ```
 

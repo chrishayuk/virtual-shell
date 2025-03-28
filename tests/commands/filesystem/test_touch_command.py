@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/filesystem/test_touch_command.py
+tests/chuk_virtual_shell/commands/filesystem/test_touch_command.py
 """
 import pytest
-from virtual_shell.commands.filesystem.touch import TouchCommand
+from chuk_virtual_shell.commands.filesystem.touch import TouchCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create a TouchCommand with a dummy shell as the shell_context

@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/filesystem/test_rm_command.py
+tests/chuk_virtual_shell/commands/filesystem/test_rm_command.py
 """
 import pytest
-from virtual_shell.commands.filesystem.rm import RmCommand
+from chuk_virtual_shell.commands.filesystem.rm import RmCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create an RmCommand with a dummy shell as the shell_context

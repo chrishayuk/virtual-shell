@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/navigation/test_ls_command.py
+tests/chuk_virtual_shell/commands/navigation/test_ls_command.py
 """
 import pytest
-from virtual_shell.commands.navigation.ls import LsCommand
+from chuk_virtual_shell.commands.navigation.ls import LsCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create an LsCommand with a dummy shell as the shell_context

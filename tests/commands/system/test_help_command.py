@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/system/test_help_command.py
+tests/chuk_virtual_shell/commands/system/test_help_command.py
 """
 import pytest
-from virtual_shell.commands.system.help import HelpCommand
+from chuk_virtual_shell.commands.system.help import HelpCommand
 from tests.dummy_shell import DummyShell
 
 # A simple dummy command to simulate help output.

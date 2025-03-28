@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/filesystem/test_mkdir_command.py
+tests/chuk_virtual_shell/commands/filesystem/test_mkdir_command.py
 """
 import pytest
-from virtual_shell.commands.filesystem.mkdir import MkdirCommand
+from chuk_virtual_shell.commands.filesystem.mkdir import MkdirCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create a MkdirCommand with a dummy shell as the shell_context

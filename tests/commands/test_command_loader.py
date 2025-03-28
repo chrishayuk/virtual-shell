@@ -1,9 +1,9 @@
 """
-tests/virtual_shell/commands/test_command_loader.py
+tests/chuk_virtual_shell/commands/test_command_loader.py
 """
 import pytest
-from virtual_shell.commands.command_loader import CommandLoader
-from virtual_shell.commands.command_base import ShellCommand
+from chuk_virtual_shell.commands.command_loader import CommandLoader
+from chuk_virtual_shell.commands.command_base import ShellCommand
 from tests.dummy_shell import DummyShell
 
 # Test for discover_commands

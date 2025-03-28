@@ -4,7 +4,9 @@ tests/test_telnet_server.py
 import asyncio
 import pytest
 from unittest.mock import Mock, patch
-from virtual_shell.telnet_server import TelnetServer, TelnetConnection
+
+# virtual shell imports
+from chuk_virtual_shell.telnet_server import TelnetServer, TelnetConnection
 
 # Fake stream reader that returns preset lines.
 class FakeStreamReader:
@@ -51,7 +53,7 @@ async def test_telnet_server_handle_client_exit():
     fake_writer = FakeStreamWriter()
 
     # Create a connection with a mock shell interpreter
-    with patch('virtual_shell.telnet_server.ShellInterpreter') as MockShell:
+    with patch('chuk_virtual_shell.telnet_server.ShellInterpreter') as MockShell:
         # Configure the mock shell
         mock_shell = MockShell.return_value
         mock_shell.running = True  # Initially running

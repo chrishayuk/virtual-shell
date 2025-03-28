@@ -1,5 +1,5 @@
 # debug/check_shell_initializes.py
-from virtual_shell.shell_interpreter import ShellInterpreter
+from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 shell = ShellInterpreter()
 print("Shell initialized")

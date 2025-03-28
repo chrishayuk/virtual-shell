@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/test_command_base.py
+tests/chuk_virtual_shell/commands/test_command_base.py
 """
 import pytest
-from virtual_shell.commands.command_base import ShellCommand
+from chuk_virtual_shell.commands.command_base import ShellCommand
 
 # A dummy subclass that properly implements execute()
 class DummyCommand(ShellCommand):

@@ -1,19 +1,18 @@
 [project]
-name = "virtual-shell"
+name = "chuk-virtual-shell"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "chuk-virtual-fs>=0.1.2",
     "pyyaml>=6.0.2",
 ]
 
 # Console script to start the shell
 [project.scripts]
-virtual-shell = "virtual_shell.main:main"
-sandbox-cli = "virtual_shell.cli.sandbox_cli:main"
-snapshot-cli = "virtual_shell.cli.snapshot_cli:main"
-filesystem-template-cli = "virtual_shell.cli.filesystem_template_cli:main"
+virtual-shell = "chuk_virtual_shell.main:main"
+sandbox-cli = "chuk_virtual_shell.cli.sandbox_cli:main"
 
 [dependency-groups]
 dev = [
@@ -26,4 +25,4 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [tool.hatch.build.targets.wheel]
-packages = ["virtual_shell"]
+packages = ["chuk_virtual_shell"]

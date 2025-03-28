@@ -1,8 +1,10 @@
 """
-tests/virtual_shell/test_script_runner.py
+tests/chuk_virtual_shell/test_script_runner.py
 """
 import pytest
-from virtual_shell.script_runner import ScriptRunner
+
+# virtual shell imports
+from chuk_virtual_shell.script_runner import ScriptRunner
 
 # Dummy file system for our dummy shell.
 class DummyFS:

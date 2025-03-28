@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/system/test_clear_command.py
+tests/chuk_virtual_shell/commands/system/test_clear_command.py
 """
 import pytest
-from virtual_shell.commands.system.clear import ClearCommand
+from chuk_virtual_shell.commands.system.clear import ClearCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create a ClearCommand with a dummy shell as the shell_context

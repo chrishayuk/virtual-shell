@@ -1,8 +1,10 @@
 """
-tests/virtual_shell/test_shell_interpreter.py
+tests/chuk_virtual_shell/test_shell_interpreter.py
 """
 import pytest
-from virtual_shell.shell_interpreter import ShellInterpreter
+
+# virtual shell imports
+from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 # A dummy command for testing purposes.
 class DummyCommand:
@@ -19,7 +21,7 @@ class DummyCommand:
 @pytest.fixture
 def shell_interpreter(monkeypatch):
     # Patch the CommandLoader.discover_commands to return a controlled set of commands.
-    from virtual_shell.commands.command_loader import CommandLoader
+    from chuk_virtual_shell.commands.command_loader import CommandLoader
     monkeypatch.setattr(CommandLoader, "discover_commands", lambda shell: {"dummy": DummyCommand(shell)})
     si = ShellInterpreter()
     return si

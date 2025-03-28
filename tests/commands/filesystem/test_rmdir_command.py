@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/filesystem/test_rmdir_command.py
+tests/chuk_virtual_shell/commands/filesystem/test_rmdir_command.py
 """
 import pytest
-from virtual_shell.commands.filesystem.rmdir import RmdirCommand
+from chuk_virtual_shell.commands.filesystem.rmdir import RmdirCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create an RmdirCommand with a dummy shell as the shell_context

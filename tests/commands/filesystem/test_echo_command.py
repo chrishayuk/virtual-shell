@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/filesystem/test_echo_command.py
+tests/chuk_virtual_shell/commands/filesystem/test_echo_command.py
 """
 import pytest
-from virtual_shell.commands.filesystem.echo import EchoCommand
+from chuk_virtual_shell.commands.filesystem.echo import EchoCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create an EchoCommand with a dummy shell as the shell_context

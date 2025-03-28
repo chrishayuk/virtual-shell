@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/navigation/test_cd_command.py
+tests/chuk_virtual_shell/commands/navigation/test_cd_command.py
 """
 import pytest
-from virtual_shell.commands.navigation.cd import CdCommand
+from chuk_virtual_shell.commands.navigation.cd import CdCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create a CdCommand with a dummy shell as the shell_context

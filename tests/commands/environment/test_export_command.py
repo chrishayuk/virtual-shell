@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/environment/test_export_command.py
+tests/chuk_virtual_shell/commands/environment/test_export_command.py
 """
 import pytest
-from virtual_shell.commands.environment.export import ExportCommand
+from chuk_virtual_shell.commands.environment.export import ExportCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create an ExportCommand with a dummy shell as the shell_context

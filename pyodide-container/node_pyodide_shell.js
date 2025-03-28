@@ -14,10 +14,10 @@ function loadPythonModules(pyodide, dir) {
     }
   }
 
-  // Ensure "virtual_shell" directory exists in the Pyodide filesystem
+  // Ensure "chuk_virtual_shell" directory exists in the Pyodide filesystem
   pyodide.runPython(`
 import os
-os.makedirs('./virtual_shell', exist_ok=True)
+os.makedirs('./chuk_virtual_shell', exist_ok=True)
   `);
 
   // Recursively process a directory, copying .py files to the Pyodide FS
@@ -67,23 +67,23 @@ import sys, os
 
 if '.' not in sys.path:
     sys.path.insert(0, '.')
-if './virtual_shell' not in sys.path:
-    sys.path.insert(0, './virtual_shell')
+if './chuk_virtual_shell' not in sys.path:
+    sys.path.insert(0, './chuk_virtual_shell')
 
-os.makedirs('./virtual_shell', exist_ok=True)
+os.makedirs('./chuk_virtual_shell', exist_ok=True)
 
-os.environ['PYTHONPATH'] = './virtual_shell:' + os.environ.get('PYTHONPATH','')
+os.environ['PYTHONPATH'] = './chuk_virtual_shell:' + os.environ.get('PYTHONPATH','')
 os.environ['HOME'] = '/home/pyodide'
 os.environ['USER'] = 'pyodide'
 `);
 
-  // Locate and verify local virtual_shell directory
-  const vsPath = fs.existsSync('./virtual_shell')
-    ? './virtual_shell'
-    : (fs.existsSync('../virtual_shell') ? '../virtual_shell' : null);
+  // Locate and verify local chuk_virtual_shell directory
+  const vsPath = fs.existsSync('./chuk_virtual_shell')
+    ? './chuk_virtual_shell'
+    : (fs.existsSync('../chuk_virtual_shell') ? '../chuk_virtual_shell' : null);
 
   if (!vsPath) {
-    console.error("Error: could not find 'virtual_shell' in current or parent directory.");
+    console.error("Error: could not find 'chuk_virtual_shell' in current or parent directory.");
     process.exit(1);
   }
 
@@ -92,7 +92,7 @@ os.environ['USER'] = 'pyodide'
     .readdirSync(vsPath, { recursive: true })
     .some(file => file.endsWith('.py'));
   if (!hasPyFiles) {
-    console.error("Error: no Python files found in 'virtual_shell'.");
+    console.error("Error: no Python files found in 'chuk_virtual_shell'.");
     process.exit(1);
   }
 
@@ -176,7 +176,7 @@ pyodide_main.py - Pyodide-compatible main entry point for PyodideShell
 """
 import sys
 import os
-from virtual_shell.shell_interpreter import ShellInterpreter
+from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 def pyodide_main():
     # Minimal start message

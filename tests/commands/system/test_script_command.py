@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/system/test_script_command.py
+tests/chuk_virtual_shell/commands/system/test_script_command.py
 """
 import pytest
-from virtual_shell.commands.system.script import ScriptCommand
+from chuk_virtual_shell.commands.system.script import ScriptCommand
 from tests.dummy_shell import DummyShell
 
 # A dummy ScriptRunner to simulate script execution.
@@ -18,7 +18,7 @@ class DummyScriptRunner:
 @pytest.fixture
 def script_command(monkeypatch):
     # Monkey-patch ScriptRunner in the module where it's used.
-    monkeypatch.setattr("virtual_shell.commands.system.script.ScriptRunner", DummyScriptRunner)
+    monkeypatch.setattr("chuk_virtual_shell.commands.system.script.ScriptRunner", DummyScriptRunner)
     
     # Setup a dummy file system; its contents are not used by ScriptCommand.
     files = {}

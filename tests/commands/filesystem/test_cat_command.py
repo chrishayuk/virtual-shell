@@ -1,8 +1,8 @@
 """
-tests/virtual_shell/commands/filesystem/test_cat_command.py
+tests/chuk_virtual_shell/commands/filesystem/test_cat_command.py
 """
 import pytest
-from virtual_shell.commands.filesystem.cat import CatCommand
+from chuk_virtual_shell.commands.filesystem.cat import CatCommand
 from tests.dummy_shell import DummyShell
 
 # Fixture to create a CatCommand with a dummy shell as the shell_context

@@ -8,7 +8,7 @@ RUN apt-get update && \
     npm install pyodide readline
 
 # Copy the virtual shell code
-COPY ./virtual_shell /app/virtual_shell/
+COPY ./chuk_virtual_shell /app/chuk_virtual_shell/
 
 # Copy the node runner script
 COPY ./node_pyodide_shell.js /app/
