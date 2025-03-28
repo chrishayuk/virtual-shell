@@ -3,14 +3,14 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "chuk-virtual-fs"
-version = "0.1.5"
+version = "0.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/05/94/9f82954659b2ad352c54136bbbf0e47b434498c7b5467a6fe6e5d22853d7/chuk_virtual_fs-0.1.5.tar.gz", hash = "sha256:f242e72884cb417d4b00eaeccf6009418b00838de802eef9934ccbfb31f2b6aa", size = 34722 }
+sdist = { url = "https://files.pythonhosted.org/packages/77/94/fcdfceb8accc8d9201aa8dc782f61df005daceb4d99c7534ec27702ce978/chuk_virtual_fs-0.1.6.tar.gz", hash = "sha256:047e1642f96c866889324751d0c91b4fe509dae924f392ca880bdec12ebdffd0", size = 34819 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/f3/31b34b395affd5511ee72eafd3382a09fd3bf8b20acc71d741c01ecfd74f/chuk_virtual_fs-0.1.5-py3-none-any.whl", hash = "sha256:3a0417709baca4dacd6cf3c6a436e7207cfe364d212c02fa437e28a31e7e37b1", size = 44343 },
+    { url = "https://files.pythonhosted.org/packages/f7/c6/d7360859d8ad5e40c1fd51b7c6c54b1cd46cd63eeaf540fb76e660e81b65/chuk_virtual_fs-0.1.6-py3-none-any.whl", hash = "sha256:087447e95a137867bac9cf5bd5fb939a1e010d18ebd88c92b3f63c629d1b6ce9", size = 44430 },
 ]
 
 [[package]]
@@ -30,7 +30,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "chuk-virtual-fs", specifier = ">=0.1.5" },
+    { name = "chuk-virtual-fs", specifier = ">=0.1.6" },
     { name = "pyyaml", specifier = ">=6.0.1" },
 ]
 

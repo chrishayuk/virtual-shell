@@ -27,7 +27,7 @@ security:
 
 # Filesystem provider settings
 filesystem:
-  provider: "memory"      # Provider to use
+  provider: "pyodide"      # Provider to use
   provider_args: {}       # Arguments for the provider
 
 # Environment variables

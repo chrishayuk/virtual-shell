@@ -1,34 +1,51 @@
 """
 chuk_virtual_shell/commands/__init__.py - Command module package initialization
+
+This module manages the registration and initialization of command classes.
+It provides functions to register commands, initialize them with a given shell context,
+list available commands, and retrieve command executors.
 """
-from typing import Dict, Optional
 
-# Command registry
-_COMMAND_EXECUTORS = {}
-_COMMAND_CLASSES = {}
+import logging
+from typing import Dict, Optional, Type
 
-def register_command_class(command_class):
-    """Register a command class (not instance)"""
+# Command registry dictionaries
+_COMMAND_EXECUTORS: Dict[str, object] = {}
+_COMMAND_CLASSES: Dict[str, Type] = {}
+
+def register_command_class(command_class: Type) -> None:
+    """Register a command class (not an instance)."""
     _COMMAND_CLASSES[command_class.name] = command_class
 
-def get_command_executor(name: str):
-    """Get a command executor by name"""
+def get_command_executor(name: str) -> Optional[object]:
+    """Retrieve a command executor instance by name, if available."""
     return _COMMAND_EXECUTORS.get(name)
 
-def initialize_commands(shell_context):
-    """Initialize all command instances with the shell context"""
+def initialize_commands(shell_context) -> None:
+    """
+    Initialize all command instances with the provided shell context.
+    
+    This clears any previously initialized command executors and instantiates
+    all registered command classes with the given shell context.
+    """
     _COMMAND_EXECUTORS.clear()
     for name, command_class in _COMMAND_CLASSES.items():
         try:
             _COMMAND_EXECUTORS[name] = command_class(shell_context)
         except Exception as e:
-            import sys
-            print(f"Warning: Failed to initialize command '{name}': {e}", file=sys.stderr)
+            logging.warning(f"Failed to initialize command '{name}': {e}")
 
 def list_commands() -> Dict[str, str]:
-    """List all available commands with their help text"""
-    return {name: cmd.help_text.split('\n')[0] if cmd.help_text else name 
-            for name, cmd in _COMMAND_CLASSES.items()}
+    """
+    List all available commands with a brief description.
+    
+    Returns:
+        A dictionary mapping command names to the first line of their help text.
+    """
+    return {
+        name: (cmd.help_text.split('\n')[0] if cmd.help_text else name)
+        for name, cmd in _COMMAND_CLASSES.items()
+    }
 
 # Import command classes
 
@@ -37,7 +54,7 @@ from chuk_virtual_shell.commands.navigation.ls import LsCommand
 from chuk_virtual_shell.commands.navigation.cd import CdCommand
 from chuk_virtual_shell.commands.navigation.pwd import PwdCommand
 
-# File system commands - using filesystem directory as in original code
+# Filesystem commands
 from chuk_virtual_shell.commands.filesystem.mkdir import MkdirCommand
 from chuk_virtual_shell.commands.filesystem.touch import TouchCommand
 from chuk_virtual_shell.commands.filesystem.cat import CatCommand
@@ -49,34 +66,31 @@ from chuk_virtual_shell.commands.filesystem.rmdir import RmdirCommand
 from chuk_virtual_shell.commands.environment.env import EnvCommand
 from chuk_virtual_shell.commands.environment.export import ExportCommand
 
-# System commands
+# System commands (existing)
 from chuk_virtual_shell.commands.system.clear import ClearCommand
 from chuk_virtual_shell.commands.system.exit import ExitCommand
 from chuk_virtual_shell.commands.system.help import HelpCommand
 
-# Register all command classes
-register_command_class(LsCommand)
-register_command_class(CdCommand)
-register_command_class(PwdCommand)
-register_command_class(MkdirCommand)
-register_command_class(TouchCommand)
-register_command_class(CatCommand)
-register_command_class(EchoCommand)
-register_command_class(RmCommand)
-register_command_class(RmdirCommand)
-register_command_class(EnvCommand)
-register_command_class(ExportCommand)
-register_command_class(ClearCommand)
-register_command_class(ExitCommand)
-register_command_class(HelpCommand)
+# System commands (new)
+from chuk_virtual_shell.commands.system.time import TimeCommand
+from chuk_virtual_shell.commands.system.uptime import UptimeCommand
+from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
 
-# Export all commands
+# Register all command classes using a compact loop.
+for command in (
+    LsCommand, CdCommand, PwdCommand,
+    MkdirCommand, TouchCommand, CatCommand, EchoCommand, RmCommand, RmdirCommand,
+    EnvCommand, ExportCommand,
+    ClearCommand, ExitCommand, HelpCommand,
+    TimeCommand, UptimeCommand, WhoamiCommand,
+):
+    register_command_class(command)
+
 __all__ = [
     # Navigation
     'LsCommand',
     'CdCommand',
     'PwdCommand',
-    
     # Filesystem
     'MkdirCommand',
     'TouchCommand',
@@ -84,16 +98,17 @@ __all__ = [
     'EchoCommand',
     'RmCommand',
     'RmdirCommand',
-    
     # Environment
     'EnvCommand',
     'ExportCommand',
-    
-    # System
+    # System (existing)
     'ClearCommand',
     'ExitCommand',
     'HelpCommand',
-    
+    # System (new)
+    'TimeCommand',
+    'UptimeCommand',
+    'WhoamiCommand',
     # Registry functions
     'get_command_executor',
     'register_command_class',

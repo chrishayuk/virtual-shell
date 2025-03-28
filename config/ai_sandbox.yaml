@@ -13,33 +13,34 @@ security:
   max_total_size: 10485760 # 10MB total storage quota
   max_files: 100          # Maximum number of files
   max_path_depth: 3       # Maximum path depth
-  allowed_paths:          # Only allow access to sandbox directory
+  allowed_paths:          # Only allow access to the sandbox directory
     - "/sandbox"
-  denied_paths:           # Explicitly deny these paths
+  denied_paths:           # Explicitly deny access to these critical system paths
     - "/etc"
     - "/bin"
     - "/home"
     - "/usr"
-  denied_patterns:        # Block these file patterns
-    - "\\.\\."            # Path traversal pattern
-    - "^\\."              # Hidden files
-    - ".*\\.(exe|sh|bat|cmd)$"  # Executable files
+  # Denied patterns (these strings will be converted to regex objects in the code)
+  denied_patterns:
+    - "\\.\\."            # Prevent directory traversal (e.g., ../)
+    - "^\\."              # Block hidden files (starting with a dot)
+    - ".*\\.(exe|sh|bat|cmd)$"  # Block executable files
 
 # Filesystem provider settings
 filesystem:
-  provider: "memory"      # Provider to use
-  provider_args: {}       # Arguments for the provider
+  provider: "memory"      # Provider to use (e.g., memory, sqlite, etc.)
+  provider_args: {}       # Additional arguments for the provider (empty by default)
 
-# Environment variables
+# Environment variables (values should be consistent with security and allowed paths)
 environment:
   HOME: "/sandbox"
-  PATH: "/bin"
+  PATH: "/bin"           # Note: Ensure PATH is safe in conjunction with denied_paths
   USER: "ai"
   SHELL: "/bin/bash"
   TERM: "xterm"
   SANDBOX_MODE: "restricted"
 
-# Initialization commands (executed during setup)
+# Initialization commands (executed during setup in order)
 initialization:
   - "mkdir -p /sandbox/input"
   - "mkdir -p /sandbox/output"
