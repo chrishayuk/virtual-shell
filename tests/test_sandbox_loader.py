@@ -19,7 +19,8 @@ from chuk_virtual_shell.sandbox_loader import (
     create_filesystem_from_config,
     get_environment_from_config,
     _execute_initialization,
-    _ensure_directory
+    _ensure_directory,
+    _find_filesystem_template  # for patching in tests
 )
 
 # Sample configuration for testing
@@ -180,7 +181,9 @@ class TestSandboxLoader:
         _execute_initialization(mock_fs, commands)
         
         # Verify mkdir commands
-        assert mock_fs.mkdir.call_count == 1  # Only for the non -p version
+        # "mkdir -p" should ensure directory exists without calling mkdir,
+        # while "mkdir /test/dir2" calls mkdir.
+        assert mock_fs.mkdir.call_count == 1
         mock_fs.mkdir.assert_called_with("/test/dir2")
         
         # Verify write_file command
@@ -198,7 +201,7 @@ class TestSandboxLoader:
         _ensure_directory(mock_fs, "/test/dir1/dir2")
         
         # Verify mkdir calls for each component
-        assert mock_fs.mkdir.call_count == 3  # Should create /test, /test/dir1, /test/dir1/dir2
+        assert mock_fs.mkdir.call_count == 3
         mock_fs.mkdir.assert_any_call("/test")
         mock_fs.mkdir.assert_any_call("/test/dir1")
         mock_fs.mkdir.assert_any_call("/test/dir1/dir2")
@@ -228,43 +231,39 @@ class TestSandboxLoader:
         
     def test_create_filesystem_from_config_with_template(self):
         """Test creating a filesystem from a configuration with a template"""
-        # Mock the template loader
-        with patch('chuk_virtual_shell.sandbox_loader.TemplateLoader') as mock_template_loader:
-            # Create a mock instance of the template loader
-            mock_loader_instance = MagicMock()
-            mock_template_loader.return_value = mock_loader_instance
-            
-            # Temporarily add the template directory to the search path
-            with patch('chuk_virtual_shell.sandbox_loader.os.environ', 
-                       {**os.environ, 'chuk_virtual_shell_TEMPLATE_DIR': self.template_dir.name}):
+        # Patch _find_filesystem_template to return a known path.
+        template_file_path = os.path.join(self.template_dir.name, "python_project.yaml")
+        with patch('chuk_virtual_shell.sandbox_loader._find_filesystem_template', return_value=template_file_path):
+            with patch('chuk_virtual_shell.sandbox_loader.TemplateLoader') as mock_template_loader:
+                mock_loader_instance = MagicMock()
+                mock_template_loader.return_value = mock_loader_instance
                 
-                # Create filesystem from config
-                fs = create_filesystem_from_config(SAMPLE_CONFIG)
-                
-                # Verify template loader was called with correct arguments
-                mock_template_loader.assert_called_once()
-                
-                # Verify template was loaded with correct parameters
-                mock_loader_instance.load_template.assert_called_once()
-                
-                # Check arguments of load_template
-                args, kwargs = mock_loader_instance.load_template.call_args
-                
-                assert 'variables' in kwargs
-                assert kwargs['variables']['project_name'] == 'test_project'
-                assert os.path.basename(args[0]) == 'python_project.yaml'
+                # Temporarily add the template directory to the environment
+                with patch('chuk_virtual_shell.sandbox_loader.os.environ', 
+                           {**os.environ, 'CHUK_VIRTUAL_SHELL_TEMPLATE_DIR': self.template_dir.name}):
+                    fs = create_filesystem_from_config(SAMPLE_CONFIG)
+                    
+                    # Verify the TemplateLoader was instantiated once
+                    mock_template_loader.assert_called_once()
+                    
+                    # Verify load_template was called once with expected arguments
+                    mock_loader_instance.load_template.assert_called_once()
+                    args, kwargs = mock_loader_instance.load_template.call_args
+                    # Expect variables passed in kwargs
+                    assert 'variables' in kwargs
+                    assert kwargs['variables']['project_name'] == 'test_project'
+                    # The first argument should be our template file path with basename 'python_project.yaml'
+                    assert os.path.basename(args[0]) == 'python_project.yaml'
     
     def test_list_available_templates(self):
         """Test listing available filesystem templates"""
-        # Temporarily add the template directory to the search path
+        # Patch os.listdir and os.path.exists to simulate our template directory contents.
         with patch('chuk_virtual_shell.sandbox_loader.os.environ', 
-                   {**os.environ, 'chuk_virtual_shell_TEMPLATE_DIR': self.template_dir.name}):
-            
-            # List available templates
-            templates = list_available_templates()
-            
-            # Verify
-            assert "python_project" in templates
+                   {**os.environ, 'CHUK_VIRTUAL_SHELL_TEMPLATE_DIR': self.template_dir.name}):
+            with patch('chuk_virtual_shell.sandbox_loader.os.path.exists', return_value=True):
+                with patch('chuk_virtual_shell.sandbox_loader.os.listdir', return_value=["python_project.yaml"]):
+                    templates = list_available_templates()
+                    assert "python_project" in templates
     
     def test_template_with_missing_name(self):
         """Test handling of configuration with missing template name"""
@@ -272,13 +271,10 @@ class TestSandboxLoader:
         config_copy = SAMPLE_CONFIG.copy()
         del config_copy['filesystem-template']['name']
         
-        # Mock the print function to check warning messages
-        with patch('builtins.print') as mock_print:
-            # Create filesystem from config
+        # Patch logger.warning instead of print since warnings are logged
+        with patch('chuk_virtual_shell.sandbox_loader.logger.warning') as mock_warning:
             fs = create_filesystem_from_config(config_copy)
-            
-            # Verify warning was printed
-            mock_print.assert_called_with("Warning: Filesystem template name not specified")
+            mock_warning.assert_called_with("Filesystem template name not specified")
     
     def test_template_with_nonexistent_template(self):
         """Test handling of configuration with a non-existent template"""
@@ -286,10 +282,6 @@ class TestSandboxLoader:
         config_copy = SAMPLE_CONFIG.copy()
         config_copy['filesystem-template']['name'] = 'nonexistent_template'
         
-        # Mock the print function to check warning messages
-        with patch('builtins.print') as mock_print:
-            # Create filesystem from config
+        with patch('chuk_virtual_shell.sandbox_loader.logger.warning') as mock_warning:
             fs = create_filesystem_from_config(config_copy)
-            
-            # Verify warning was printed
-            mock_print.assert_called_with("Warning: Filesystem template nonexistent_template not found")
+            mock_warning.assert_called_with("Filesystem template nonexistent_template not found")

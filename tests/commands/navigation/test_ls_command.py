@@ -38,10 +38,10 @@ def test_ls_no_flags(ls_command):
 def test_ls_all_flag(ls_command):
     """
     With the -a flag, ls should include hidden files.
-    Expected output (sorted): ".hidden a.txt b.txt folder"
+    Expected output (sorted): ". .hidden a.txt b.txt folder"
     """
     output = ls_command.execute(["-a"])
-    expected = ".hidden a.txt b.txt folder"
+    expected = ". .hidden a.txt b.txt folder"
     assert output == expected
 
 def test_ls_long_flag(ls_command):

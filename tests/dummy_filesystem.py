@@ -128,3 +128,28 @@ class DummyFileSystem:
                 yield from self.walk(sub_path)
         else:
             yield (path, [], [])
+
+    def get_node_info(self, path):
+        """
+        Return information about a file or directory at the given path.
+        
+        Returns a NodeInfo object with path, name, is_dir, and is_file attributes,
+        or None if the path doesn't exist.
+        """
+        if not self.exists(path):
+            return None
+        
+        # Create a NodeInfo object with required attributes
+        class NodeInfo:
+            def __init__(self, fs, path):
+                self.path = path  # Keep the full path
+                self.name = os.path.basename(path) or path  # Handle root directory
+                self.is_dir = fs.is_dir(path)
+                self.is_file = not self.is_dir
+                # Include children for directories to support recursion
+                self.children = []
+                if self.is_dir:
+                    self.children = fs.list_dir(path)
+        
+        # Create the NodeInfo with a reference to the filesystem
+        return NodeInfo(self, path)

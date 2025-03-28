@@ -244,3 +244,7 @@ class ShellInterpreter:
         """Return node information for the given path using the provider, or None if not found."""
         resolved_path = self.resolve_path(path)
         return self.fs.provider.get_node_info(resolved_path)
+
+    # Internal method to register commands.
+    def _register_command(self, command):
+        self.commands[command.name] = command

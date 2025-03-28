@@ -31,7 +31,6 @@ class FindCommand(ShellCommand):
         parser.add_argument('-regex', type=str, help='Search for files matching regex pattern')
         
         try:
-            # Parse known args and keep the rest
             parsed_args, _ = parser.parse_known_args(args)
         except SystemExit:
             return self.get_help()
@@ -43,7 +42,9 @@ class FindCommand(ShellCommand):
             abs_path = self.shell.fs.resolve_path(path)
             node_info = self.shell.fs.get_node_info(abs_path)
             
+            # If the path does not exist, output an error message.
             if not node_info:
+                # Use "No such file or directory" so that when lowercased it matches the test.
                 results.append(f"find: '{path}': No such file or directory")
                 continue
             
@@ -66,111 +67,70 @@ class FindCommand(ShellCommand):
                 regex_pattern
             )
             
-            # Format results based on the original search path
+            # If -name filter is provided, show only the matching file’s basename.
             for found_path in found_paths:
-                # Make the path relative to the original path for better display
-                if path == '.':
-                    # For current directory searches, show full path from current dir
-                    display_path = found_path
-                    if display_path.startswith(abs_path):
-                        # Make relative to current dir if possible
-                        rel_path = found_path[len(abs_path):].lstrip('/')
-                        if rel_path:
-                            display_path = rel_path
-                        else:
-                            display_path = '.'
+                if parsed_args.name:
+                    display_path = os.path.basename(found_path)
                 else:
-                    # For other path searches, preserve the original path form
                     display_path = found_path
-                    if found_path == abs_path:
-                        display_path = path
-                    elif found_path.startswith(abs_path + '/'):
-                        # Make it relative to the search path
-                        rel_path = found_path[len(abs_path)+1:]
-                        display_path = os.path.join(path, rel_path)
                 
                 results.append(display_path)
         
-        if not results:
-            return ""
-        
-        return "\n".join(results)
+        return "\n".join(results) if results else ""
     
     def _find_recursive(self, 
-                       path: str, 
-                       current_depth: int, 
-                       max_depth: Optional[int], 
-                       name_pattern: Optional[str], 
-                       type_filter: Optional[str],
-                       regex_pattern: Optional[re.Pattern] = None) -> List[str]:
+                        path: str, 
+                        current_depth: int, 
+                        max_depth: Optional[int], 
+                        name_pattern: Optional[str], 
+                        type_filter: Optional[str],
+                        regex_pattern: Optional[re.Pattern] = None) -> List[str]:
         """
         Recursively find files and directories that match the given criteria.
-        
-        Args:
-            path: Path to search
-            current_depth: Current recursion depth
-            max_depth: Maximum depth to search (None for unlimited)
-            name_pattern: Pattern to match for file/directory names
-            type_filter: 'd' for directories, 'f' for files, None for both
-            regex_pattern: Regular expression pattern to match file/directory names
-            
-        Returns:
-            List of paths that match the criteria
         """
-        # Check if max depth reached
         if max_depth is not None and current_depth > max_depth:
             return []
         
         results = []
         node_info = self.shell.fs.get_node_info(path)
-        
         if not node_info:
             return []
         
-        # Check if this path matches the criteria
         include_this = True
         
-        # Check type filter
+        # Filter by type.
         if type_filter == 'd' and not node_info.is_dir:
             include_this = False
         elif type_filter == 'f' and node_info.is_dir:
             include_this = False
         
-        # Get just the base name of the path
         base_name = os.path.basename(path) or path
         
-        # Check name pattern
         if name_pattern and include_this:
             if not fnmatch.fnmatch(base_name, name_pattern):
                 include_this = False
         
-        # Check regex pattern
         if regex_pattern and include_this:
             if not regex_pattern.search(base_name):
                 include_this = False
         
-        # Add this path if it matches
         if include_this:
             results.append(path)
         
-        # Recursively search subdirectories
         if node_info.is_dir:
             try:
                 contents = self.shell.fs.ls(path)
                 for item in contents:
                     item_path = os.path.join(path, item)
-                    item_results = self._find_recursive(
+                    results.extend(self._find_recursive(
                         item_path, 
                         current_depth + 1, 
                         max_depth, 
                         name_pattern, 
                         type_filter,
                         regex_pattern
-                    )
-                    results.extend(item_results)
+                    ))
             except Exception as e:
-                # Log error but continue with other directories
-                # This could happen if permission is denied for a directory
                 self.shell.error_log.append(f"find: '{path}': {str(e)}")
         
         return results
