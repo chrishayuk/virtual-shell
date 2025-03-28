@@ -34,17 +34,70 @@ class ShellInterpreter:
                 config = load_sandbox_config(config_path)
                 
                 # Create filesystem with configuration
-                self.fs = create_filesystem_from_config(config)
+                try:
+                    self.fs = create_filesystem_from_config(config)
+                except Exception as fs_error:
+                    print(f"Error creating filesystem: {fs_error}")
+                    import traceback
+                    traceback.print_exc()
+                    # Fallback to default filesystem
+                    self.fs = VirtualFileSystem()
                 
                 # Set environment variables from configuration
-                self.environ = get_environment_from_config(config)
+                # Use get with a default dict to ensure we always have a dictionary
+                env_config = config.get('environment', {})
                 
-                # Update PWD to match filesystem
-                self.environ["PWD"] = self.fs.pwd()
+                # Ensure critical environment variables are set with sensible defaults
+                self.environ = {
+                    "HOME": env_config.get('HOME', '/sandbox'),
+                    "PATH": env_config.get('PATH', '/bin'),
+                    "USER": env_config.get('USER', 'ai'),
+                    "SHELL": env_config.get('SHELL', '/bin/pyodide-shell'),
+                    "TERM": env_config.get('TERM', 'xterm'),
+                    "PWD": "/"  # Start at root
+                }
+                
+                # Add any additional environment variables from the config
+                for key, value in env_config.items():
+                    if key not in self.environ:
+                        self.environ[key] = value
+                
+                # Get home directory
+                home_dir = self.environ['HOME']
+                
+                # Attempt to create home directory with improved error handling
+                try:
+                    # Resolve the home directory path first
+                    resolved_home_dir = self.fs.resolve_path(home_dir)
+                    
+                    # Check if directory exists, create if not
+                    existing_node = self.fs.get_node_info(resolved_home_dir)
+                    if not existing_node:
+                        # Attempt to create directory
+                        create_result = self.fs.mkdir(resolved_home_dir)
+                        if not create_result:
+                            print(f"Warning: Could not create home directory {resolved_home_dir}")
+                    elif not existing_node.is_dir:
+                        print(f"Warning: Home path {resolved_home_dir} exists but is not a directory")
+                except Exception as mkdir_error:
+                    print(f"Error processing home directory {home_dir}: {mkdir_error}")
+                
+                # Attempt to change to home directory
+                try:
+                    if not self.fs.cd(home_dir):
+                        print(f"Warning: Could not change to home directory {home_dir}")
+                except Exception as cd_error:
+                    print(f"Error changing to home directory {home_dir}: {cd_error}")
                 
                 print(f"Using sandbox configuration: {config.get('name', 'custom')}")
+                print(f"Home directory set to: {home_dir}")
+                print("Environment variables:")
+                for key, value in self.environ.items():
+                    print(f"  {key}: {value}")
             except Exception as e:
                 print(f"Error loading sandbox configuration '{sandbox_yaml}': {e}")
+                import traceback
+                traceback.print_exc()
                 print("Falling back to default configuration.")
                 self.fs = VirtualFileSystem()
                 self._setup_default_environment()
@@ -79,15 +132,31 @@ class ShellInterpreter:
     def _setup_default_environment(self):
         """Set up default environment variables and directories"""
         # Create user home directory
-        self.fs.mkdir("/home/user")
+        default_home = "/home/user"
+        
+        try:
+            # Attempt to create home directory if possible
+            resolved_home_dir = self.fs.resolve_path(default_home)
+            
+            # Check if directory exists, create if not
+            existing_node = self.fs.get_node_info(resolved_home_dir)
+            if not existing_node:
+                # Attempt to create directory
+                create_result = self.fs.mkdir(resolved_home_dir)
+                if not create_result:
+                    print(f"Warning: Could not create home directory {resolved_home_dir}")
+            elif not existing_node.is_dir:
+                print(f"Warning: Home path {resolved_home_dir} exists but is not a directory")
+        except Exception as mkdir_error:
+            print(f"Error processing home directory {default_home}: {mkdir_error}")
         
         # Set up environment
         self.environ = {
-            "HOME": "/home/user",
+            "HOME": default_home,
             "PATH": "/bin:/usr/bin",
             "USER": "user",
-            "SHELL": "/bin/bash",
-            "PWD": self.fs.pwd(),
+            "SHELL": "/bin/pyodide-shell",
+            "PWD": "/",
             "TERM": "xterm",
         }
 
@@ -145,7 +214,7 @@ class ShellInterpreter:
                 result = self.commands[cmd].execute(args)
                 
                 # Update PWD if directory changed
-                if cmd == "cd" and self.fs.pwd() != self.environ["PWD"]:
+                if cmd == "cd":
                     self.environ["PWD"] = self.fs.pwd()
                     
                 return result

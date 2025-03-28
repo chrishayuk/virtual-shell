@@ -1,6 +1,4 @@
-"""
-tests/chuk_virtual_shell/commands/navigation/test_ls_command.py
-"""
+# tests/chuk_virtual_shell/commands/navigation/test_ls_command.py
 import pytest
 from chuk_virtual_shell.commands.navigation.ls import LsCommand
 from tests.dummy_shell import DummyShell

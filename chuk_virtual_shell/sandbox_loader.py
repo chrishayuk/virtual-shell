@@ -3,6 +3,7 @@ chuk_virtual_shell/sandbox_loader.py - Load and apply sandbox configurations fro
 """
 import os
 import json
+import traceback
 import yaml
 from typing import Dict, Any, Optional, List
 
@@ -78,6 +79,10 @@ def _find_filesystem_template(name: str) -> Optional[str]:
     Returns:
         Path to the template file or None if not found
     """
+    # If no template specified, return None
+    if not name:
+        return None
+    
     # Look in standard locations for template files
     search_paths = [
         # Current directory
@@ -90,9 +95,9 @@ def _find_filesystem_template(name: str) -> Optional[str]:
         "/usr/share/virtual-shell/templates",
     ]
     
-    # Check if chuk_virtual_shell_TEMPLATE_DIR environment variable is set
-    if 'chuk_virtual_shell_TEMPLATE_DIR' in os.environ:
-        search_paths.insert(0, os.environ['chuk_virtual_shell_TEMPLATE_DIR'])
+    # Check if CHUK_VIRTUAL_SHELL_TEMPLATE_DIR environment variable is set
+    if 'CHUK_VIRTUAL_SHELL_TEMPLATE_DIR' in os.environ:
+        search_paths.insert(0, os.environ['CHUK_VIRTUAL_SHELL_TEMPLATE_DIR'])
     
     # Try different filename patterns
     file_patterns = [
@@ -113,7 +118,6 @@ def _find_filesystem_template(name: str) -> Optional[str]:
                 return template_path
     
     return None
-
 
 def list_available_configs() -> List[str]:
     """
@@ -179,9 +183,9 @@ def list_available_templates() -> List[str]:
         "/usr/share/virtual-shell/templates",
     ]
     
-    # Check if chuk_virtual_shell_TEMPLATE_DIR environment variable is set
-    if 'chuk_virtual_shell_TEMPLATE_DIR' in os.environ:
-        search_paths.insert(0, os.environ['chuk_virtual_shell_TEMPLATE_DIR'])
+    # Check if CHUK_VIRTUAL_SHELL_TEMPLATE_DIR environment variable is set
+    if 'CHUK_VIRTUAL_SHELL_TEMPLATE_DIR' in os.environ:
+        search_paths.insert(0, os.environ['CHUK_VIRTUAL_SHELL_TEMPLATE_DIR'])
     
     for path in search_paths:
         if not os.path.exists(path):
@@ -222,6 +226,9 @@ def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
     Raises:
         ValueError: If the configuration is invalid
     """
+    print("Debug: Creating filesystem from config")
+    print("Debug: Config contents:", config)
+    
     # Extract filesystem settings
     fs_config = config.get('filesystem', {})
     provider_name = fs_config.get('provider', 'memory')
@@ -232,6 +239,7 @@ def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
     security_profile = security_config.get('profile')
     
     # Create filesystem with security profile
+    print(f"Debug: Creating filesystem with provider {provider_name}")
     fs = VirtualFileSystem(
         provider_name=provider_name,
         security_profile=security_profile,
@@ -249,7 +257,9 @@ def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
                 setattr(fs.provider, key, value)
     
     # Handle filesystem template
+    # Remove this section if it's causing issues
     if 'filesystem-template' in config:
+        print("Debug: Filesystem template found in config")
         # Get template details
         template_config = config['filesystem-template']
         
@@ -278,6 +288,7 @@ def create_filesystem_from_config(config: Dict[str, Any]) -> VirtualFileSystem:
             
             except Exception as e:
                 print(f"Error applying filesystem template: {e}")
+                traceback.print_exc()
     
     # Execute initialization commands
     init_commands = config.get('initialization', [])

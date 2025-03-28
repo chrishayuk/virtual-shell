@@ -1,6 +1,4 @@
-"""
-chuk_virtual_shell/commands/navigation/ls.py - List directory contents command
-"""
+# chuk_virtual_shell/commands/navigation/ls.py
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 class LsCommand(ShellCommand):

@@ -59,3 +59,7 @@ class DummyFileSystem:
             return [path]
         # Otherwise, return an empty list.
         return []
+
+    # Add the isdir method so cp and mv commands can check if a path is a directory.
+    def isdir(self, path):
+        return path in self.files and isinstance(self.files[path], dict)
