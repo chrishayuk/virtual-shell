@@ -31,32 +31,23 @@ def load_sandbox_config(config_path: str) -> Dict[str, Any]:
 
 
 def find_sandbox_config(name: str) -> Optional[str]:
-    """
-    Find a sandbox configuration file by name
-    
-    Args:
-        name: Name of the sandbox configuration
-        
-    Returns:
-        Path to the configuration file or None if not found
-    """
     # Look in standard locations for configuration files
     search_paths = [
-        # Current directory
         os.getcwd(),
-        # Config directory in the current path
         os.path.join(os.getcwd(), 'config'),
-        # User config directory
         os.path.expanduser("~/.config/virtual-shell"),
-        # System config directory
         "/etc/virtual-shell",
     ]
     
-    # Check if chuk_virtual_shell_CONFIG_DIR environment variable is set
-    if 'chuk_virtual_shell_CONFIG_DIR' in os.environ:
-        search_paths.insert(0, os.environ['chuk_virtual_shell_CONFIG_DIR'])
+    # Check if environment variable for config directory is set (try both variants)
+    env_config_dir = os.environ.get("CHUK_VIRTUAL_SHELL_CONFIG_DIR") or os.environ.get("chuk_virtual_shell_CONFIG_DIR")
+    if env_config_dir:
+        search_paths.insert(0, env_config_dir)
     
-    # Try different filename patterns
+    print("Debug: Searching for sandbox config in:")
+    for sp in search_paths:
+        print("  ", sp)
+    
     file_patterns = [
         f"{name}_sandbox_config.yaml",
         f"{name}_config.yaml",
@@ -70,11 +61,12 @@ def find_sandbox_config(name: str) -> Optional[str]:
             
         for pattern in file_patterns:
             config_path = os.path.join(path, pattern)
+            print(f"Debug: Checking {config_path}")
             if os.path.exists(config_path):
+                print(f"Debug: Found config at {config_path}")
                 return config_path
     
     return None
-
 
 def _find_filesystem_template(name: str) -> Optional[str]:
     """
