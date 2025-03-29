@@ -1,11 +1,9 @@
 # chuk_virtual_shell/sandbox/loader/sandbox_config_loader.py
-
 import os
 import yaml
 from typing import Dict, Any, Optional
 import logging
 
-# logging
 logger = logging.getLogger(__name__)
 
 def load_config_file(config_path: str) -> Dict[str, Any]:
@@ -39,7 +37,8 @@ def find_config_file(name: str) -> Optional[str]:
         "/etc/virtual-shell",
     ]
     
-    env_config_dir = os.environ.get("CHUK_VIRTUAL_SHELL_CONFIG_DIR") or os.environ.get("chuk_virtual_shell_CONFIG_DIR")
+    env_config_dir = os.environ.get("CHUK_VIRTUAL_SHELL_CONFIG_DIR") or \
+                     os.environ.get("chuk_virtual_shell_CONFIG_DIR")
     if env_config_dir:
         search_paths.insert(0, env_config_dir)
     

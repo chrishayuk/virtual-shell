@@ -3,7 +3,10 @@
 Module for extracting and validating MCP server configurations
 from a sandbox configuration.
 """
+import logging
 from typing import Dict, Any, List
+
+logger = logging.getLogger(__name__)
 
 def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
@@ -16,16 +19,14 @@ def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
         A list of MCP server configuration dictionaries.
         Each config should contain at least keys like "config_path" and "server_name".
     """
-    # get the mcp servers
     mcp_servers = config.get("mcp_servers", [])
     validated_servers = []
     
-    # load the servers
     for server in mcp_servers:
         if "config_path" not in server or "server_name" not in server:
-            print(f"Warning: MCP server configuration is missing required keys: {server}")
+            logger.warning(f"MCP server configuration missing required keys: {server}")
             continue
         validated_servers.append(server)
 
-    # return the servers
     return validated_servers
+

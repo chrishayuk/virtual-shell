@@ -2,10 +2,8 @@
 import os
 import logging
 
-# virtual filesystem
 from chuk_virtual_fs import VirtualFileSystem
 
-# logger
 logger = logging.getLogger(__name__)
 
 def execute_initialization(fs: VirtualFileSystem, commands: list) -> None:
@@ -19,7 +17,7 @@ def execute_initialization(fs: VirtualFileSystem, commands: list) -> None:
     for command in commands:
         parts = command.split(maxsplit=1)
         cmd = parts[0]
-        
+
         if cmd == "mkdir":
             if len(parts) > 1:
                 args = parts[1].strip()
@@ -28,7 +26,7 @@ def execute_initialization(fs: VirtualFileSystem, commands: list) -> None:
                     _ensure_directory(fs, path)
                 else:
                     fs.mkdir(args)
-        
+
         elif cmd == "echo":
             if len(parts) > 1 and ">" in parts[1]:
                 content, path = parts[1].split(">", 1)
@@ -41,6 +39,8 @@ def execute_initialization(fs: VirtualFileSystem, commands: list) -> None:
                 if parent_dir:
                     _ensure_directory(fs, parent_dir)
                 fs.write_file(path, content)
+        else:
+            logger.warning(f"Unrecognized initialization command: {command}")
 
 def _ensure_directory(fs: VirtualFileSystem, path: str) -> None:
     """

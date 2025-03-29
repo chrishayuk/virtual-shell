@@ -2,17 +2,15 @@
 import os
 import traceback
 import logging
+import re
 from typing import Dict, Any
 
-# virtual filesystem
 from chuk_virtual_fs import VirtualFileSystem
 from chuk_virtual_fs.template_loader import TemplateLoader
 
-# logging
 logger = logging.getLogger(__name__)
 
 def compile_denied_patterns(patterns: list) -> list:
-    import re
     compiled = []
     for pattern in patterns:
         try:
@@ -51,11 +49,11 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
             if key != 'profile' and hasattr(fs.provider, key):
                 setattr(fs.provider, key, value)
     
-    # Handle filesystem template if specified.
+    # Handle filesystem template if specified
     if 'filesystem-template' in config:
         template_config = config['filesystem-template']
         if 'name' not in template_config:
-            logger.warning("Filesystem template name not specified")
+            logger.warning("Filesystem template name not specified in config.")
         else:
             template_name = template_config['name']
             template_variables = template_config.get('variables', {})
@@ -65,12 +63,10 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
                 if template_path:
                     template_loader.load_template(template_path, variables=template_variables)
                 else:
-                    logger.warning(f"Filesystem template {template_name} not found")
+                    logger.warning(f"Filesystem template '{template_name}' not found.")
             except Exception as e:
-                logger.error(f"Error applying filesystem template: {e}")
+                logger.error(f"Error applying filesystem template '{template_name}': {e}")
                 traceback.print_exc()
-    
-    # Execute initialization commands later (see next module)
     
     if hasattr(fs, 'provider') and hasattr(fs.provider, '_in_setup'):
         fs.provider._in_setup = False
@@ -78,7 +74,9 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
     return fs
 
 def _find_template(name: str) -> str:
-    # Helper function to search standard directories for a template file.
+    """
+    Helper function to search standard directories for a template file.
+    """
     search_paths = [
         os.getcwd(),
         os.path.join(os.getcwd(), 'templates'),
@@ -102,6 +100,8 @@ def _find_template(name: str) -> str:
             continue
         for pattern in file_patterns:
             template_path = os.path.join(path, pattern)
+            logger.debug(f"Checking for template at {template_path}")
             if os.path.exists(template_path):
+                logger.debug(f"Found template at {template_path}")
                 return template_path
     return ""
