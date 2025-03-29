@@ -29,22 +29,22 @@ async def run_pyodide_shell():
     Async shell main loop with YAML sandbox configuration
     """
     try:
-        # Import the sandbox loader and shell interpreter
-        from chuk_virtual_shell.sandbox_loader import find_sandbox_config
+        # Import the new modularized sandbox config loader and shell interpreter.
+        from chuk_virtual_shell.sandbox.loader.sandbox_config_loader import find_config_file
         from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
-        # Check for environment variables that might specify a sandbox
+        # Check for environment variables that might specify a sandbox.
         sandbox_yaml = os.environ.get("PYODIDE_SANDBOX", DEFAULT_SANDBOX)
         
-        # If sandbox specified by name, try to find its config file
+        # If sandbox specified by name, try to find its config file.
         if not sandbox_yaml.endswith(('.yaml', '.yml')) and '/' not in sandbox_yaml:
-            config_path = find_sandbox_config(sandbox_yaml)
+            config_path = find_config_file(sandbox_yaml)
             if config_path:
                 sandbox_yaml = config_path
             else:
                 print(f"Warning: Sandbox configuration '{sandbox_yaml}' not found, falling back to default")
-                # Try to find the default sandbox
-                default_path = find_sandbox_config(DEFAULT_SANDBOX)
+                # Try to find the default sandbox.
+                default_path = find_config_file(DEFAULT_SANDBOX)
                 if default_path:
                     sandbox_yaml = default_path
                 else:
@@ -52,15 +52,15 @@ async def run_pyodide_shell():
                     
         print(f"Initializing shell with sandbox configuration: {sandbox_yaml or 'default'}")
         
-        # Create shell with the specified sandbox configuration
+        # Create shell with the specified sandbox configuration.
         shell = ShellInterpreter(sandbox_yaml=sandbox_yaml)
         
-        # Print sandbox info
+        # Print sandbox info.
         print("Shell initialized with the following environment:")
         print(f"Home directory: {shell.environ.get('HOME', '/home/user')}")
         print(f"User: {shell.environ.get('USER', 'user')}")
         
-        # Welcome message
+        # Welcome message.
         fs_info = shell.fs.get_fs_info()
         if "security" in fs_info:
             security = fs_info["security"]
@@ -72,24 +72,24 @@ async def run_pyodide_shell():
         print("-" * 60)
 
         while shell.running:
-            # Prepare prompt
+            # Prepare prompt.
             prompt = shell.prompt()
             sys.stdout.write(prompt)
             sys.stdout.flush()
 
             try:
-                # Await input with minimal overhead
+                # Await input with minimal overhead.
                 cmd_line = await safe_async_input("")
                 
-                # Exit conditions
+                # Exit conditions.
                 if cmd_line.lower() in {'exit', 'quit', 'q'}:
                     break
                 
-                # Skip empty lines
+                # Skip empty lines.
                 if not cmd_line:
                     continue
                 
-                # Execute command
+                # Execute command.
                 result = shell.execute(cmd_line)
                 if result:
                     print(result)
@@ -112,16 +112,16 @@ def pyodide_main():
     Robust entry point for Pyodide shell
     """
     try:
-        # Print startup banner
+        # Print startup banner.
         print("=" * 60)
         print("PyodideShell - Secure Virtual Environment")
         print("=" * 60)
         
-        # Create an async main function
+        # Create an async main function.
         async def main():
             await run_pyodide_shell()
         
-        # Get or create event loop
+        # Get or create event loop.
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     

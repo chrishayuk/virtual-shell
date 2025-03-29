@@ -6,12 +6,12 @@ filesystem, loads environment variables (optionally from a YAML sandbox configur
 and dynamically discovers and registers shell commands. It also provides methods
 for parsing, executing commands, and managing the shell state.
 """
-
 import logging
 import traceback
 import time
 from typing import Optional
 
+# virtual file system imports
 from chuk_virtual_fs import VirtualFileSystem
 from chuk_virtual_shell.commands.command_loader import CommandLoader
 
@@ -47,10 +47,10 @@ class ShellInterpreter:
         # Record start time (useful for uptime commands).
         self.start_time = time.time()
 
-        # NEW: Set current_user based on environment.
+        # Set current_user based on environment.
         self.current_user = self.environ.get("USER", "user")
 
-        # NEW: Provide a resolve_path method that delegates to the filesystem.
+        # Provide a resolve_path method that delegates to the filesystem.
         self.resolve_path = lambda path: self.fs.resolve_path(path)
 
         # Dynamically load commands.
@@ -59,53 +59,50 @@ class ShellInterpreter:
 
     def _initialize_from_sandbox(self, sandbox_yaml: str) -> None:
         """Initialize filesystem and environment using a YAML sandbox configuration."""
-        from chuk_virtual_shell.sandbox_loader import (
-            load_sandbox_config, create_filesystem_from_config,
-            get_environment_from_config, find_sandbox_config
-        )
+        # Import the modularized loader functions.
+        from chuk_virtual_shell.sandbox.loader.sandbox_config_loader import load_config_file, find_config_file
+        from chuk_virtual_shell.sandbox.loader.filesystem_initializer import create_filesystem
+        from chuk_virtual_shell.sandbox.loader.environment_loader import load_environment
+        from chuk_virtual_shell.sandbox.loader.initialization_executor import execute_initialization
+        from chuk_virtual_shell.sandbox.loader.mcp_config_loader import load_mcp_servers
 
         try:
             # Resolve configuration file path.
             if not sandbox_yaml.endswith(('.yaml', '.yml')) and '/' not in sandbox_yaml:
-                config_path = find_sandbox_config(sandbox_yaml)
+                config_path = find_config_file(sandbox_yaml)
                 if not config_path:
                     raise ValueError(f"Sandbox configuration '{sandbox_yaml}' not found")
             else:
                 config_path = sandbox_yaml
 
-            # Load configuration.
-            config = load_sandbox_config(config_path)
+            # Load the sandbox configuration.
+            config = load_config_file(config_path)
 
-            # Create filesystem.
-            try:
-                self.fs = create_filesystem_from_config(config)
-            except Exception as fs_error:
-                logger.error(f"Error creating filesystem: {fs_error}")
-                traceback.print_exc()
-                self.fs = VirtualFileSystem()
+            # Create and configure the filesystem.
+            self.fs = create_filesystem(config)
 
-            # Set environment from config.
-            env_config = config.get('environment', {})
-            self.environ = {
-                "HOME": env_config.get('HOME', '/sandbox'),
-                "PATH": env_config.get('PATH', '/bin'),
-                "USER": env_config.get('USER', 'ai'),
-                "SHELL": env_config.get('SHELL', '/bin/pyodide-shell'),
-                "TERM": env_config.get('TERM', 'xterm'),
-                "PWD": "/"
-            }
-            for key, value in env_config.items():
-                if key not in self.environ:
-                    self.environ[key] = value
+            # Set up the environment.
+            self.environ = load_environment(config)
 
-            # Ensure home directory exists and is accessible.
+            # Ensure the home directory exists.
             self._ensure_home_directory(self.environ['HOME'])
+
+            # Execute initialization commands.
+            init_commands = config.get("initialization", [])
+            if init_commands:
+                execute_initialization(self.fs, init_commands)
 
             logger.info(f"Using sandbox configuration: {config.get('name', 'custom')}")
             logger.info(f"Home directory set to: {self.environ['HOME']}")
             logger.info("Environment variables:")
             for key, value in self.environ.items():
                 logger.info(f"  {key}: {value}")
+
+            # Load MCP server configurations.
+            self.mcp_servers = load_mcp_servers(config)
+            if self.mcp_servers:
+                print(f"MCP servers loaded: {[s.get('server_name') for s in self.mcp_servers]}")
+
         except Exception as e:
             logger.error(f"Error loading sandbox configuration '{sandbox_yaml}': {e}")
             traceback.print_exc()
@@ -221,17 +218,15 @@ class ShellInterpreter:
         """Stub for tab completion (to be implemented)."""
         return None
 
-    # Helper method to check if a user exists.
+    # Helper methods.
     def user_exists(self, target: str) -> bool:
         """Return True if the target user exists, otherwise False."""
         return target == self.environ.get("USER", "user")
 
-    # Helper method to check if a group exists.
     def group_exists(self, target: str) -> bool:
         """Return True if the target group exists, otherwise False."""
         return target == "staff"
 
-    # Helper method to check if a node exists at the given path.
     def exists(self, path: str) -> bool:
         """Return True if a node exists at the given path, otherwise False."""
         try:
@@ -239,12 +234,12 @@ class ShellInterpreter:
         except Exception:
             return False
 
-    # Get node information using the provider.
     def get_node_info(self, path: str) -> Optional[object]:
-        """Return node information for the given path using the provider, or None if not found."""
+        """
+        Return node information for the given path using the provider, or None if not found.
+        """
         resolved_path = self.resolve_path(path)
         return self.fs.provider.get_node_info(resolved_path)
 
-    # Internal method to register commands.
     def _register_command(self, command):
         self.commands[command.name] = command

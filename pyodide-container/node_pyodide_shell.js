@@ -102,6 +102,14 @@ async function runPyodideShell() {
   await pyodide.loadPackage("micropip");
   console.log("Loaded micropip");
 
+  console.log("Installing typing-extensions==4.12.2 from PyPI (with constraints)");
+  await pyodide.runPythonAsync(`
+  import micropip
+  await micropip.install("typing-extensions==4.12.2")
+  `);
+  console.log("Installed typing-extensions");
+  
+
   // Install the external package 'chuk_virtual_fs' from PyPI.
   console.log("Installing chuk_virtual_fs from PyPI");
   await pyodide.runPythonAsync(`
@@ -109,6 +117,31 @@ import micropip
 await micropip.install("chuk_virtual_fs")
   `);
   console.log("Installed chuk_virtual_fs");
+
+  // Install anyio via micropip.
+  console.log("Installing anyio from PyPI");
+  await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("anyio")
+  `);
+  console.log("Installed anyio");
+
+  // Install ssl via micropip.
+  console.log("Installing ssl from PyPI");
+  await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("ssl")
+  `);
+  console.log("Installed ssl");
+
+// Install chuk_mcp via micropip with keep_going=True.
+console.log("Installing chuk_mcp from PyPI (ignoring missing wheels)");
+await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("chuk_mcp", keep_going=True)
+`);
+console.log("Installed chuk_mcp (with keep_going=True)");
+
 
   // Configure Python environment: add chuk_virtual_shell to sys.path and set environment variables.
   await pyodide.runPythonAsync(`
