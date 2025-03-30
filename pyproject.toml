@@ -5,8 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "chuk-mcp>=0.1.1",
+    "chuk-mcp>=0.1.9",
     "chuk-virtual-fs>=0.1.6",
+    "pydantic>=2.11.1",
     "pyyaml>=6.0.1",
 ]
 
@@ -19,6 +20,7 @@ sandbox-cli = "chuk_virtual_shell.cli.sandbox_cli:main"
 dev = [
     "pytest-asyncio>=0.26.0",
     "pytest>=8.3.5",
+    "trio>=0.29.0",
 ]
 
 [build-system]

@@ -1,4 +1,4 @@
-# debug/check_shell_initializes.py
+# chuk_virtual_server/debug/check_shell_initializes.py
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 shell = ShellInterpreter()
