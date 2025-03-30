@@ -5,11 +5,15 @@ This module implements the ShellInterpreter class which initializes the virtual
 filesystem, loads environment variables (optionally from a YAML sandbox configuration),
 and dynamically discovers and registers shell commands. It also provides methods
 for parsing, executing commands, and managing the shell state.
+
+This enhanced version adds support for asynchronous command execution.
 """
 import logging
 import traceback
 import time
-from typing import Optional
+import asyncio
+import inspect
+from typing import Optional, Tuple, Any
 
 # virtual file system imports
 from chuk_virtual_fs import VirtualFileSystem
@@ -56,6 +60,10 @@ class ShellInterpreter:
         # Dynamically load commands.
         self.commands = {}
         self._load_commands()
+        
+        # Initialize MCP servers list if not already set
+        if not hasattr(self, 'mcp_servers'):
+            self.mcp_servers = []
 
     def _initialize_from_sandbox(self, sandbox_yaml: str) -> None:
         """Initialize filesystem and environment using a YAML sandbox configuration."""
@@ -64,7 +72,7 @@ class ShellInterpreter:
         from chuk_virtual_shell.sandbox.loader.filesystem_initializer import create_filesystem
         from chuk_virtual_shell.sandbox.loader.environment_loader import load_environment
         from chuk_virtual_shell.sandbox.loader.initialization_executor import execute_initialization
-        from chuk_virtual_shell.sandbox.loader.mcp_config_loader import load_mcp_servers
+        from chuk_virtual_shell.sandbox.loader.mcp_loader import load_mcp_servers
 
         try:
             # Resolve configuration file path.
@@ -168,7 +176,7 @@ class ShellInterpreter:
         discovered_commands = CommandLoader.discover_commands(self)
         self.commands.update(discovered_commands)
 
-    def parse_command(self, cmd_line: str) -> (str, list):
+    def parse_command(self, cmd_line: str) -> Tuple[Optional[str], list]:
         """Parse a command line into the command name and arguments."""
         if not cmd_line or not cmd_line.strip():
             return None, []
@@ -177,7 +185,7 @@ class ShellInterpreter:
 
     def execute(self, cmd_line: str) -> str:
         """
-        Execute a command line.
+        Execute a command line synchronously.
         
         Args:
             cmd_line (str): The full command line string.
@@ -197,12 +205,52 @@ class ShellInterpreter:
             return ""
         if cmd in self.commands:
             try:
-                result = self.commands[cmd].execute(args)
+                # Use run() instead of execute() to handle async commands properly
+                result = self.commands[cmd].run(args)
                 if cmd == "cd":
                     self.environ["PWD"] = self.fs.pwd()
                 return result
             except Exception as e:
                 logger.error(f"Error executing command '{cmd}': {e}")
+                return f"Error executing command: {e}"
+        else:
+            return f"{cmd}: command not found"
+    
+    async def execute_async(self, cmd_line: str) -> str:
+        """
+        Execute a command line asynchronously.
+        
+        Args:
+            cmd_line (str): The full command line string.
+        
+        Returns:
+            str: The output from the command execution.
+        """
+        cmd_line = cmd_line.strip()
+        if not cmd_line:
+            return ""
+        self.history.append(cmd_line)
+        if cmd_line == "exit":
+            self.running = False
+            return "Goodbye!"
+        cmd, args = self.parse_command(cmd_line)
+        if not cmd:
+            return ""
+        if cmd in self.commands:
+            try:
+                command = self.commands[cmd]
+                # Check if command supports async execution
+                if hasattr(command, 'execute_async') and inspect.iscoroutinefunction(command.execute_async):
+                    result = await command.execute_async(args)
+                else:
+                    # Fall back to synchronous execution for backward compatibility
+                    result = command.execute(args)
+                    
+                if cmd == "cd":
+                    self.environ["PWD"] = self.fs.pwd()
+                return result
+            except Exception as e:
+                logger.error(f"Error executing command '{cmd}' asynchronously: {e}")
                 return f"Error executing command: {e}"
         else:
             return f"{cmd}: command not found"
@@ -242,4 +290,5 @@ class ShellInterpreter:
         return self.fs.provider.get_node_info(resolved_path)
 
     def _register_command(self, command):
+        """Register a single command with the shell."""
         self.commands[command.name] = command

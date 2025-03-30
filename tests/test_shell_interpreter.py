@@ -17,6 +17,10 @@ class DummyCommand:
     
     def execute(self, args):
         return "dummy executed"
+        
+    # Add the run method to support the new shell interpreter
+    def run(self, args):
+        return self.execute(args)
 
 @pytest.fixture
 def shell_interpreter(monkeypatch):
@@ -78,6 +82,10 @@ def test_register_command(shell_interpreter):
         
         def execute(self, args):
             return "another executed"
+            
+        # Add the run method to support the new shell interpreter
+        def run(self, args):
+            return self.execute(args)
     
     # Register the new command.
     shell_interpreter._register_command(AnotherDummy(shell_interpreter))
