@@ -5,6 +5,7 @@ This module handles loading MCP server configurations from a sandbox and
 initializing MCP commands for the shell.
 """
 import logging
+import traceback
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -20,16 +21,42 @@ def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
         A list of MCP server configuration dictionaries.
         Each config should contain at least keys like "config_path" and "server_name".
     """
+    # Enhanced debugging
+    logger.debug(f"Loading MCP servers from config: {type(config)}")
+    
+    # Check if config has mcp_servers key
+    if 'mcp_servers' not in config:
+        logger.warning("No 'mcp_servers' section found in config")
+        return []
+    
     mcp_servers = config.get("mcp_servers", [])
+    logger.debug(f"Raw MCP server configurations: {mcp_servers}")
+    
+    if not isinstance(mcp_servers, list):
+        logger.error(f"'mcp_servers' section is not a list: {type(mcp_servers)}")
+        return []
+    
     validated_servers = []
     
-    for server in mcp_servers:
-        if "config_path" not in server or "server_name" not in server:
-            logger.warning(f"MCP server configuration missing required keys: {server}")
+    for i, server in enumerate(mcp_servers):
+        logger.debug(f"Processing MCP server {i}: {server}")
+        
+        if not isinstance(server, dict):
+            logger.warning(f"MCP server config is not a dictionary: {type(server)}")
             continue
+            
+        if "config_path" not in server:
+            logger.warning(f"MCP server missing 'config_path': {server}")
+            server["config_path"] = "default_config.json"  # Set a default
+            
+        if "server_name" not in server:
+            logger.warning(f"MCP server missing 'server_name': {server}")
+            server["server_name"] = f"server_{i}"  # Generate a default name
+            
         validated_servers.append(server)
 
     logger.info(f"Loaded {len(validated_servers)} MCP server configurations")
+    logger.debug(f"Validated MCP servers: {validated_servers}")
     return validated_servers
 
 async def register_mcp_commands_with_shell(shell) -> Optional[str]:
@@ -45,13 +72,27 @@ async def register_mcp_commands_with_shell(shell) -> Optional[str]:
     Returns:
         str: Error message if something went wrong, None if successful
     """
-    if not hasattr(shell, 'mcp_servers') or not shell.mcp_servers:
+    if not hasattr(shell, 'mcp_servers'):
+        logger.warning("Shell instance does not have 'mcp_servers' attribute")
+        return "Shell instance does not have 'mcp_servers' attribute"
+        
+    if not shell.mcp_servers:
         logger.info("No MCP servers configured, skipping MCP command registration")
         return None
+    
+    # Enhanced debugging
+    logger.debug(f"MCP servers type: {type(shell.mcp_servers)}")
+    logger.debug(f"MCP servers content: {shell.mcp_servers}")
         
     try:
         # Import the MCP command loader with updated import path
-        from chuk_virtual_shell.commands.mcp.mcp_command_loader import register_mcp_commands
+        try:
+            from chuk_virtual_shell.commands.mcp.mcp_command_loader import register_mcp_commands
+        except ImportError as e:
+            logger.error(f"Error importing MCP command loader: {e}")
+            traceback.print_exc()
+            return f"Error importing MCP command loader: {e}"
+            
         await register_mcp_commands(shell)
         logger.info(f"MCP commands registered successfully for {len(shell.mcp_servers)} servers")
         return None

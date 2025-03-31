@@ -15,6 +15,7 @@ from chuk_virtual_fs.providers import list_providers
 from chuk_virtual_shell.script_runner import ScriptRunner
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 from chuk_virtual_shell.telnet_server import TelnetServer
+from chuk_virtual_shell.sandbox.loader.mcp_loader import initialize_mcp
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +37,46 @@ def parse_provider_args(provider_args_str):
                 args[key.strip()] = value.strip()
         return args
 
+def convert_dict_to_object(d):
+    """Convert a dictionary to an object with attributes"""
+    class ConfigObject:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    return ConfigObject(**d)
+
+async def initialize_shell_mcp(shell):
+    """Initialize MCP servers for a shell instance"""
+    if hasattr(shell, 'mcp_servers') and shell.mcp_servers:
+        logger.info(f"Initializing MCP servers: {[s.get('server_name') if isinstance(s, dict) else s.server_name for s in shell.mcp_servers]}")
+        
+        # Convert dictionary MCP configs to objects with attributes if needed
+        if shell.mcp_servers and isinstance(shell.mcp_servers[0], dict):
+            logger.debug("Converting MCP server dictionaries to objects")
+            shell.mcp_servers = [convert_dict_to_object(server) for server in shell.mcp_servers]
+        
+        try:
+            # Initialize MCP commands
+            result = await initialize_mcp(shell)
+            if result:
+                logger.error(f"MCP initialization error: {result}")
+            else:
+                # List registered MCP commands
+                mcp_commands = []
+                for name, cmd in shell.commands.items():
+                    if hasattr(cmd, 'get_category') and cmd.get_category() == 'mcp':
+                        mcp_commands.append(name)
+                
+                if mcp_commands:
+                    logger.info(f"Registered MCP commands: {', '.join(mcp_commands)}")
+                else:
+                    logger.warning("No MCP commands were registered")
+        except Exception as e:
+            logger.exception(f"Error during MCP initialization: {e}")
+    else:
+        logger.debug("No MCP servers configured, skipping initialization")
+
 def create_shell_interpreter(provider=None, provider_args=None, sandbox_yaml=None):
     """Create a shell interpreter with the specified provider or sandbox"""
     if sandbox_yaml:
@@ -44,9 +85,19 @@ def create_shell_interpreter(provider=None, provider_args=None, sandbox_yaml=Non
         shell = ShellInterpreter(fs_provider=provider, fs_provider_args=provider_args)
     return shell
 
+async def setup_shell_with_mcp(provider=None, provider_args=None, sandbox_yaml=None):
+    """Create and setup a shell interpreter with MCP initialization"""
+    shell = create_shell_interpreter(provider, provider_args, sandbox_yaml)
+    
+    # Initialize MCP if available
+    await initialize_shell_mcp(shell)
+    
+    return shell
+
 def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
     """Run PyodideShell in interactive mode"""
-    shell = create_shell_interpreter(provider, provider_args, sandbox_yaml)
+    # Create shell and initialize MCP asynchronously
+    shell = asyncio.run(setup_shell_with_mcp(provider, provider_args, sandbox_yaml))
     
     try:
         # Print provider info
@@ -78,13 +129,17 @@ def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
 
 async def run_telnet_server(provider=None, provider_args=None, sandbox_yaml=None):
     """Run PyodideShell in telnet server mode"""
-    server = TelnetServer(fs_provider=provider, fs_provider_args=provider_args, 
-                          sandbox_yaml=sandbox_yaml)
+    # Create shell and initialize MCP
+    shell = await setup_shell_with_mcp(provider, provider_args, sandbox_yaml)
+    
+    # Create and start telnet server
+    server = TelnetServer(shell=shell)
     await server.start()
 
 def run_script(script_path, provider=None, provider_args=None, sandbox_yaml=None):
     """Run a script file in the virtual shell."""
-    shell = create_shell_interpreter(provider, provider_args, sandbox_yaml)
+    # Create shell and initialize MCP asynchronously
+    shell = asyncio.run(setup_shell_with_mcp(provider, provider_args, sandbox_yaml))
     runner = ScriptRunner(shell)
     
     try:
@@ -119,6 +174,9 @@ def main():
     parser.add_argument('--fs-provider-args', type=str,
                         help='Arguments for the filesystem provider (JSON or key=value,key2=value2)')
     
+    # MCP options
+    parser.add_argument('--no-mcp', action='store_true', help='Disable MCP initialization')
+    
     parser.add_argument('script_path', nargs='?', help='Script file to run')
 
     # Attempt to parse args
@@ -134,7 +192,8 @@ def main():
                 fs_provider='memory',
                 fs_provider_args=None,
                 sandbox=None,
-                list_sandboxes=False
+                list_sandboxes=False,
+                no_mcp=False
             )
     except SystemExit:
         # If argparse tries to exit but we're in Pyodide
@@ -146,7 +205,8 @@ def main():
                 fs_provider='memory',
                 fs_provider_args=None,
                 sandbox=None,
-                list_sandboxes=False
+                list_sandboxes=False,
+                no_mcp=False
             )
         else:
             return
@@ -167,6 +227,17 @@ def main():
             logger.info(f"  {name}")
         return
     
+    # Modify initialize_shell_mcp function to respect --no-mcp flag
+    original_initialize_shell_mcp = initialize_shell_mcp
+    
+    if args.no_mcp:
+        async def disabled_initialize_shell_mcp(shell):
+            logger.info("MCP initialization disabled by --no-mcp flag")
+            return
+        
+        # Replace the initialize function with the disabled version
+        globals()['initialize_shell_mcp'] = disabled_initialize_shell_mcp
+    
     # Determine operation mode
     if args.telnet:
         logger.info("Starting telnet server...")
@@ -181,6 +252,10 @@ def main():
     else:
         logger.info("Starting interactive shell...")
         run_interactive_shell(args.fs_provider, provider_args, args.sandbox)
+    
+    # Restore original function if it was replaced
+    if args.no_mcp:
+        globals()['initialize_shell_mcp'] = original_initialize_shell_mcp
 
 if __name__ == "__main__":
     main()

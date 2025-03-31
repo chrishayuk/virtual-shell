@@ -51,6 +51,14 @@ environment:
   PYTHONPATH: "/home/user/project/src"
   PROJECT_HOME: "/home/user/project"
 
+# MCP server configurations
+mcp_servers:
+  - server_name: "sqlite"
+    config_path: "server_config.json"
+    command: "uvx"
+    args: ["mcp-server-sqlite", "--db-path", "test.db"]
+    env: null
+
 # Initialization commands (executed during setup)
 initialization:
   - "mkdir -p /home/user"

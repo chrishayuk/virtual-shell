@@ -6,11 +6,63 @@ create and register commands for all tools available on those servers.
 """
 import logging
 import asyncio
+import json
+import uuid
 from typing import List, Dict, Any, Optional
 
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 logger = logging.getLogger(__name__)
+
+# Helper function for tool execution
+async def send_tool_execute(read_stream, write_stream, tool_name, input_data, timeout=10.0):
+    """
+    Send a tool execution request and get the response.
+    
+    Args:
+        read_stream: Stream for reading responses
+        write_stream: Stream for sending requests
+        tool_name: Name of the tool to execute
+        input_data: Input data for the tool
+        timeout: Timeout in seconds
+        
+    Returns:
+        Response object or None if failed
+    """
+    try:
+        # Generate a unique ID for this request
+        message_id = str(uuid.uuid4())
+        
+        # Create the request payload
+        request = {
+            "jsonrpc": "2.0",
+            "id": message_id,
+            "method": "tools/execute",
+            "params": {
+                "name": tool_name,
+                "input": input_data
+            }
+        }
+        
+        # Encode as JSON and send
+        request_json = json.dumps(request)
+        await write_stream.send(request_json)
+        
+        # Wait for response
+        response_json = await read_stream.receive()
+        
+        # Parse the response
+        response = json.loads(response_json)
+        
+        # Validate the response
+        if "id" not in response or response.get("id") != message_id:
+            logger.warning(f"Received response with mismatched ID: {response}")
+            return None
+            
+        return response
+    except Exception as e:
+        logger.exception(f"Error sending tool execute request: {e}")
+        return None
 
 def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
     """
@@ -79,10 +131,23 @@ def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
                     if not ping_result:
                         return f"Failed to ping MCP server for tool '{tool_name}'"
                     
-                    # Execute the tool (placeholder implementation)
-                    # In a real implementation, you would send a proper tool/execute message
-                    # and parse the response
-                    return f"Successfully executed MCP tool '{tool_name}' with input: {input_data}"
+                    # Execute the tool
+                    response = await send_tool_execute(read_stream, write_stream, tool_name, input_data)
+                    
+                    # Check if we have an error
+                    if not response:
+                        return f"Failed to execute tool '{tool_name}' - no response received"
+                        
+                    if "error" in response:
+                        error_data = response.get("error", {})
+                        error_msg = error_data.get("message", str(error_data))
+                        return f"Error executing tool '{tool_name}': {error_msg}"
+                    
+                    # Get the result
+                    result = response.get("result", {})
+                    
+                    # Format the output based on the schema and data
+                    return self._format_output_based_on_schema(result)
                     
             except Exception as e:
                 logger.exception(f"Error executing MCP tool '{tool_name}'")
@@ -107,11 +172,11 @@ def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
             
             # Handle common patterns
             
-            # 1. No args required (like list_tables)
+            # 1. No args required (tools with empty properties object)
             if not properties:
                 return {}
                 
-            # 2. Single required property (like describe_table requires table_name)
+            # 2. Single required property
             if len(required) == 1 and len(args) > 0:
                 prop_name = required[0]
                 
@@ -122,12 +187,97 @@ def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
                 # For other single-property tools, just use the first arg
                 return {prop_name: args[0]}
             
-            # 3. Query-based tools (like read_query, write_query, create_table)
+            # 3. Property named "query" (common for database tools)
             if "query" in properties and args:
                 return {"query": " ".join(args)}
             
             # Default case - just pass args as-is
             return {"args": args}
+        
+        def _format_output_based_on_schema(self, result):
+            """
+            Format the output based on the result data structure and input schema.
+            Uses schema information to determine the appropriate formatting.
+            
+            Args:
+                result: Result data from the tool execution
+                
+            Returns:
+                Formatted output string
+            """
+            # Handle empty result
+            if not result:
+                return f"Tool '{tool_name}' executed successfully, but returned no data."
+            
+            # Look at the structure of the result to determine best formatting
+            
+            # Case 1: List-like results (arrays of strings/objects)
+            if isinstance(result, list):
+                return self._format_list_result(result)
+            
+            # Case 2: Simple object with arrays
+            for key, value in result.items():
+                if isinstance(value, list) and value:
+                    # If the key name suggests it's a list of items (plural noun)
+                    if key.endswith('s') and not key.endswith('status'):
+                        item_name = key[:-1] if key.endswith('s') else key
+                        return self._format_named_list(item_name, value)
+            
+            # Case 3: Structure with rows/columns data (common in query results)
+            if 'rows' in result and isinstance(result.get('rows'), list):
+                return self._format_tabular_data(result)
+            
+            # Default case: Pretty-print the JSON
+            return json.dumps(result, indent=2, sort_keys=True)
+        
+        def _format_list_result(self, items):
+            """Format a list of items"""
+            if not items:
+                return "No items returned."
+                
+            # Check if list contains simple strings
+            if all(isinstance(item, str) for item in items):
+                return "\n".join([f"  - {item}" for item in items])
+                
+            # If list contains objects, format as pretty JSON
+            return json.dumps(items, indent=2)
+        
+        def _format_named_list(self, item_name, items):
+            """Format a named list of items"""
+            if not items:
+                return f"No {item_name}s found."
+                
+            # Check if list contains simple strings
+            if all(isinstance(item, str) for item in items):
+                return f"{item_name.capitalize()} list:\n" + "\n".join([f"  - {item}" for item in items])
+                
+            # If list contains objects, format as pretty JSON
+            return f"{item_name.capitalize()} list:\n" + json.dumps(items, indent=2)
+        
+        def _format_tabular_data(self, data):
+            """Format data that has rows and columns"""
+            rows = data.get('rows', [])
+            if not rows:
+                return "Query returned no results."
+                
+            columns = data.get('columns', [])
+            if not columns and rows and isinstance(rows[0], list):
+                # Generate numeric column names if missing
+                columns = [f"Col{i+1}" for i in range(len(rows[0]))]
+                
+            if columns and rows:
+                # Create header row
+                output = "| " + " | ".join(str(col) for col in columns) + " |\n"
+                output += "|" + "---|" * len(columns) + "\n"
+                
+                # Add data rows
+                for row in rows:
+                    row_values = [str(cell) if cell is not None else "NULL" for cell in row]
+                    output += "| " + " | ".join(row_values) + " |\n"
+                return output
+                
+            # Fallback to JSON if structure doesn't fit tabular format
+            return json.dumps(rows, indent=2)
         
     return MCPCommand
 

@@ -21,9 +21,6 @@ from chuk_virtual_shell.commands.command_loader import CommandLoader
 
 # Configure module-level logger.
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-
 class ShellInterpreter:
     def __init__(self, fs_provider=None, fs_provider_args=None, sandbox_yaml=None):
         """

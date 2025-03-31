@@ -1,6 +1,7 @@
 # TODO
 
 1) Dynamic MCP Commands
+    - handle fallback so ensure works with pyodide
 2) Refactor Pyodide Container
 3) Sandbox Manager
     - Start Sandbox
