@@ -21,10 +21,8 @@ def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
         A list of MCP server configuration dictionaries.
         Each config should contain at least keys like "config_path" and "server_name".
     """
-    # Enhanced debugging
     logger.debug(f"Loading MCP servers from config: {type(config)}")
     
-    # Check if config has mcp_servers key
     if 'mcp_servers' not in config:
         logger.warning("No 'mcp_servers' section found in config")
         return []
@@ -44,20 +42,18 @@ def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not isinstance(server, dict):
             logger.warning(f"MCP server config is not a dictionary: {type(server)}")
             continue
-            
-        if "config_path" not in server:
-            logger.warning(f"MCP server missing 'config_path': {server}")
-            server["config_path"] = "default_config.json"  # Set a default
-            
-        if "server_name" not in server:
-            logger.warning(f"MCP server missing 'server_name': {server}")
-            server["server_name"] = f"server_{i}"  # Generate a default name
+        
+        # Filter out servers missing required keys instead of applying defaults
+        if "config_path" not in server or "server_name" not in server:
+            logger.warning(f"MCP server missing required keys, skipping: {server}")
+            continue
             
         validated_servers.append(server)
 
     logger.info(f"Loaded {len(validated_servers)} MCP server configurations")
     logger.debug(f"Validated MCP servers: {validated_servers}")
     return validated_servers
+
 
 async def register_mcp_commands_with_shell(shell) -> Optional[str]:
     """

@@ -109,16 +109,16 @@ wheels = [
 
 [[package]]
 name = "chuk-mcp"
-version = "0.1.9"
+version = "0.1.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/00/56a408826dc63a08246d4ea91aa2cdab11d038781368279e707f6ed65ec9/chuk_mcp-0.1.9.tar.gz", hash = "sha256:dc723d2b2e7d4c58690b18fd2b501e18822e1883c15c9c4897160e2c45bb4b45", size = 19042 }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/45/943aa2101a6ee97e7089ce9f0a753481011b5f6fa9f76af60730195e2726/chuk_mcp-0.1.12.tar.gz", hash = "sha256:ab3283e8b4d1c9b4703777425527e0508f4808f4a099ab7200cb2e95d549b810", size = 20774 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/30/7f400460810c8605bf5e0a28e5c97283fd2cff0ce07e97d6213bd345e1bc/chuk_mcp-0.1.9-py3-none-any.whl", hash = "sha256:bebd98f5b98fd3d062dfa3c8d7f43139d433957a444643956849cc59f4f03ae7", size = 30702 },
+    { url = "https://files.pythonhosted.org/packages/0b/00/2836302ea9bebc96497516b27fe518f32a839d8ef17229ec88bab1caddca/chuk_mcp-0.1.12-py3-none-any.whl", hash = "sha256:43dc5acd0fe624c15102d78bda217a02f98752c7ed7cc5222be2aa4793aff4bc", size = 32567 },
 ]
 
 [[package]]
@@ -153,7 +153,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "chuk-mcp", specifier = ">=0.1.9" },
+    { name = "chuk-mcp", specifier = ">=0.1.12" },
     { name = "chuk-virtual-fs", specifier = ">=0.1.6" },
     { name = "pydantic", specifier = ">=2.11.1" },
     { name = "pyyaml", specifier = ">=6.0.1" },

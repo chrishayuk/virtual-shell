@@ -18,7 +18,7 @@ from chuk_virtual_shell.telnet_server import TelnetServer
 from chuk_virtual_shell.sandbox.loader.mcp_loader import initialize_mcp
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.CRITICAL)
 
 def parse_provider_args(provider_args_str):
     """Parse provider arguments from a string"""
@@ -158,7 +158,6 @@ def run_script(script_path, provider=None, provider_args=None, sandbox_yaml=None
         logger.exception(f"Error running script '{script_path}'")
 
 def main():
-    """Main entry point"""
     parser = argparse.ArgumentParser(description='PyodideShell - A virtual shell with pluggable storage')
     
     parser.add_argument('--telnet', action='store_true', help='Run as telnet server')
@@ -196,7 +195,6 @@ def main():
                 no_mcp=False
             )
     except SystemExit:
-        # If argparse tries to exit but we're in Pyodide
         if 'pyodide' in sys.modules:
             args = argparse.Namespace(
                 telnet=False,
@@ -211,6 +209,16 @@ def main():
         else:
             return
     
+    # If the user just runs `chuk-virtual-shell` with no --sandbox, fall back to default.yaml
+    if not args.sandbox:
+        # Construct a path to default.yaml (adjust as needed for your project structure)
+        default_config_path = os.path.join(os.path.dirname(__file__), "config", "default.yaml")
+        if os.path.exists(default_config_path):
+            args.sandbox = default_config_path
+            logger.info(f"No sandbox specified, defaulting to {args.sandbox}")
+        else:
+            logger.warning("No sandbox specified, and default.yaml not found. Proceeding without a sandbox config.")
+
     if args.list_sandboxes:
         from chuk_virtual_shell.sandbox_loader import list_available_configs
         configs = list_available_configs()
@@ -235,7 +243,6 @@ def main():
             logger.info("MCP initialization disabled by --no-mcp flag")
             return
         
-        # Replace the initialize function with the disabled version
         globals()['initialize_shell_mcp'] = disabled_initialize_shell_mcp
     
     # Determine operation mode
@@ -256,6 +263,7 @@ def main():
     # Restore original function if it was replaced
     if args.no_mcp:
         globals()['initialize_shell_mcp'] = original_initialize_shell_mcp
+
 
 if __name__ == "__main__":
     main()

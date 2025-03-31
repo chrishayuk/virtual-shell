@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "chuk-mcp>=0.1.9",
+    "chuk-mcp>=0.1.12",
     "chuk-virtual-fs>=0.1.6",
     "pydantic>=2.11.1",
     "pyyaml>=6.0.1",
@@ -13,6 +13,7 @@ dependencies = [
 
 # Console script to start the shell
 [project.scripts]
+chuk-virtual-shell = "chuk_virtual_shell.main:main"
 virtual-shell = "chuk_virtual_shell.main:main"
 sandbox-cli = "chuk_virtual_shell.cli.sandbox_cli:main"
 
