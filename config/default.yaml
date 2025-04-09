@@ -1,0 +1,67 @@
+# Default sandbox configuration for PyodideShell
+# Sandbox name and description
+name: "default"
+description: "Balanced security environment with starter project"
+
+# Security settings
+security:
+  profile: "default"      # Security profile to use (default, strict, readonly, untrusted, testing)
+  read_only: false        # Override read-only setting if needed
+  max_file_size: 10485760 # 10MB max file size (optional override)
+  max_total_size: 104857600 # 100MB total storage quota (optional override)
+  max_files: 1000         # Maximum number of files (optional override)
+  max_path_depth: 10      # Maximum path depth (optional override)
+  allowed_paths:          # Optional override for allowed paths
+    - "/"
+    - "/home"
+    - "/home/user"
+    - "/home/user/project"
+    - "/tmp"
+  denied_paths:           # Optional override for denied paths
+    - "/etc/passwd"
+    - "/etc/shadow"
+    - "/etc/ssh"
+  denied_patterns:        # Optional override for denied patterns
+    - "\\.\\."
+    - "\\.env"
+    - "\\.ssh"
+    - "\\.aws"
+    - "\\.config"
+
+# Filesystem provider settings
+filesystem:
+  provider: "memory"      # Provider to use (memory, sqlite, pyodide, s3)
+  provider_args: {}       # Arguments for the provider
+
+# Filesystem template for project initialization
+filesystem-template:
+  name: "default_project"
+  variables:
+    project_name: "sandbox_project"
+    project_description: "Default starter project in PyodideShell"
+    project_version: "0.1.0"
+
+# Environment variables
+environment:
+  HOME: "/home/user"
+  PATH: "/bin:/usr/bin"
+  USER: "user"
+  SHELL: "/bin/bash"
+  TERM: "xterm"
+  PYTHONPATH: "/home/user/project/src"
+  PROJECT_HOME: "/home/user/project"
+
+# # MCP server configurations
+# mcp_servers:
+#   - server_name: "sqlite"
+#     config_path: "server_config.json"
+#     command: "uvx"
+#     args: ["mcp-server-sqlite", "--db-path", "test.db"]
+#     env: null
+
+# Initialization commands (executed during setup)
+initialization:
+  - "mkdir -p /home/user"
+  - "mkdir -p /home/user/documents"
+  - "mkdir -p /tmp"
+  - "echo 'Welcome to the chukshell ai sandbox environment.' > /home/user/README.txt"

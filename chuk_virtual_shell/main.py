@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 import logging
+from dotenv import load_dotenv
 
 # virtual filesystem imports
 from chuk_virtual_fs.providers import list_providers
@@ -17,6 +18,11 @@ from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 from chuk_virtual_shell.telnet_server import TelnetServer
 from chuk_virtual_shell.sandbox.loader.mcp_loader import initialize_mcp
 
+
+# Load environment variables (for E2B API keys if needed)
+load_dotenv()
+
+# logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.CRITICAL)
 

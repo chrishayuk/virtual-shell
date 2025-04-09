@@ -1,6 +1,4 @@
 # Default sandbox configuration for PyodideShell
-# Comprehensive sandbox environment with integrated project template
-
 # Sandbox name and description
 name: "default"
 description: "Balanced security environment with starter project"
@@ -15,8 +13,10 @@ security:
   max_path_depth: 10      # Maximum path depth (optional override)
   allowed_paths:          # Optional override for allowed paths
     - "/"
+    - "/home"
     - "/home/user"
     - "/home/user/project"
+    - "/tmp"
   denied_paths:           # Optional override for denied paths
     - "/etc/passwd"
     - "/etc/shadow"
@@ -30,7 +30,7 @@ security:
 
 # Filesystem provider settings
 filesystem:
-  provider: "memory"      # Provider to use (memory, sqlite, pyodide, s3)
+  provider: "e2b"      # Provider to use (memory, sqlite, pyodide, s3)
   provider_args: {}       # Arguments for the provider
 
 # Filesystem template for project initialization
@@ -51,17 +51,17 @@ environment:
   PYTHONPATH: "/home/user/project/src"
   PROJECT_HOME: "/home/user/project"
 
-# MCP server configurations
-mcp_servers:
-  - server_name: "sqlite"
-    config_path: "server_config.json"
-    command: "uvx"
-    args: ["mcp-server-sqlite", "--db-path", "test.db"]
-    env: null
+# # MCP server configurations
+# mcp_servers:
+#   - server_name: "sqlite"
+#     config_path: "server_config.json"
+#     command: "uvx"
+#     args: ["mcp-server-sqlite", "--db-path", "test.db"]
+#     env: null
 
 # Initialization commands (executed during setup)
 initialization:
   - "mkdir -p /home/user"
   - "mkdir -p /home/user/documents"
   - "mkdir -p /tmp"
-  - "echo 'Welcome to the default PyodideShell sandbox environment.' > /home/user/README.txt"
+  - "echo 'Welcome to the chukshell ai sandbox environment.' > /home/user/README.txt"
