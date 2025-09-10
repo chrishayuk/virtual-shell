@@ -53,3 +53,19 @@ class DummyShell:
         if user == self.current_user:
             return self.environ.get("HOME", f"/home/{user}")
         return None
+    
+    def execute(self, command):
+        """Execute a command (simplified for testing)."""
+        # Simple command execution for testing
+        if command.startswith("echo "):
+            return command[5:].strip().strip('"').strip("'")
+        elif command == "pwd":
+            return self.fs.pwd()
+        elif command.startswith("cat "):
+            filename = command[4:].strip()
+            return self.fs.read_file(filename) or f"cat: {filename}: No such file"
+        elif command == "whoami":
+            return self.current_user
+        else:
+            # Return a simple response for unknown commands
+            return f"Command executed: {command}"

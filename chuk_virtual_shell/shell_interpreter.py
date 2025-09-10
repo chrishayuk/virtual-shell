@@ -18,6 +18,7 @@ from typing import Optional, Tuple, Any
 # virtual file system imports
 from chuk_virtual_fs import VirtualFileSystem
 from chuk_virtual_shell.commands.command_loader import CommandLoader
+from chuk_virtual_shell.filesystem_compat import FileSystemCompat
 
 # Configure module-level logger.
 logger = logging.getLogger(__name__)
@@ -37,7 +38,8 @@ class ShellInterpreter:
         elif fs_provider:
             self._initialize_with_provider(fs_provider, fs_provider_args)
         else:
-            self.fs = VirtualFileSystem()
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
 
         # Initialize history, running flag, and return code.
@@ -84,7 +86,8 @@ class ShellInterpreter:
             config = load_config_file(config_path)
 
             # Create and configure the filesystem.
-            self.fs = create_filesystem(config)
+            raw_fs = create_filesystem(config)
+            self.fs = FileSystemCompat(raw_fs)
 
             # Set up the environment.
             self.environ = load_environment(config)
@@ -112,18 +115,21 @@ class ShellInterpreter:
             logger.error(f"Error loading sandbox configuration '{sandbox_yaml}': {e}")
             traceback.print_exc()
             logger.info("Falling back to default configuration.")
-            self.fs = VirtualFileSystem()
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
 
     def _initialize_with_provider(self, fs_provider: str, fs_provider_args: dict) -> None:
         """Initialize filesystem using the specified provider and arguments."""
         try:
-            self.fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
+            raw_fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
         except Exception as e:
             logger.error(f"Error initializing filesystem provider '{fs_provider}': {e}")
             logger.info("Falling back to memory provider.")
-            self.fs = VirtualFileSystem()
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
 
     def _setup_default_environment(self) -> None:
