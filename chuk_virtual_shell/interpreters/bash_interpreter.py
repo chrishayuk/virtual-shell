@@ -1,9 +1,11 @@
 """
 chuk_virtual_shell/interpreters/bash_interpreter.py - Execute bash scripts in virtual environment
 """
+
 import re
 import shlex
 import asyncio
+
 
 class VirtualBashInterpreter:
     """Execute bash scripts within virtual shell context"""
@@ -35,13 +37,13 @@ class VirtualBashInterpreter:
             line = lines[i].strip()
 
             # Skip comments and empty lines
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 i += 1
                 continue
 
             # Handle line continuation
-            while line.endswith('\\') and i + 1 < len(lines):
-                line = line[:-1] + ' ' + lines[i + 1].strip()
+            while line.endswith("\\") and i + 1 < len(lines):
+                line = line[:-1] + " " + lines[i + 1].strip()
                 i += 1
 
             try:
@@ -54,32 +56,36 @@ class VirtualBashInterpreter:
 
             i += 1
 
-        return '\n'.join(output)
+        return "\n".join(output)
 
     def execute_line_sync(self, line: str) -> str:
         """Synchronous version of execute_line"""
 
         # Skip complex constructs in sync mode (they need async)
-        if any(line.startswith(kw) for kw in ['if ', 'for ', 'while ', 'case ']):
+        if any(line.startswith(kw) for kw in ["if ", "for ", "while ", "case "]):
             return ""
 
         # Expand variables for regular commands
         line = self._expand_variables(line)
 
         # Handle variable assignment
-        if '=' in line and not line.startswith('export') and not any(op in line for op in ['==', '!=', '>=', '<=']):
+        if (
+            "=" in line
+            and not line.startswith("export")
+            and not any(op in line for op in ["==", "!=", ">=", "<="])
+        ):
             return self._handle_assignment(line)
 
         # Handle export
-        if line.startswith('export '):
+        if line.startswith("export "):
             return self._handle_export(line)
 
         # Handle pipes and redirects
-        if any(op in line for op in ['|', '>', '<', '>>', '2>', '&>']):
+        if any(op in line for op in ["|", ">", "<", ">>", "2>", "&>"]):
             return self._handle_pipeline_sync(line)
 
         # Handle logical operators
-        if '&&' in line or '||' in line:
+        if "&&" in line or "||" in line:
             return self._handle_logical_operators_sync(line)
 
         # Execute as simple command
@@ -92,46 +98,50 @@ class VirtualBashInterpreter:
         # They need to handle variable expansion internally
 
         # Handle for loops (before variable expansion)
-        if line.startswith('for '):
+        if line.startswith("for "):
             return await self._handle_for_loop(line)
 
         # Handle if statements (before variable expansion)
-        if line.startswith('if '):
+        if line.startswith("if "):
             return await self._handle_if(line)
 
         # Handle while loops (before variable expansion)
-        if line.startswith('while '):
+        if line.startswith("while "):
             return await self._handle_while_loop(line)
 
         # Handle case statements (before variable expansion)
-        if line.startswith('case '):
+        if line.startswith("case "):
             return await self._handle_case(line)
 
         # Now expand variables for other commands
         line = self._expand_variables(line)
 
         # Handle variable assignment
-        if '=' in line and not line.startswith('export') and not any(op in line for op in ['==', '!=', '>=', '<=']):
+        if (
+            "=" in line
+            and not line.startswith("export")
+            and not any(op in line for op in ["==", "!=", ">=", "<="])
+        ):
             return self._handle_assignment(line)
 
         # Handle export
-        if line.startswith('export '):
+        if line.startswith("export "):
             return self._handle_export(line)
 
         # Handle function definitions
-        if '()' in line and '{' in line:
+        if "()" in line and "{" in line:
             return self._handle_function_def(line)
 
         # Handle pipes and redirects
-        if any(op in line for op in ['|', '>', '<', '>>', '2>', '&>']):
+        if any(op in line for op in ["|", ">", "<", ">>", "2>", "&>"]):
             return await self._handle_pipeline(line)
 
         # Handle command substitution
-        if '`' in line or '$(' in line:
+        if "`" in line or "$(" in line:
             line = await self._handle_command_substitution(line)
 
         # Handle logical operators
-        if '&&' in line or '||' in line:
+        if "&&" in line or "||" in line:
             return await self._handle_logical_operators(line)
 
         # Execute as simple command
@@ -141,23 +151,23 @@ class VirtualBashInterpreter:
         """Expand variables in text"""
 
         # Special variables
-        text = text.replace('$?', str(self.exit_code))
-        text = text.replace('$$', str(id(self)))  # Process ID simulation
-        text = text.replace('$#', '0')  # Argument count
+        text = text.replace("$?", str(self.exit_code))
+        text = text.replace("$$", str(id(self)))  # Process ID simulation
+        text = text.replace("$#", "0")  # Argument count
 
         # Expand ${VAR} format
         def expand_braces(match):
             var_expr = match.group(1)
 
             # Handle ${VAR:-default}
-            if ':-' in var_expr:
-                var_name, default = var_expr.split(':-', 1)
+            if ":-" in var_expr:
+                var_name, default = var_expr.split(":-", 1)
                 value = self.variables.get(var_name) or self.shell.environ.get(var_name)
                 return value if value else default
 
             # Handle ${VAR:=default}
-            if ':=' in var_expr:
-                var_name, default = var_expr.split(':=', 1)
+            if ":=" in var_expr:
+                var_name, default = var_expr.split(":=", 1)
                 value = self.variables.get(var_name) or self.shell.environ.get(var_name)
                 if not value:
                     self.variables[var_name] = default
@@ -165,22 +175,22 @@ class VirtualBashInterpreter:
                 return value
 
             # Simple variable
-            return self.variables.get(var_expr, self.shell.environ.get(var_expr, ''))
+            return self.variables.get(var_expr, self.shell.environ.get(var_expr, ""))
 
-        text = re.sub(r'\$\{([^}]+)\}', expand_braces, text)
+        text = re.sub(r"\$\{([^}]+)\}", expand_braces, text)
 
         # Expand $VAR format
         def expand_simple(match):
             var_name = match.group(1)
-            return self.variables.get(var_name, self.shell.environ.get(var_name, ''))
+            return self.variables.get(var_name, self.shell.environ.get(var_name, ""))
 
-        text = re.sub(r'\$([A-Za-z_]\w*)', expand_simple, text)
+        text = re.sub(r"\$([A-Za-z_]\w*)", expand_simple, text)
 
         return text
 
     def _handle_assignment(self, line: str) -> str:
         """Handle variable assignment"""
-        match = re.match(r'^([A-Za-z_]\w*)=(.*)$', line)
+        match = re.match(r"^([A-Za-z_]\w*)=(.*)$", line)
         if match:
             var_name, var_value = match.groups()
 
@@ -198,8 +208,8 @@ class VirtualBashInterpreter:
         """Handle export command"""
         export_part = line[7:].strip()
 
-        if '=' in export_part:
-            var_name, var_value = export_part.split('=', 1)
+        if "=" in export_part:
+            var_name, var_value = export_part.split("=", 1)
             # Remove quotes
             if var_value.startswith('"') and var_value.endswith('"'):
                 var_value = var_value[1:-1]
@@ -218,8 +228,8 @@ class VirtualBashInterpreter:
     def _handle_pipeline_sync(self, line: str) -> str:
         """Synchronous version of handle pipeline"""
         # Handle pipes first
-        if '|' in line:
-            commands = line.split('|')
+        if "|" in line:
+            commands = line.split("|")
             last_output = ""
 
             for cmd in commands:
@@ -232,13 +242,13 @@ class VirtualBashInterpreter:
                 last_output = self._execute_command_sync(cmd)
 
                 # Clear stdin buffer
-                if hasattr(self.shell, '_stdin_buffer'):
-                    delattr(self.shell, '_stdin_buffer')
+                if hasattr(self.shell, "_stdin_buffer"):
+                    delattr(self.shell, "_stdin_buffer")
 
             return last_output
 
         # Handle output redirection
-        redirect_match = re.match(r'^(.*?)\s*(>>?|2>|&>)\s*(.*)$', line)
+        redirect_match = re.match(r"^(.*?)\s*(>>?|2>|&>)\s*(.*)$", line)
         if redirect_match:
             command, operator, filepath = redirect_match.groups()
             filepath = filepath.strip()
@@ -248,19 +258,19 @@ class VirtualBashInterpreter:
 
             # Handle redirection
             if filepath:
-                if operator == '>>':
+                if operator == ">>":
                     # Append
                     existing = self.shell.fs.read_file(filepath) or ""
-                    self.shell.fs.write_file(filepath, existing + output + '\n')
-                elif operator in ['>', '2>', '&>']:
+                    self.shell.fs.write_file(filepath, existing + output + "\n")
+                elif operator in [">", "2>", "&>"]:
                     # Overwrite
                     self.shell.fs.write_file(filepath, output)
 
             return ""
 
         # Handle input redirection
-        if '<' in line:
-            parts = line.split('<')
+        if "<" in line:
+            parts = line.split("<")
             if len(parts) == 2:
                 command, filepath = parts
                 filepath = filepath.strip()
@@ -270,8 +280,8 @@ class VirtualBashInterpreter:
                 if content is not None:
                     self.shell._stdin_buffer = content
                     result = self._execute_command_sync(command.strip())
-                    if hasattr(self.shell, '_stdin_buffer'):
-                        delattr(self.shell, '_stdin_buffer')
+                    if hasattr(self.shell, "_stdin_buffer"):
+                        delattr(self.shell, "_stdin_buffer")
                     return result
 
         return self._execute_command_sync(line)
@@ -280,8 +290,8 @@ class VirtualBashInterpreter:
         """Handle pipes and redirections"""
 
         # Handle pipes first
-        if '|' in line:
-            commands = line.split('|')
+        if "|" in line:
+            commands = line.split("|")
             last_output = ""
 
             for cmd in commands:
@@ -294,13 +304,13 @@ class VirtualBashInterpreter:
                 last_output = await self._execute_command(cmd)
 
                 # Clear stdin buffer
-                if hasattr(self.shell, '_stdin_buffer'):
-                    delattr(self.shell, '_stdin_buffer')
+                if hasattr(self.shell, "_stdin_buffer"):
+                    delattr(self.shell, "_stdin_buffer")
 
             return last_output
 
         # Handle output redirection
-        redirect_match = re.match(r'^(.*?)\s*(>>?|2>|&>)\s*(.*)$', line)
+        redirect_match = re.match(r"^(.*?)\s*(>>?|2>|&>)\s*(.*)$", line)
         if redirect_match:
             command, operator, filepath = redirect_match.groups()
             filepath = filepath.strip()
@@ -310,19 +320,19 @@ class VirtualBashInterpreter:
 
             # Handle redirection
             if filepath:
-                if operator == '>>':
+                if operator == ">>":
                     # Append
                     existing = self.shell.fs.read_file(filepath) or ""
-                    self.shell.fs.write_file(filepath, existing + output + '\n')
-                elif operator in ['>', '2>', '&>']:
+                    self.shell.fs.write_file(filepath, existing + output + "\n")
+                elif operator in [">", "2>", "&>"]:
                     # Overwrite
                     self.shell.fs.write_file(filepath, output)
 
             return ""
 
         # Handle input redirection
-        if '<' in line:
-            parts = line.split('<')
+        if "<" in line:
+            parts = line.split("<")
             if len(parts) == 2:
                 command, filepath = parts
                 filepath = filepath.strip()
@@ -332,8 +342,8 @@ class VirtualBashInterpreter:
                 if content is not None:
                     self.shell._stdin_buffer = content
                     result = await self._execute_command(command.strip())
-                    if hasattr(self.shell, '_stdin_buffer'):
-                        delattr(self.shell, '_stdin_buffer')
+                    if hasattr(self.shell, "_stdin_buffer"):
+                        delattr(self.shell, "_stdin_buffer")
                     return result
 
         return await self._execute_command(line)
@@ -347,7 +357,7 @@ class VirtualBashInterpreter:
             result = asyncio.run(self._execute_command(cmd))
             return result.strip()
 
-        line = re.sub(r'\$\(([^)]+)\)', sub_dollar, line)
+        line = re.sub(r"\$\(([^)]+)\)", sub_dollar, line)
 
         # Handle `` format
         def sub_backtick(match):
@@ -355,14 +365,14 @@ class VirtualBashInterpreter:
             result = asyncio.run(self._execute_command(cmd))
             return result.strip()
 
-        line = re.sub(r'`([^`]+)`', sub_backtick, line)
+        line = re.sub(r"`([^`]+)`", sub_backtick, line)
 
         return line
 
     def _handle_logical_operators_sync(self, line: str) -> str:
         """Synchronous version of handle logical operators"""
         # Split by && and ||
-        parts = re.split(r'(\s*&&\s*|\s*\|\|\s*)', line)
+        parts = re.split(r"(\s*&&\s*|\s*\|\|\s*)", line)
 
         results = []
         i = 0
@@ -377,21 +387,21 @@ class VirtualBashInterpreter:
                     # Check operator
                     if i + 1 < len(parts):
                         operator = parts[i + 1].strip()
-                        if operator == '&&' and self.exit_code != 0:
+                        if operator == "&&" and self.exit_code != 0:
                             # Skip next command if previous failed
                             break
-                        elif operator == '||' and self.exit_code == 0:
+                        elif operator == "||" and self.exit_code == 0:
                             # Skip next command if previous succeeded
                             break
             i += 1
 
-        return '\n'.join(results)
+        return "\n".join(results)
 
     async def _handle_logical_operators(self, line: str) -> str:
         """Handle && and || operators"""
 
         # Split by && and ||
-        parts = re.split(r'(\s*&&\s*|\s*\|\|\s*)', line)
+        parts = re.split(r"(\s*&&\s*|\s*\|\|\s*)", line)
 
         results = []
         i = 0
@@ -406,15 +416,15 @@ class VirtualBashInterpreter:
                     # Check operator
                     if i + 1 < len(parts):
                         operator = parts[i + 1].strip()
-                        if operator == '&&' and self.exit_code != 0:
+                        if operator == "&&" and self.exit_code != 0:
                             # Skip next command if previous failed
                             break
-                        elif operator == '||' and self.exit_code == 0:
+                        elif operator == "||" and self.exit_code == 0:
                             # Skip next command if previous succeeded
                             break
             i += 1
 
-        return '\n'.join(results)
+        return "\n".join(results)
 
     def _execute_command_sync(self, command: str) -> str:
         """Synchronous version of execute command"""
@@ -426,7 +436,7 @@ class VirtualBashInterpreter:
         # Check if it's an alias
         cmd_parts = shlex.split(command)
         if cmd_parts and cmd_parts[0] in self.aliases:
-            command = self.aliases[cmd_parts[0]] + ' ' + ' '.join(cmd_parts[1:])
+            command = self.aliases[cmd_parts[0]] + " " + " ".join(cmd_parts[1:])
 
         # Execute through virtual shell
         try:
@@ -447,11 +457,11 @@ class VirtualBashInterpreter:
         # Check if it's an alias
         cmd_parts = shlex.split(command)
         if cmd_parts and cmd_parts[0] in self.aliases:
-            command = self.aliases[cmd_parts[0]] + ' ' + ' '.join(cmd_parts[1:])
+            command = self.aliases[cmd_parts[0]] + " " + " ".join(cmd_parts[1:])
 
         # Execute through virtual shell
         try:
-            if hasattr(self.shell, 'execute_async'):
+            if hasattr(self.shell, "execute_async"):
                 result = await self.shell.execute_async(command)
             else:
                 result = self.shell.execute(command)
@@ -468,7 +478,7 @@ class VirtualBashInterpreter:
         # Full bash if statements would require more complex parsing
 
         # Extract condition
-        if_match = re.match(r'if\s+\[(.*?)\];\s*then\s+(.*?)(?:;\s*fi)?$', line)
+        if_match = re.match(r"if\s+\[(.*?)\];\s*then\s+(.*?)(?:;\s*fi)?$", line)
         if if_match:
             condition, then_part = if_match.groups()
 
@@ -481,7 +491,7 @@ class VirtualBashInterpreter:
     async def _handle_for_loop(self, line: str) -> str:
         """Handle for loops (simplified)"""
         # Match: for var in items; do command; done
-        for_match = re.match(r'for\s+(\w+)\s+in\s+(.*?);\s*do\s+(.*?);\s*done', line)
+        for_match = re.match(r"for\s+(\w+)\s+in\s+(.*?);\s*do\s+(.*?);\s*done", line)
         if for_match:
             var_name, items_expr, command = for_match.groups()
 
@@ -498,7 +508,7 @@ class VirtualBashInterpreter:
                 if result:
                     results.append(result)
 
-            return '\n'.join(results)
+            return "\n".join(results)
 
         return ""
 
@@ -522,19 +532,19 @@ class VirtualBashInterpreter:
         condition = condition.strip()
 
         # File tests
-        if condition.startswith('-f '):
+        if condition.startswith("-f "):
             filepath = condition[3:].strip()
             return self.shell.fs.is_file(filepath)
-        elif condition.startswith('-d '):
+        elif condition.startswith("-d "):
             dirpath = condition[3:].strip()
             return self.shell.fs.is_dir(dirpath)
-        elif condition.startswith('-e '):
+        elif condition.startswith("-e "):
             path = condition[3:].strip()
             return self.shell.fs.exists(path)
 
         # String tests
-        if '==' in condition or '=' in condition:
-            parts = re.split(r'==|=', condition)
+        if "==" in condition or "=" in condition:
+            parts = re.split(r"==|=", condition)
             if len(parts) == 2:
                 left = self._expand_variables(parts[0].strip())
                 right = self._expand_variables(parts[1].strip())
@@ -545,8 +555,8 @@ class VirtualBashInterpreter:
                     right = right[1:-1]
                 return left == right
 
-        if '!=' in condition:
-            parts = condition.split('!=')
+        if "!=" in condition:
+            parts = condition.split("!=")
             if len(parts) == 2:
                 left = self._expand_variables(parts[0].strip())
                 right = self._expand_variables(parts[1].strip())
@@ -558,7 +568,12 @@ class VirtualBashInterpreter:
                 return left != right
 
         # Numeric tests
-        if '-eq' in condition or '-ne' in condition or '-gt' in condition or '-lt' in condition:
+        if (
+            "-eq" in condition
+            or "-ne" in condition
+            or "-gt" in condition
+            or "-lt" in condition
+        ):
             # Simplified numeric comparison
             return False
 

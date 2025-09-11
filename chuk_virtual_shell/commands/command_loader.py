@@ -5,6 +5,7 @@ import inspect
 from typing import Dict, Any
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
+
 class CommandLoader:
     """Utility class for dynamically loading shell commands"""
 
@@ -48,8 +49,10 @@ class CommandLoader:
                                 cmd_instance = obj(shell_context)
                                 commands[cmd_instance.name] = cmd_instance
                             except Exception as e:
-                                print(f"Error instantiating command {obj.__name__} "
-                                      f"from module {full_module_name}: {e}")
+                                print(
+                                    f"Error instantiating command {obj.__name__} "
+                                    f"from module {full_module_name}: {e}"
+                                )
         return commands
 
     @staticmethod
@@ -72,7 +75,7 @@ class CommandLoader:
             return commands
 
         for file in os.listdir(path):
-            if file.endswith('.py') and not file.startswith('__'):
+            if file.endswith(".py") and not file.startswith("__"):
                 module_name = file[:-3]
                 try:
                     module = importlib.import_module(module_name)

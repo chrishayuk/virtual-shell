@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/filesystem/echo.py - Echo arguments command
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class EchoCommand(ShellCommand):
     name = "echo"

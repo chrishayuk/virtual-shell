@@ -13,18 +13,21 @@ from typing import Dict, Optional, Type
 _COMMAND_EXECUTORS: Dict[str, object] = {}
 _COMMAND_CLASSES: Dict[str, Type] = {}
 
+
 def register_command_class(command_class: Type) -> None:
     """Register a command class (not an instance)."""
     _COMMAND_CLASSES[command_class.name] = command_class
+
 
 def get_command_executor(name: str) -> Optional[object]:
     """Retrieve a command executor instance by name, if available."""
     return _COMMAND_EXECUTORS.get(name)
 
+
 def initialize_commands(shell_context) -> None:
     """
     Initialize all command instances with the provided shell context.
-    
+
     This clears any previously initialized command executors and instantiates
     all registered command classes with the given shell context.
     """
@@ -35,17 +38,19 @@ def initialize_commands(shell_context) -> None:
         except Exception as e:
             logging.warning(f"Failed to initialize command '{name}': {e}")
 
+
 def list_commands() -> Dict[str, str]:
     """
     List all available commands with a brief description.
-    
+
     Returns:
         A dictionary mapping command names to the first line of their help text.
     """
     return {
-        name: (cmd.help_text.split('\n')[0] if cmd.help_text else name)
+        name: (cmd.help_text.split("\n")[0] if cmd.help_text else name)
         for name, cmd in _COMMAND_CLASSES.items()
     }
+
 
 # Import command classes
 
@@ -79,40 +84,53 @@ from chuk_virtual_shell.commands.system.date import DateCommand
 
 # Register all command classes using a compact loop.
 for command in (
-    LsCommand, CdCommand, PwdCommand,
-    MkdirCommand, TouchCommand, CatCommand, EchoCommand, RmCommand, RmdirCommand,
-    EnvCommand, ExportCommand,
-    ClearCommand, ExitCommand, HelpCommand,
-    TimeCommand, UptimeCommand, WhoamiCommand, DateCommand,
+    LsCommand,
+    CdCommand,
+    PwdCommand,
+    MkdirCommand,
+    TouchCommand,
+    CatCommand,
+    EchoCommand,
+    RmCommand,
+    RmdirCommand,
+    EnvCommand,
+    ExportCommand,
+    ClearCommand,
+    ExitCommand,
+    HelpCommand,
+    TimeCommand,
+    UptimeCommand,
+    WhoamiCommand,
+    DateCommand,
 ):
     register_command_class(command)
 
 __all__ = [
     # Navigation
-    'LsCommand',
-    'CdCommand',
-    'PwdCommand',
+    "LsCommand",
+    "CdCommand",
+    "PwdCommand",
     # Filesystem
-    'MkdirCommand',
-    'TouchCommand',
-    'CatCommand',
-    'EchoCommand',
-    'RmCommand',
-    'RmdirCommand',
+    "MkdirCommand",
+    "TouchCommand",
+    "CatCommand",
+    "EchoCommand",
+    "RmCommand",
+    "RmdirCommand",
     # Environment
-    'EnvCommand',
-    'ExportCommand',
+    "EnvCommand",
+    "ExportCommand",
     # System (existing)
-    'ClearCommand',
-    'ExitCommand',
-    'HelpCommand',
+    "ClearCommand",
+    "ExitCommand",
+    "HelpCommand",
     # System (new)
-    'TimeCommand',
-    'UptimeCommand',
-    'WhoamiCommand',
+    "TimeCommand",
+    "UptimeCommand",
+    "WhoamiCommand",
     # Registry functions
-    'get_command_executor',
-    'register_command_class',
-    'initialize_commands',
-    'list_commands',
+    "get_command_executor",
+    "register_command_class",
+    "initialize_commands",
+    "list_commands",
 ]

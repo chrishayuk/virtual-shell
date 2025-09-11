@@ -3,6 +3,7 @@ import os
 import time
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
+
 class LsCommand(ShellCommand):
     name = "ls"
     help_text = (
@@ -17,9 +18,18 @@ class LsCommand(ShellCommand):
 
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument("-l", "--long", action="store_true", help="Use a long listing format")
-        parser.add_argument("-a", "--all", action="store_true", help="Include hidden files")
-        parser.add_argument("directory", nargs="?", default=None, help="Directory to list (default: current directory)")
+        parser.add_argument(
+            "-l", "--long", action="store_true", help="Use a long listing format"
+        )
+        parser.add_argument(
+            "-a", "--all", action="store_true", help="Include hidden files"
+        )
+        parser.add_argument(
+            "directory",
+            nargs="?",
+            default=None,
+            help="Directory to list (default: current directory)",
+        )
         try:
             parsed_args, _ = parser.parse_known_args(args)
         except SystemExit:
@@ -29,8 +39,10 @@ class LsCommand(ShellCommand):
         # First try to get current directory from filesystem directly, if available
         if parsed_args.directory:
             dir_arg = parsed_args.directory
-        elif hasattr(self.shell.fs, 'pwd') and callable(self.shell.fs.pwd):
-            dir_arg = self.shell.fs.pwd()  # Get current directory directly from filesystem
+        elif hasattr(self.shell.fs, "pwd") and callable(self.shell.fs.pwd):
+            dir_arg = (
+                self.shell.fs.pwd()
+            )  # Get current directory directly from filesystem
         else:
             # Fall back to environment variable if filesystem doesn't track current directory
             dir_arg = self.shell.environ.get("PWD", ".")
@@ -54,7 +66,7 @@ class LsCommand(ShellCommand):
 
         # Filter out hidden files if --all is not specified
         if not parsed_args.all and isinstance(files, list):
-            files = [f for f in files if not f.startswith('.')]
+            files = [f for f in files if not f.startswith(".")]
 
         # Ensure files is a list before sorting
         if not isinstance(files, list):
@@ -74,18 +86,22 @@ class LsCommand(ShellCommand):
                     group = "staff"
                     size = 0  # Directory size can be shown as 0
                     mod_date = time.strftime("%b %d %H:%M", time.localtime())
-                    lines.append(f"{mode} {nlink} {owner} {group} {size:>5} {mod_date} {f}")
+                    lines.append(
+                        f"{mode} {nlink} {owner} {group} {size:>5} {mod_date} {f}"
+                    )
                     continue
 
                 # Construct the full path of the entry
-                full_path = os.path.join(resolved_dir, f) if resolved_dir != "/" else "/" + f
+                full_path = (
+                    os.path.join(resolved_dir, f) if resolved_dir != "/" else "/" + f
+                )
 
                 # Retrieve node info - if available
                 is_dir = False
-                if hasattr(self.shell, 'get_node_info'):
+                if hasattr(self.shell, "get_node_info"):
                     info = self.shell.get_node_info(full_path)
-                    is_dir = info and getattr(info, 'is_dir', False)
-                elif hasattr(self.shell.fs, 'is_dir'):
+                    is_dir = info and getattr(info, "is_dir", False)
+                elif hasattr(self.shell.fs, "is_dir"):
                     is_dir = self.shell.fs.is_dir(full_path)
 
                 # Choose permission string based on whether it's a directory
@@ -97,9 +113,9 @@ class LsCommand(ShellCommand):
                 # Get file size
                 size = 0
                 try:
-                    if hasattr(self.shell.fs, 'get_size'):
+                    if hasattr(self.shell.fs, "get_size"):
                         size = self.shell.fs.get_size(full_path)
-                    elif not is_dir and hasattr(self.shell.fs, 'read_file'):
+                    elif not is_dir and hasattr(self.shell.fs, "read_file"):
                         # Alternative: get size from file content
                         content = self.shell.fs.read_file(full_path)
                         if content is not None:
@@ -119,12 +135,12 @@ class LsCommand(ShellCommand):
         """Check if a directory exists using available methods."""
         try:
             # Try different methods to check if directory exists
-            if hasattr(self.shell.fs, 'is_dir') and self.shell.fs.exists(path):
+            if hasattr(self.shell.fs, "is_dir") and self.shell.fs.exists(path):
                 return self.shell.fs.is_dir(path)
-            elif hasattr(self.shell, 'get_node_info'):
+            elif hasattr(self.shell, "get_node_info"):
                 info = self.shell.get_node_info(path)
-                return info and getattr(info, 'is_dir', False)
-            elif hasattr(self.shell.fs, 'ls'):
+                return info and getattr(info, "is_dir", False)
+            elif hasattr(self.shell.fs, "ls"):
                 # Try listing the directory
                 try:
                     self.shell.fs.ls(path)

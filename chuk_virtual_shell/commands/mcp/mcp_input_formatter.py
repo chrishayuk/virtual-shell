@@ -9,14 +9,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def format_mcp_input(args, tool_schema):
     """
     Format the user-provided arguments based on the given tool schema.
-    
+
     Args:
         args (list): List of arguments provided by the user.
         tool_schema (dict): The input schema for the MCP tool.
-        
+
     Returns:
         dict: A dictionary representing the formatted input data.
     """
@@ -41,7 +42,9 @@ def format_mcp_input(args, tool_schema):
         prop_name = required[0]
         if prop_name == "query":
             formatted = {prop_name: " ".join(args)}
-            logger.debug(f"Single required property 'query' detected. Formatted input: {formatted}")
+            logger.debug(
+                f"Single required property 'query' detected. Formatted input: {formatted}"
+            )
             return formatted
         formatted = {prop_name: args[0]}
         logger.debug(f"Single required property detected. Formatted input: {formatted}")
@@ -50,7 +53,9 @@ def format_mcp_input(args, tool_schema):
     # If there's a property named 'query' in the schema, join all arguments into a query string.
     if "query" in properties and args:
         formatted = {"query": " ".join(args)}
-        logger.debug(f"'query' property detected in schema. Formatted input: {formatted}")
+        logger.debug(
+            f"'query' property detected in schema. Formatted input: {formatted}"
+        )
         return formatted
 
     # Otherwise, return the arguments as is, under the key 'args'.

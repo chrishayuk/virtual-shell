@@ -19,15 +19,15 @@ from chuk_virtual_shell.commands.filesystem.cp import CpCommand
 from chuk_virtual_shell.commands.filesystem.mv import MvCommand
 
 __all__ = [
-    'MkdirCommand',
-    'TouchCommand',
-    'CatCommand',
-    'EchoCommand',
-    'RmCommand',
-    'RmdirCommand',
-    'MoreCommand',
-    'DuCommand',
-    'QuotaCommand',
-    'CpCommand',
-    'MvCommand'
+    "MkdirCommand",
+    "TouchCommand",
+    "CatCommand",
+    "EchoCommand",
+    "RmCommand",
+    "RmdirCommand",
+    "MoreCommand",
+    "DuCommand",
+    "QuotaCommand",
+    "CpCommand",
+    "MvCommand",
 ]

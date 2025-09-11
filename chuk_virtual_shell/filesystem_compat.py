@@ -2,6 +2,7 @@
 Compatibility wrapper for VirtualFileSystem to provide consistent API
 """
 
+
 class FileSystemCompat:
     """Wrapper to provide compatible filesystem API across different implementations"""
 
@@ -89,7 +90,7 @@ class FileSystemCompat:
             return info is not None and info.is_dir
         except Exception:
             return False
-    
+
     def get_node_info(self, path):
         """Get node information for a path"""
         return self.fs.get_node_info(path)
@@ -97,13 +98,13 @@ class FileSystemCompat:
     # Search operations
     def find(self, pattern, path=None):
         """Find files matching pattern"""
-        if hasattr(self.fs, 'find'):
+        if hasattr(self.fs, "find"):
             return self.fs.find(pattern, path)
         return []
 
     def search(self, pattern, path=None):
         """Search for pattern in files"""
-        if hasattr(self.fs, 'search'):
+        if hasattr(self.fs, "search"):
             return self.fs.search(pattern, path)
         return []
 
@@ -111,38 +112,38 @@ class FileSystemCompat:
 
     def get_fs_info(self):
         """Get filesystem info"""
-        if hasattr(self.fs, 'get_fs_info'):
+        if hasattr(self.fs, "get_fs_info"):
             return self.fs.get_fs_info()
         return {}
 
     def get_storage_stats(self):
         """Get storage statistics"""
-        if hasattr(self.fs, 'get_storage_stats'):
+        if hasattr(self.fs, "get_storage_stats"):
             return self.fs.get_storage_stats()
         return {}
 
     # Provider operations
     def get_provider_name(self):
         """Get provider name"""
-        if hasattr(self.fs, 'get_provider_name'):
+        if hasattr(self.fs, "get_provider_name"):
             return self.fs.get_provider_name()
         return "unknown"
 
     def change_provider(self, provider, **kwargs):
         """Change filesystem provider"""
-        if hasattr(self.fs, 'change_provider'):
+        if hasattr(self.fs, "change_provider"):
             return self.fs.change_provider(provider, **kwargs)
         return False
 
     # Security operations
     def is_read_only(self):
         """Check if filesystem is read-only"""
-        if hasattr(self.fs, 'is_read_only'):
+        if hasattr(self.fs, "is_read_only"):
             return self.fs.is_read_only()
         return False
 
     def set_read_only(self, value):
         """Set read-only mode"""
-        if hasattr(self.fs, 'set_read_only'):
+        if hasattr(self.fs, "set_read_only"):
             return self.fs.set_read_only(value)
         return False

@@ -1,12 +1,16 @@
 """
 chuk_virtual_shell/commands/filesystem/mv.py - Move or rename files and directories
 """
+
 import os
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
+
 class MvCommand(ShellCommand):
     name = "mv"
-    help_text = "mv - Move or rename files and directories\nUsage: mv [source...] destination"
+    help_text = (
+        "mv - Move or rename files and directories\nUsage: mv [source...] destination"
+    )
     category = "file"
 
     def execute(self, args):
@@ -51,14 +55,14 @@ class MvCommand(ShellCommand):
     def _is_directory(self, path):
         """Check if a path is a directory using various possible filesystem APIs."""
         try:
-            if hasattr(self.shell.fs, 'get_node_info'):
+            if hasattr(self.shell.fs, "get_node_info"):
                 node_info = self.shell.fs.get_node_info(path)
                 return node_info and node_info.is_dir
-            elif hasattr(self.shell.fs, 'is_dir'):
+            elif hasattr(self.shell.fs, "is_dir"):
                 return self.shell.fs.is_dir(path)
-            elif hasattr(self.shell.fs, 'isdir'):
+            elif hasattr(self.shell.fs, "isdir"):
                 return self.shell.fs.isdir(path)
-            elif hasattr(self.shell.fs, 'ls'):
+            elif hasattr(self.shell.fs, "ls"):
                 # Try to list contents - if successful, it's a directory
                 try:
                     self.shell.fs.ls(path)
@@ -74,11 +78,11 @@ class MvCommand(ShellCommand):
     def _file_exists(self, path):
         """Check if a file exists using various possible filesystem APIs."""
         try:
-            if hasattr(self.shell.fs, 'get_node_info'):
+            if hasattr(self.shell.fs, "get_node_info"):
                 return self.shell.fs.get_node_info(path) is not None
-            elif hasattr(self.shell.fs, 'exists'):
+            elif hasattr(self.shell.fs, "exists"):
                 return self.shell.fs.exists(path)
-            elif hasattr(self.shell, 'exists'):
+            elif hasattr(self.shell, "exists"):
                 return self.shell.exists(path)
             else:
                 # Try to read the file as a fallback
@@ -91,11 +95,11 @@ class MvCommand(ShellCommand):
     def _remove_file(self, path):
         """Remove a file using various possible filesystem APIs."""
         try:
-            if hasattr(self.shell.fs, 'rm'):
+            if hasattr(self.shell.fs, "rm"):
                 return self.shell.fs.rm(path)
-            elif hasattr(self.shell.fs, 'delete_file'):
+            elif hasattr(self.shell.fs, "delete_file"):
                 return self.shell.fs.delete_file(path)
-            elif hasattr(self.shell.fs, 'delete_node'):
+            elif hasattr(self.shell.fs, "delete_node"):
                 return self.shell.fs.delete_node(path)
             # Remove the test-specific success assumption
             return False

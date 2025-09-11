@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/environment/env.py - Set environment variables command
 """
+
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class EnvCommand(ShellCommand):
     name = "env"
@@ -15,7 +17,12 @@ class EnvCommand(ShellCommand):
 
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('filter', nargs='?', default=None, help='Optional filter substring to match variable names')
+        parser.add_argument(
+            "filter",
+            nargs="?",
+            default=None,
+            help="Optional filter substring to match variable names",
+        )
         try:
             parsed_args = parser.parse_args(args)
         except SystemExit:

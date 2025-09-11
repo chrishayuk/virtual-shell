@@ -4,26 +4,28 @@ chuk_virtual_shell/sandbox/loader/mcp_loader.py - MCP configuration and command 
 This module handles loading MCP server configurations from a sandbox and
 initializing MCP commands for the shell.
 """
+
 import logging
 import traceback
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Extract the list of MCP server configurations from the sandbox config.
-    
+
     Args:
         config: The sandbox configuration dictionary.
-    
+
     Returns:
         A list of MCP server configuration dictionaries.
         Each config should contain at least keys like "config_path" and "server_name".
     """
     logger.debug(f"Loading MCP servers from config: {type(config)}")
 
-    if 'mcp_servers' not in config:
+    if "mcp_servers" not in config:
         logger.warning("No 'mcp_servers' section found in config")
         return []
 
@@ -58,17 +60,17 @@ def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
 async def register_mcp_commands_with_shell(shell) -> Optional[str]:
     """
     Register MCP commands with a shell instance.
-    
+
     This function takes a shell instance and registers MCP commands with it
     based on its configured MCP servers.
-    
+
     Args:
         shell: The shell interpreter instance
-    
+
     Returns:
         str: Error message if something went wrong, None if successful
     """
-    if not hasattr(shell, 'mcp_servers'):
+    if not hasattr(shell, "mcp_servers"):
         logger.warning("Shell instance does not have 'mcp_servers' attribute")
         return "Shell instance does not have 'mcp_servers' attribute"
 
@@ -83,30 +85,35 @@ async def register_mcp_commands_with_shell(shell) -> Optional[str]:
     try:
         # Import the MCP command loader with updated import path
         try:
-            from chuk_virtual_shell.commands.mcp.mcp_command_loader import register_mcp_commands
+            from chuk_virtual_shell.commands.mcp.mcp_command_loader import (
+                register_mcp_commands,
+            )
         except ImportError as e:
             logger.error(f"Error importing MCP command loader: {e}")
             traceback.print_exc()
             return f"Error importing MCP command loader: {e}"
 
         await register_mcp_commands(shell)
-        logger.info(f"MCP commands registered successfully for {len(shell.mcp_servers)} servers")
+        logger.info(
+            f"MCP commands registered successfully for {len(shell.mcp_servers)} servers"
+        )
         return None
     except Exception as e:
         error_msg = f"Error registering MCP commands: {str(e)}"
         logger.exception(error_msg)
         return error_msg
 
+
 async def initialize_mcp(shell) -> Optional[str]:
     """
     Complete initialization of MCP for a shell.
-    
+
     This is a convenience function that can be called during shell
     initialization to set up all MCP-related functionality.
-    
+
     Args:
         shell: The shell interpreter instance
-        
+
     Returns:
         str: Error message if something went wrong, None if successful
     """

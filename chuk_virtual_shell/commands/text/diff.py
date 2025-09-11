@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/text/diff.py - Compare files line by line
 """
+
 import difflib
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class DiffCommand(ShellCommand):
     name = "diff"
@@ -44,28 +46,28 @@ Examples:
         i = 0
         while i < len(args):
             arg = args[i]
-            if arg in ['-u', '--unified']:
+            if arg in ["-u", "--unified"]:
                 context = False
                 normal = False
-            elif arg in ['-c', '--context']:
+            elif arg in ["-c", "--context"]:
                 context = True
                 normal = False
-            elif arg in ['-n', '--normal']:
+            elif arg in ["-n", "--normal"]:
                 normal = True
                 context = False
-            elif arg in ['-i', '--ignore-case']:
+            elif arg in ["-i", "--ignore-case"]:
                 ignore_case = True
-            elif arg in ['-w', '--ignore-all-space']:
+            elif arg in ["-w", "--ignore-all-space"]:
                 ignore_all_space = True
-            elif arg in ['-b', '--ignore-space-change']:
+            elif arg in ["-b", "--ignore-space-change"]:
                 ignore_space_change = True
-            elif arg in ['-B', '--ignore-blank-lines']:
+            elif arg in ["-B", "--ignore-blank-lines"]:
                 ignore_blank_lines = True
-            elif arg in ['-q', '--brief']:
+            elif arg in ["-q", "--brief"]:
                 brief = True
-            elif arg == '--side-by-side':
+            elif arg == "--side-by-side":
                 side_by_side = True
-            elif not arg.startswith('-'):
+            elif not arg.startswith("-"):
                 files.append(arg)
             i += 1
 
@@ -85,10 +87,20 @@ Examples:
             return f"diff: {file2_path}: No such file or directory"
 
         # Process content based on options
-        lines1 = self._process_lines(content1, ignore_case, ignore_all_space,
-                                     ignore_space_change, ignore_blank_lines)
-        lines2 = self._process_lines(content2, ignore_case, ignore_all_space,
-                                     ignore_space_change, ignore_blank_lines)
+        lines1 = self._process_lines(
+            content1,
+            ignore_case,
+            ignore_all_space,
+            ignore_space_change,
+            ignore_blank_lines,
+        )
+        lines2 = self._process_lines(
+            content2,
+            ignore_case,
+            ignore_all_space,
+            ignore_space_change,
+            ignore_blank_lines,
+        )
 
         # If files are identical
         if lines1 == lines2:
@@ -110,8 +122,14 @@ Examples:
         else:  # unified (default)
             return self._unified_diff(lines1, lines2, file1_path, file2_path)
 
-    def _process_lines(self, content, ignore_case, ignore_all_space,
-                       ignore_space_change, ignore_blank_lines):
+    def _process_lines(
+        self,
+        content,
+        ignore_case,
+        ignore_all_space,
+        ignore_space_change,
+        ignore_blank_lines,
+    ):
         """Process lines based on options"""
         lines = content.splitlines() if content else []
 
@@ -121,9 +139,9 @@ Examples:
             if ignore_case:
                 line = line.lower()
             if ignore_all_space:
-                line = ''.join(line.split())
+                line = "".join(line.split())
             elif ignore_space_change:
-                line = ' '.join(line.split())
+                line = " ".join(line.split())
 
             # Skip blank lines if requested
             if ignore_blank_lines and not line.strip():
@@ -136,22 +154,16 @@ Examples:
     def _unified_diff(self, lines1, lines2, file1, file2):
         """Generate unified diff format"""
         diff = difflib.unified_diff(
-            lines1, lines2,
-            fromfile=file1,
-            tofile=file2,
-            lineterm=''
+            lines1, lines2, fromfile=file1, tofile=file2, lineterm=""
         )
-        return '\n'.join(diff)
+        return "\n".join(diff)
 
     def _context_diff(self, lines1, lines2, file1, file2):
         """Generate context diff format"""
         diff = difflib.context_diff(
-            lines1, lines2,
-            fromfile=file1,
-            tofile=file2,
-            lineterm=''
+            lines1, lines2, fromfile=file1, tofile=file2, lineterm=""
         )
-        return '\n'.join(diff)
+        return "\n".join(diff)
 
     def _normal_diff(self, lines1, lines2):
         """Generate normal diff format"""
@@ -164,25 +176,25 @@ Examples:
         changes = []
 
         for line in diff:
-            if line.startswith('  '):  # Common line
+            if line.startswith("  "):  # Common line
                 if changes:
                     result.append(self._format_normal_changes(changes))
                     changes = []
                 line1_num += 1
                 line2_num += 1
-            elif line.startswith('- '):  # Line only in first file
-                changes.append(('d', line1_num + 1, line[2:]))
+            elif line.startswith("- "):  # Line only in first file
+                changes.append(("d", line1_num + 1, line[2:]))
                 line1_num += 1
-            elif line.startswith('+ '):  # Line only in second file
-                changes.append(('a', line2_num + 1, line[2:]))
+            elif line.startswith("+ "):  # Line only in second file
+                changes.append(("a", line2_num + 1, line[2:]))
                 line2_num += 1
-            elif line.startswith('? '):  # Hint about changes
+            elif line.startswith("? "):  # Hint about changes
                 continue
 
         if changes:
             result.append(self._format_normal_changes(changes))
 
-        return '\n'.join(result)
+        return "\n".join(result)
 
     def _format_normal_changes(self, changes):
         """Format changes for normal diff output"""
@@ -190,8 +202,8 @@ Examples:
             return ""
 
         # Group consecutive changes
-        deletes = [c for c in changes if c[0] == 'd']
-        adds = [c for c in changes if c[0] == 'a']
+        deletes = [c for c in changes if c[0] == "d"]
+        adds = [c for c in changes if c[0] == "a"]
 
         output = []
 
@@ -203,9 +215,17 @@ Examples:
             a_end = adds[-1][1]
 
             if d_start == d_end:
-                output.append(f"{d_start}c{a_start},{a_end}" if a_start != a_end else f"{d_start}c{a_start}")
+                output.append(
+                    f"{d_start}c{a_start},{a_end}"
+                    if a_start != a_end
+                    else f"{d_start}c{a_start}"
+                )
             else:
-                output.append(f"{d_start},{d_end}c{a_start},{a_end}" if a_start != a_end else f"{d_start},{d_end}c{a_start}")
+                output.append(
+                    f"{d_start},{d_end}c{a_start},{a_end}"
+                    if a_start != a_end
+                    else f"{d_start},{d_end}c{a_start}"
+                )
 
             for d in deletes:
                 output.append(f"< {d[2]}")
@@ -237,7 +257,7 @@ Examples:
             for a in adds:
                 output.append(f"> {a[2]}")
 
-        return '\n'.join(output)
+        return "\n".join(output)
 
     def _side_by_side_diff(self, lines1, lines2, file1, file2):
         """Generate side-by-side diff format"""
@@ -255,23 +275,23 @@ Examples:
         i = 0
         while i < len(diff):
             line = diff[i]
-            if line.startswith('  '):  # Common line
-                text = line[2:][:max_width-1]
+            if line.startswith("  "):  # Common line
+                text = line[2:][: max_width - 1]
                 output.append(f"{text:<{max_width}} | {text}")
-            elif line.startswith('- '):  # Line only in first file
-                text1 = line[2:][:max_width-1]
+            elif line.startswith("- "):  # Line only in first file
+                text1 = line[2:][: max_width - 1]
                 # Check if next line is an addition (change)
-                if i + 1 < len(diff) and diff[i + 1].startswith('+ '):
-                    text2 = diff[i + 1][2:][:max_width-1]
+                if i + 1 < len(diff) and diff[i + 1].startswith("+ "):
+                    text2 = diff[i + 1][2:][: max_width - 1]
                     output.append(f"{text1:<{max_width}} < {text2}")
                     i += 1  # Skip the next line
                 else:
                     output.append(f"{text1:<{max_width}} <")
-            elif line.startswith('+ '):  # Line only in second file
-                text2 = line[2:][:max_width-1]
+            elif line.startswith("+ "):  # Line only in second file
+                text2 = line[2:][: max_width - 1]
                 output.append(f"{'':<{max_width}} > {text2}")
-            elif line.startswith('? '):  # Skip hint lines
+            elif line.startswith("? "):  # Skip hint lines
                 pass
             i += 1
 
-        return '\n'.join(output)
+        return "\n".join(output)

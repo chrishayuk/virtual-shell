@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/system/clear.py - Clear the screen command
 """
+
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class ClearCommand(ShellCommand):
     name = "clear"
@@ -18,4 +20,3 @@ class ClearCommand(ShellCommand):
         # Ignore any extra arguments.
         parser.parse_known_args(args)
         return "\033[2J\033[H"
-

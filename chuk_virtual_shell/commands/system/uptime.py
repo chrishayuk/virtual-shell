@@ -1,15 +1,14 @@
 """
 chuk_virtual_shell/commands/system/uptime.py - time
 """
+
 import time
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
+
 class UptimeCommand(ShellCommand):
     name = "uptime"
-    help_text = (
-        "uptime - Display how long the shell has been running\n"
-        "Usage: uptime"
-    )
+    help_text = "uptime - Display how long the shell has been running\nUsage: uptime"
     category = "system"
 
     def execute(self, args):

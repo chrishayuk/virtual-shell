@@ -1,12 +1,14 @@
 """
 chuk_virtual_shell/commands/mcp/mcp_output_formatter.py
 """
+
 import json
 import ast
 import logging
 
-# logger
+# logger
 logger = logging.getLogger(__name__)
+
 
 def parse_mcp_response(raw_response):
     """
@@ -20,7 +22,9 @@ def parse_mcp_response(raw_response):
     #    If `result` is missing or empty, fallback to raw_response itself.
     result_section = raw_response.get("result")
     if not result_section:
-        logger.debug("No 'result' field found; using raw_response as the result section.")
+        logger.debug(
+            "No 'result' field found; using raw_response as the result section."
+        )
         result_section = raw_response
 
     logger.debug(f"Using result section: {result_section}")
@@ -109,7 +113,7 @@ def _format_tabular_data(data):
     columns = data.get("columns", [])
     # If columns are missing but rows exist, assume numeric columns
     if not columns and rows and isinstance(rows[0], list):
-        columns = [f"Col{i+1}" for i in range(len(rows[0]))]
+        columns = [f"Col{i + 1}" for i in range(len(rows[0]))]
 
     if columns:
         # Create a markdown table

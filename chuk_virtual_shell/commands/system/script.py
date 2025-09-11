@@ -1,9 +1,11 @@
 """
 chuk_virtual_shell/chuk_virtual_shell/commands/system/script.py - Run shell scripts command
 """
+
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
 from chuk_virtual_shell.script_runner import ScriptRunner
+
 
 class ScriptCommand(ShellCommand):
     name = "script"
@@ -18,7 +20,9 @@ class ScriptCommand(ShellCommand):
         if not args:
             return "script: missing operand"
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('filenames', nargs='+', help='One or more script file paths to run')
+        parser.add_argument(
+            "filenames", nargs="+", help="One or more script file paths to run"
+        )
         parsed_args, unknown = parser.parse_known_args(args)
 
         results = []

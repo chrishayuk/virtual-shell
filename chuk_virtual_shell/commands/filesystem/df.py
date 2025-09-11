@@ -1,9 +1,11 @@
 """
 chuk_virtual_shell/commands/filesystem/df.py - Display disk free space
 """
+
 import argparse
 from typing import List
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class DfCommand(ShellCommand):
     name = "df"
@@ -19,9 +21,16 @@ class DfCommand(ShellCommand):
 
     def execute(self, args: List[str]) -> str:
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('-h', '--human-readable', action='store_true', help='Print sizes in human readable format')
-        parser.add_argument('-i', '--inodes', action='store_true', help='Display inode information')
-        parser.add_argument('paths', nargs='*', help='Paths to show disk space for')
+        parser.add_argument(
+            "-h",
+            "--human-readable",
+            action="store_true",
+            help="Print sizes in human readable format",
+        )
+        parser.add_argument(
+            "-i", "--inodes", action="store_true", help="Display inode information"
+        )
+        parser.add_argument("paths", nargs="*", help="Paths to show disk space for")
 
         try:
             parsed_args = parser.parse_args(args)
@@ -38,13 +47,15 @@ class DfCommand(ShellCommand):
         paths = parsed_args.paths
         if not paths:
             # Default to root path if no paths provided
-            paths = ['/']
+            paths = ["/"]
 
         # Display header
         if parsed_args.inodes:
             results.append("Filesystem      Inodes  IUsed    IFree IUse% Mounted on")
         else:
-            results.append("Filesystem     1K-blocks    Used    Available Use% Mounted on")
+            results.append(
+                "Filesystem     1K-blocks    Used    Available Use% Mounted on"
+            )
 
         for path in paths:
             # Resolve path to absolute
@@ -58,8 +69,8 @@ class DfCommand(ShellCommand):
             # If we're showing inodes (file count) information
             if parsed_args.inodes:
                 # Get file counts
-                total_files = storage_stats.get('max_files', 0)
-                used_files = storage_stats.get('file_count', 0)
+                total_files = storage_stats.get("max_files", 0)
+                used_files = storage_stats.get("file_count", 0)
                 free_files = total_files - used_files
 
                 # Calculate usage percentage
@@ -70,13 +81,15 @@ class DfCommand(ShellCommand):
                     percent_str = "-"
 
                 # Format the line
-                filesystem = storage_stats.get('provider_name', 'vfs')
-                results.append(f"{filesystem:<14} {total_files:7d} {used_files:7d} {free_files:7d} {percent_str:4} {abs_path}")
+                filesystem = storage_stats.get("provider_name", "vfs")
+                results.append(
+                    f"{filesystem:<14} {total_files:7d} {used_files:7d} {free_files:7d} {percent_str:4} {abs_path}"
+                )
 
             else:
                 # Get block sizes (in 1K blocks)
-                total_size = storage_stats.get('max_total_size', 0)
-                used_size = storage_stats.get('total_size_bytes', 0)
+                total_size = storage_stats.get("max_total_size", 0)
+                used_size = storage_stats.get("total_size_bytes", 0)
                 free_size = total_size - used_size
 
                 # Format sizes based on human-readable flag
@@ -98,18 +111,20 @@ class DfCommand(ShellCommand):
                     percent_str = "-"
 
                 # Format the line
-                filesystem = storage_stats.get('provider_name', 'vfs')
-                results.append(f"{filesystem:<14} {total_str:10} {used_str:8} {free_str:10} {percent_str:4} {abs_path}")
+                filesystem = storage_stats.get("provider_name", "vfs")
+                results.append(
+                    f"{filesystem:<14} {total_str:10} {used_str:8} {free_str:10} {percent_str:4} {abs_path}"
+                )
 
         return "\n".join(results)
 
     def _format_size(self, size_bytes: int) -> str:
         """Convert a size in bytes into a human-readable string."""
         size_float = float(size_bytes)
-        for unit in ['', 'K', 'M', 'G', 'T']:
-            if size_float < 1024 or unit == 'T':
-                if unit == '':
+        for unit in ["", "K", "M", "G", "T"]:
+            if size_float < 1024 or unit == "T":
+                if unit == "":
                     return f"{int(size_float)}"
-                return f"{size_float/1024:.1f}{unit}"
+                return f"{size_float / 1024:.1f}{unit}"
             size_float /= 1024
         return f"{size_float:.1f}T"

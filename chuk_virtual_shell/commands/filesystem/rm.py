@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/filesystem/rm.py - Remove files command
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class RmCommand(ShellCommand):
     name = "rm"

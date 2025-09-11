@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/navigation/pwd.py - Print working directory command
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class PwdCommand(ShellCommand):
     name = "pwd"

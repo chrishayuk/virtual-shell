@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/filesystem/touch.py - Create empty file command
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class TouchCommand(ShellCommand):
     name = "touch"

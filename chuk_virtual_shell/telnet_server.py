@@ -1,6 +1,7 @@
 """
 chuk_virtual_shell/telnet_server.py - Telnet server for PyodideShell
 """
+
 import asyncio
 from typing import Set
 
@@ -13,7 +14,7 @@ class TelnetConnection:
     def __init__(self, reader, writer, fs_provider=None, fs_provider_args=None):
         """
         Initialize a telnet connection
-        
+
         Args:
             reader: StreamReader for the connection
             writer: StreamWriter for the connection
@@ -23,7 +24,7 @@ class TelnetConnection:
         self.reader = reader
         self.writer = writer
         self.shell = ShellInterpreter(fs_provider, fs_provider_args)
-        self.addr = writer.get_extra_info('peername')
+        self.addr = writer.get_extra_info("peername")
 
     async def handle(self):
         """Handle the telnet connection"""
@@ -71,10 +72,12 @@ class TelnetConnection:
 class TelnetServer:
     """Telnet server for PyodideShell"""
 
-    def __init__(self, host='0.0.0.0', port=8023, fs_provider=None, fs_provider_args=None):
+    def __init__(
+        self, host="0.0.0.0", port=8023, fs_provider=None, fs_provider_args=None
+    ):
         """
         Initialize the telnet server
-        
+
         Args:
             host: Host to bind to
             port: Port to bind to
@@ -102,11 +105,10 @@ class TelnetServer:
 
     async def start(self):
         """Start the telnet server"""
-        server = await asyncio.start_server(
-            self.client_connected, self.host, self.port)
+        server = await asyncio.start_server(self.client_connected, self.host, self.port)
 
         addr = server.sockets[0].getsockname()
-        print(f'Serving on {addr}')
+        print(f"Serving on {addr}")
 
         async with server:
             await server.serve_forever()

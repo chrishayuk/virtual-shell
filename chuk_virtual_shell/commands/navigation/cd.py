@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/navigation/cd.py - Change directory command
 """
+
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class CdCommand(ShellCommand):
     name = "cd"
@@ -20,7 +22,7 @@ class CdCommand(ShellCommand):
             "directory",
             nargs="?",
             default=self.shell.environ.get("HOME", "/"),
-            help="Directory to change to (defaults to HOME)"
+            help="Directory to change to (defaults to HOME)",
         )
         try:
             parsed_args, _ = parser.parse_known_args(args)

@@ -1,8 +1,10 @@
 """
 commands/file/more.py - Display file contents page by page
 """
+
 import shutil
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class MoreCommand(ShellCommand):
     name = "more"
@@ -43,7 +45,7 @@ class MoreCommand(ShellCommand):
                 end_line = min(current_line + page_size, total_lines)
 
                 # Display current page
-                page_content = '\n'.join(lines[current_line:end_line])
+                page_content = "\n".join(lines[current_line:end_line])
                 results.append(page_content)
 
                 # Show page info
@@ -57,4 +59,4 @@ class MoreCommand(ShellCommand):
                 # In a real more command, we would wait for user input here
                 # For our simplified version, we'll just continue
 
-        return '\n'.join(results)
+        return "\n".join(results)

@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/system/python.py - Execute Python scripts in virtual environment
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
 from chuk_virtual_shell.interpreters.python_interpreter import VirtualPythonInterpreter
+
 
 class PythonCommand(ShellCommand):
     name = "python"
@@ -38,23 +40,23 @@ Examples:
             return "Python interactive mode not fully supported"
 
         # Handle -c option
-        if '-c' in args:
-            idx = args.index('-c')
+        if "-c" in args:
+            idx = args.index("-c")
             if idx + 1 < len(args):
                 command = args[idx + 1]
                 return await self.interpreter.execute_code(command)
             return "python: -c requires an argument"
 
         # Handle -m option
-        if '-m' in args:
-            idx = args.index('-m')
+        if "-m" in args:
+            idx = args.index("-m")
             if idx + 1 < len(args):
                 # module = args[idx + 1]  # Will be used when module execution is implemented
                 return "Python module execution not fully implemented"
             return "python: -m requires an argument"
 
         # Handle version
-        if '-V' in args or '--version' in args:
+        if "-V" in args or "--version" in args:
             return "Python 3.x.x (virtual environment)"
 
         # Try to execute as script
@@ -76,23 +78,23 @@ Examples:
             return "Python interactive mode not fully supported"
 
         # Handle -c option
-        if '-c' in args:
-            idx = args.index('-c')
+        if "-c" in args:
+            idx = args.index("-c")
             if idx + 1 < len(args):
                 command = args[idx + 1]
                 return self.interpreter.execute_code_sync(command)
             return "python: -c requires an argument"
 
         # Handle -m option
-        if '-m' in args:
-            idx = args.index('-m')
+        if "-m" in args:
+            idx = args.index("-m")
             if idx + 1 < len(args):
                 # module = args[idx + 1]  # Will be used when module execution is implemented
                 return "Python module execution not fully implemented"
             return "python: -m requires an argument"
 
         # Handle version
-        if '-V' in args or '--version' in args:
+        if "-V" in args or "--version" in args:
             return "Python 3.x.x (virtual environment)"
 
         # Try to execute as script
@@ -107,4 +109,5 @@ Examples:
 
 class Python3Command(PythonCommand):
     """Alias for python command"""
+
     name = "python3"

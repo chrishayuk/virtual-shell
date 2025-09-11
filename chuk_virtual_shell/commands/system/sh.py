@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/system/sh.py - Execute shell scripts in virtual environment
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class ShCommand(ShellCommand):
     name = "sh"
@@ -32,8 +34,8 @@ Examples:
             return "sh: interactive mode not supported"
 
         # Handle -c option
-        if '-c' in args:
-            idx = args.index('-c')
+        if "-c" in args:
+            idx = args.index("-c")
             if idx + 1 < len(args):
                 command = args[idx + 1]
                 # Execute command asynchronously
@@ -58,13 +60,13 @@ Examples:
         results = []
         for line in content.splitlines():
             line = line.strip()
-            if line and not line.startswith('#'):
+            if line and not line.startswith("#"):
                 # Execute each line (could be made more async if needed)
                 result = self.shell.execute(line)
                 if result:
                     results.append(result)
 
-        return '\n'.join(results)
+        return "\n".join(results)
 
     def _execute_sync(self, args):
         """Simplified synchronous execution"""
@@ -72,8 +74,8 @@ Examples:
             return "sh: interactive mode not supported"
 
         # Handle -c option
-        if '-c' in args:
-            idx = args.index('-c')
+        if "-c" in args:
+            idx = args.index("-c")
             if idx + 1 < len(args):
                 command = args[idx + 1]
                 return self.shell.execute(command)
@@ -96,9 +98,9 @@ Examples:
         results = []
         for line in content.splitlines():
             line = line.strip()
-            if line and not line.startswith('#'):
+            if line and not line.startswith("#"):
                 result = self.shell.execute(line)
                 if result:
                     results.append(result)
 
-        return '\n'.join(results)
+        return "\n".join(results)

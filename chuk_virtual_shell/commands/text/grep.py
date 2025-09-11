@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/text/grep.py - Search for patterns in files
 """
+
 import re
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class GrepCommand(ShellCommand):
     name = "grep"
@@ -26,15 +28,15 @@ Options:
 
         # Parse options
         options = {
-            'case_insensitive': False,
-            'invert': False,
-            'line_numbers': False,
-            'count_only': False,
-            'recursive': False,
-            'extended_regex': False,
-            'whole_word': False,
-            'files_only': False,
-            'no_filename': False
+            "case_insensitive": False,
+            "invert": False,
+            "line_numbers": False,
+            "count_only": False,
+            "recursive": False,
+            "extended_regex": False,
+            "whole_word": False,
+            "files_only": False,
+            "no_filename": False,
         }
 
         pattern = None
@@ -44,26 +46,26 @@ Options:
         # Parse arguments
         while i < len(args):
             arg = args[i]
-            if arg.startswith('-') and pattern is None:
+            if arg.startswith("-") and pattern is None:
                 for char in arg[1:]:
-                    if char == 'i':
-                        options['case_insensitive'] = True
-                    elif char == 'v':
-                        options['invert'] = True
-                    elif char == 'n':
-                        options['line_numbers'] = True
-                    elif char == 'c':
-                        options['count_only'] = True
-                    elif char == 'r':
-                        options['recursive'] = True
-                    elif char == 'E':
-                        options['extended_regex'] = True
-                    elif char == 'w':
-                        options['whole_word'] = True
-                    elif char == 'l':
-                        options['files_only'] = True
-                    elif char == 'h':
-                        options['no_filename'] = True
+                    if char == "i":
+                        options["case_insensitive"] = True
+                    elif char == "v":
+                        options["invert"] = True
+                    elif char == "n":
+                        options["line_numbers"] = True
+                    elif char == "c":
+                        options["count_only"] = True
+                    elif char == "r":
+                        options["recursive"] = True
+                    elif char == "E":
+                        options["extended_regex"] = True
+                    elif char == "w":
+                        options["whole_word"] = True
+                    elif char == "l":
+                        options["files_only"] = True
+                    elif char == "h":
+                        options["no_filename"] = True
             elif pattern is None:
                 pattern = arg
             else:
@@ -76,7 +78,7 @@ Options:
         # If no files specified, use stdin (if available)
         if not files:
             # Check if shell has stdin buffer
-            if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
+            if hasattr(self.shell, "_stdin_buffer") and self.shell._stdin_buffer:
                 content = self.shell._stdin_buffer
                 return self._search_content(content, pattern, options, "<stdin>")
             else:
@@ -85,7 +87,7 @@ Options:
         # Process files
         results = []
         for filepath in files:
-            if options['recursive'] and self.shell.fs.is_dir(filepath):
+            if options["recursive"] and self.shell.fs.is_dir(filepath):
                 # Recursive directory search
                 dir_results = self._search_directory(filepath, pattern, options)
                 if dir_results:
@@ -96,11 +98,13 @@ Options:
                 if content is None:
                     results.append(f"grep: {filepath}: No such file or directory")
                 else:
-                    file_results = self._search_content(content, pattern, options, filepath, len(files) > 1)
+                    file_results = self._search_content(
+                        content, pattern, options, filepath, len(files) > 1
+                    )
                     if file_results:
                         results.append(file_results)
 
-        return '\n'.join(results) if results else ""
+        return "\n".join(results) if results else ""
 
     def _search_content(self, content, pattern, options, filename, show_filename=False):
         """Search for pattern in content"""
@@ -108,14 +112,14 @@ Options:
         regex_pattern = pattern
 
         flags = 0
-        if options['case_insensitive']:
+        if options["case_insensitive"]:
             flags |= re.IGNORECASE
 
         # For basic grep, common regex patterns should still work
         # Don't escape the pattern - let regex compile handle it
 
-        if options['whole_word']:
-            regex_pattern = r'\b' + regex_pattern + r'\b'
+        if options["whole_word"]:
+            regex_pattern = r"\b" + regex_pattern + r"\b"
 
         try:
             compiled = re.compile(regex_pattern, flags)
@@ -129,34 +133,34 @@ Options:
         for line_num, line in enumerate(lines, 1):
             is_match = bool(compiled.search(line))
 
-            if options['invert']:
+            if options["invert"]:
                 is_match = not is_match
 
             if is_match:
                 match_count += 1
 
-                if options['files_only']:
+                if options["files_only"]:
                     return filename
 
-                if not options['count_only']:
+                if not options["count_only"]:
                     prefix = ""
 
                     # Add filename prefix
-                    if show_filename and not options['no_filename']:
+                    if show_filename and not options["no_filename"]:
                         prefix = f"{filename}:"
 
                     # Add line number
-                    if options['line_numbers']:
+                    if options["line_numbers"]:
                         prefix += f"{line_num}:"
 
                     matches.append(prefix + line)
 
-        if options['count_only']:
-            if show_filename and not options['no_filename']:
+        if options["count_only"]:
+            if show_filename and not options["no_filename"]:
                 return f"{filename}:{match_count}"
             return str(match_count)
 
-        return '\n'.join(matches)
+        return "\n".join(matches)
 
     def _search_directory(self, dirpath, pattern, options):
         """Recursively search directory"""
@@ -166,7 +170,7 @@ Options:
         items = self.shell.fs.list_dir(dirpath)
 
         for item in items:
-            item_path = f"{dirpath}/{item}".replace('//', '/')
+            item_path = f"{dirpath}/{item}".replace("//", "/")
 
             if self.shell.fs.is_dir(item_path):
                 # Recurse into subdirectory
@@ -177,8 +181,10 @@ Options:
                 # Search file
                 content = self.shell.fs.read_file(item_path)
                 if content is not None:
-                    file_results = self._search_content(content, pattern, options, item_path, True)
+                    file_results = self._search_content(
+                        content, pattern, options, item_path, True
+                    )
                     if file_results:
                         results.append(file_results)
 
-        return '\n'.join(results) if results else ""
+        return "\n".join(results) if results else ""

@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/text/uniq.py - Report or omit repeated lines
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class UniqCommand(ShellCommand):
     name = "uniq"
@@ -20,13 +22,13 @@ Options:
     def execute(self, args):
         # Parse options
         options = {
-            'count': False,
-            'duplicates_only': False,
-            'unique_only': False,
-            'ignore_case': False,
-            'skip_fields': 0,
-            'skip_chars': 0,
-            'max_chars': None
+            "count": False,
+            "duplicates_only": False,
+            "unique_only": False,
+            "ignore_case": False,
+            "skip_fields": 0,
+            "skip_chars": 0,
+            "max_chars": None,
         }
 
         files = []
@@ -35,52 +37,54 @@ Options:
         # Parse arguments
         while i < len(args):
             arg = args[i]
-            if arg == '-c':
-                options['count'] = True
-            elif arg == '-d':
-                options['duplicates_only'] = True
-            elif arg == '-u':
-                options['unique_only'] = True
-            elif arg == '-i':
-                options['ignore_case'] = True
-            elif arg == '-f':
+            if arg == "-c":
+                options["count"] = True
+            elif arg == "-d":
+                options["duplicates_only"] = True
+            elif arg == "-u":
+                options["unique_only"] = True
+            elif arg == "-i":
+                options["ignore_case"] = True
+            elif arg == "-f":
                 if i + 1 < len(args):
                     try:
-                        options['skip_fields'] = int(args[i + 1])
+                        options["skip_fields"] = int(args[i + 1])
                         i += 1
                     except ValueError:
-                        return f"uniq: invalid number of fields to skip: '{args[i + 1]}'"
+                        return (
+                            f"uniq: invalid number of fields to skip: '{args[i + 1]}'"
+                        )
                 else:
                     return "uniq: option requires an argument -- 'f'"
-            elif arg == '-s':
+            elif arg == "-s":
                 if i + 1 < len(args):
                     try:
-                        options['skip_chars'] = int(args[i + 1])
+                        options["skip_chars"] = int(args[i + 1])
                         i += 1
                     except ValueError:
                         return f"uniq: invalid number of characters to skip: '{args[i + 1]}'"
                 else:
                     return "uniq: option requires an argument -- 's'"
-            elif arg == '-w':
+            elif arg == "-w":
                 if i + 1 < len(args):
                     try:
-                        options['max_chars'] = int(args[i + 1])
+                        options["max_chars"] = int(args[i + 1])
                         i += 1
                     except ValueError:
                         return f"uniq: invalid number of characters to compare: '{args[i + 1]}'"
                 else:
                     return "uniq: option requires an argument -- 'w'"
-            elif arg.startswith('-'):
+            elif arg.startswith("-"):
                 # Handle combined options
                 for char in arg[1:]:
-                    if char == 'c':
-                        options['count'] = True
-                    elif char == 'd':
-                        options['duplicates_only'] = True
-                    elif char == 'u':
-                        options['unique_only'] = True
-                    elif char == 'i':
-                        options['ignore_case'] = True
+                    if char == "c":
+                        options["count"] = True
+                    elif char == "d":
+                        options["duplicates_only"] = True
+                    elif char == "u":
+                        options["unique_only"] = True
+                    elif char == "i":
+                        options["ignore_case"] = True
             else:
                 files.append(arg)
             i += 1
@@ -88,7 +92,7 @@ Options:
         # Get input content
         if not files:
             # Use stdin if available
-            if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
+            if hasattr(self.shell, "_stdin_buffer") and self.shell._stdin_buffer:
                 content = self.shell._stdin_buffer
             else:
                 return ""
@@ -147,31 +151,31 @@ Options:
         if prev_line is not None:
             self._output_line(result, prev_line, count, options)
 
-        return '\n'.join(result)
+        return "\n".join(result)
 
     def _prepare_for_comparison(self, line, options):
         """Prepare a line for comparison based on options"""
         # Skip fields if requested
-        if options['skip_fields'] > 0:
+        if options["skip_fields"] > 0:
             fields = line.split()
-            if options['skip_fields'] < len(fields):
-                line = ' '.join(fields[options['skip_fields']:])
+            if options["skip_fields"] < len(fields):
+                line = " ".join(fields[options["skip_fields"] :])
             else:
                 line = ""
 
         # Skip characters if requested
-        if options['skip_chars'] > 0:
-            if options['skip_chars'] < len(line):
-                line = line[options['skip_chars']:]
+        if options["skip_chars"] > 0:
+            if options["skip_chars"] < len(line):
+                line = line[options["skip_chars"] :]
             else:
                 line = ""
 
         # Limit comparison to max_chars
-        if options['max_chars'] is not None:
-            line = line[:options['max_chars']]
+        if options["max_chars"] is not None:
+            line = line[: options["max_chars"]]
 
         # Handle case-insensitive comparison
-        if options['ignore_case']:
+        if options["ignore_case"]:
             line = line.lower()
 
         return line
@@ -179,13 +183,13 @@ Options:
     def _output_line(self, result, line, count, options):
         """Output a line based on options and count"""
         # Check if we should output this line
-        if options['duplicates_only'] and count == 1:
+        if options["duplicates_only"] and count == 1:
             return
-        if options['unique_only'] and count > 1:
+        if options["unique_only"] and count > 1:
             return
 
         # Format output
-        if options['count']:
+        if options["count"]:
             result.append(f"   {count:4d} {line}")
         else:
             result.append(line)

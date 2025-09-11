@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/text/sed.py - Stream editor for filtering and transforming text
 """
+
 import re
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class SedCommand(ShellCommand):
     name = "sed"
@@ -29,11 +31,7 @@ Common commands:
             return "sed: missing script"
 
         # Parse options
-        options = {
-            'in_place': False,
-            'quiet': False,
-            'extended': False
-        }
+        options = {"in_place": False, "quiet": False, "extended": False}
 
         scripts = []
         files = []
@@ -42,27 +40,27 @@ Common commands:
         # Parse arguments
         while i < len(args):
             arg = args[i]
-            if arg == '-i':
-                options['in_place'] = True
-            elif arg == '-n':
-                options['quiet'] = True
-            elif arg == '-E':
-                options['extended'] = True
-            elif arg == '-e':
+            if arg == "-i":
+                options["in_place"] = True
+            elif arg == "-n":
+                options["quiet"] = True
+            elif arg == "-E":
+                options["extended"] = True
+            elif arg == "-e":
                 if i + 1 < len(args):
                     scripts.append(args[i + 1])
                     i += 1
                 else:
                     return "sed: option requires an argument -- 'e'"
-            elif arg.startswith('-'):
+            elif arg.startswith("-"):
                 # Check for combined flags like -in
                 for char in arg[1:]:
-                    if char == 'i':
-                        options['in_place'] = True
-                    elif char == 'n':
-                        options['quiet'] = True
-                    elif char == 'E':
-                        options['extended'] = True
+                    if char == "i":
+                        options["in_place"] = True
+                    elif char == "n":
+                        options["quiet"] = True
+                    elif char == "E":
+                        options["extended"] = True
                     else:
                         return f"sed: invalid option -- '{char}'"
             elif not scripts:
@@ -76,7 +74,7 @@ Common commands:
 
         # If no files specified, use stdin
         if not files:
-            if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
+            if hasattr(self.shell, "_stdin_buffer") and self.shell._stdin_buffer:
                 content = self.shell._stdin_buffer
                 result = self._process_content(content, scripts, options)
                 return result
@@ -91,19 +89,19 @@ Common commands:
                 return f"sed: {filepath}: No such file or directory"
 
             # For in-place editing with quiet mode, we need different behavior
-            if options['in_place'] and options['quiet']:
+            if options["in_place"] and options["quiet"]:
                 # Process without quiet mode for the actual file write
                 lines = content.splitlines()
                 for script in scripts:
                     lines = self._apply_script(lines, script, options)
                 # Write the actual modified content
                 if lines and isinstance(lines[0], tuple):
-                    processed = '\n'.join([line for line, _ in lines])
+                    processed = "\n".join([line for line, _ in lines])
                 else:
-                    processed = '\n'.join(lines)
+                    processed = "\n".join(lines)
                 self.shell.fs.write_file(filepath, processed)
                 # But don't output anything (quiet mode)
-            elif options['in_place']:
+            elif options["in_place"]:
                 # Normal in-place editing
                 processed = self._process_content(content, scripts, options)
                 self.shell.fs.write_file(filepath, processed)
@@ -112,7 +110,7 @@ Common commands:
                 processed = self._process_content(content, scripts, options)
                 results.append(processed)
 
-        return '\n'.join(results) if results else ""
+        return "\n".join(results) if results else ""
 
     def _process_content(self, content, scripts, options):
         """Process content with sed scripts"""
@@ -122,48 +120,50 @@ Common commands:
             lines = self._apply_script(lines, script, options)
 
         # Handle quiet mode
-        if options['quiet']:
+        if options["quiet"]:
             # Only output explicitly printed lines
             if lines and isinstance(lines[0], tuple):
-                return '\n'.join([line for line, printed in lines if printed])
+                return "\n".join([line for line, printed in lines if printed])
             else:
                 # If not tuples, nothing was explicitly printed
                 return ""
         else:
             # Normal mode - output all lines
             if lines and isinstance(lines[0], tuple):
-                return '\n'.join([line for line, _ in lines])
+                return "\n".join([line for line, _ in lines])
             else:
-                return '\n'.join(lines)
+                return "\n".join(lines)
 
     def _apply_script(self, lines, script, options):
         """Apply a single sed script to lines"""
 
         # Check for line-addressed substitution: 2s/old/new/ or $s/old/new/
-        addr_sub_match = re.match(r'^(\d+|[$])s([/|#])(.*?)\2(.*?)\2([gip]*)$', script)
+        addr_sub_match = re.match(r"^(\d+|[$])s([/|#])(.*?)\2(.*?)\2([gip]*)$", script)
         if addr_sub_match:
             addr, delimiter, pattern, replacement, flags = addr_sub_match.groups()
-            return self._substitute_at_line(lines, addr, pattern, replacement, flags, options)
+            return self._substitute_at_line(
+                lines, addr, pattern, replacement, flags, options
+            )
 
         # Parse substitution command: s/pattern/replacement/flags
-        sub_match = re.match(r'^s([/|#])(.*?)\1(.*?)\1([gip]*)$', script)
+        sub_match = re.match(r"^s([/|#])(.*?)\1(.*?)\1([gip]*)$", script)
         if sub_match:
             delimiter, pattern, replacement, flags = sub_match.groups()
             return self._substitute(lines, pattern, replacement, flags, options)
 
         # Parse line addressing first: 1d, $d, 2,5d
-        line_match = re.match(r'^(\d+|[$])(?:,(\d+|[$]))?([dp])$', script)
+        line_match = re.match(r"^(\d+|[$])(?:,(\d+|[$]))?([dp])$", script)
         if line_match:
             start, end, command = line_match.groups()
             return self._line_command(lines, start, end, command, options)
 
         # Parse pattern delete command: /pattern/d
-        if script.endswith('d'):
+        if script.endswith("d"):
             addr = script[:-1].strip()
             return self._delete(lines, addr, options)
 
         # Parse print command: /pattern/p
-        if script.endswith('p'):
+        if script.endswith("p"):
             addr = script[:-1].strip()
             return self._print(lines, addr, options)
 
@@ -175,12 +175,17 @@ Common commands:
 
         # Prepare regex
         re_flags = 0
-        if 'i' in flags:
+        if "i" in flags:
             re_flags |= re.IGNORECASE
 
-        if not options['extended']:
+        if not options["extended"]:
             pattern = re.escape(pattern)
-            pattern = pattern.replace(r'\*', '*').replace(r'\.', '.').replace(r'\^', '^').replace(r'\$', '$')
+            pattern = (
+                pattern.replace(r"\*", "*")
+                .replace(r"\.", ".")
+                .replace(r"\^", "^")
+                .replace(r"\$", "$")
+            )
 
         try:
             compiled = re.compile(pattern, re_flags)
@@ -188,7 +193,7 @@ Common commands:
             return lines
 
         # Determine which lines to process
-        if addr == '$':
+        if addr == "$":
             target_lines = {len(lines) - 1} if lines else set()
         else:
             try:
@@ -202,7 +207,7 @@ Common commands:
                 line = line[0]
 
             if i in target_lines:
-                if 'g' in flags:
+                if "g" in flags:
                     new_line = compiled.sub(replacement, line)
                 else:
                     new_line = compiled.sub(replacement, line, count=1)
@@ -218,14 +223,19 @@ Common commands:
 
         # Prepare regex flags
         re_flags = 0
-        if 'i' in flags:
+        if "i" in flags:
             re_flags |= re.IGNORECASE
 
-        if not options['extended']:
+        if not options["extended"]:
             # Basic regex - escape special characters
             pattern = re.escape(pattern)
             # But unescape the basic regex metacharacters that sed supports
-            pattern = pattern.replace(r'\*', '*').replace(r'\.', '.').replace(r'\^', '^').replace(r'\$', '$')
+            pattern = (
+                pattern.replace(r"\*", "*")
+                .replace(r"\.", ".")
+                .replace(r"\^", "^")
+                .replace(r"\$", "$")
+            )
 
         try:
             compiled = re.compile(pattern, re_flags)
@@ -236,7 +246,7 @@ Common commands:
             if isinstance(line, tuple):
                 line = line[0]
 
-            if 'g' in flags:
+            if "g" in flags:
                 # Global replacement
                 new_line = compiled.sub(replacement, line)
             else:
@@ -253,13 +263,13 @@ Common commands:
             # Delete all lines
             return []
 
-        if address.startswith('/') and address.endswith('/'):
+        if address.startswith("/") and address.endswith("/"):
             # Pattern address
             pattern = address[1:-1]
             result = []
 
             re_flags = 0
-            if not options['extended']:
+            if not options["extended"]:
                 pattern = re.escape(pattern)
 
             try:
@@ -282,13 +292,13 @@ Common commands:
         if not address:
             return [(line, True) for line in lines]
 
-        if address.startswith('/') and address.endswith('/'):
+        if address.startswith("/") and address.endswith("/"):
             # Pattern address
             pattern = address[1:-1]
             result = []
 
             re_flags = 0
-            if not options['extended']:
+            if not options["extended"]:
                 pattern = re.escape(pattern)
 
             try:
@@ -311,12 +321,12 @@ Common commands:
         result = []
 
         # Convert addresses to line numbers
-        if start == '$':
+        if start == "$":
             start_num = len(lines)
         else:
             start_num = int(start) if start else 1
 
-        if end == '$':
+        if end == "$":
             end_num = len(lines)
         elif end:
             end_num = int(end)
@@ -327,11 +337,11 @@ Common commands:
             if isinstance(line, tuple):
                 line = line[0]
 
-            if command == 'd':
+            if command == "d":
                 # Delete command
                 if not (start_num <= i <= end_num):
                     result.append(line)
-            elif command == 'p':
+            elif command == "p":
                 # Print command (for -n mode)
                 if start_num <= i <= end_num:
                     result.append((line, True))

@@ -8,6 +8,12 @@ from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
 from chuk_virtual_shell.commands.system.date import DateCommand
 
 __all__ = [
-    'ClearCommand', 'ExitCommand', 'HelpCommand', 'ScriptCommand',
-    'TimeCommand', 'UptimeCommand', 'WhoamiCommand', 'DateCommand'
+    "ClearCommand",
+    "ExitCommand",
+    "HelpCommand",
+    "ScriptCommand",
+    "TimeCommand",
+    "UptimeCommand",
+    "WhoamiCommand",
+    "DateCommand",
 ]

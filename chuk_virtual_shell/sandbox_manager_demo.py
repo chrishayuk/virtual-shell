@@ -1,5 +1,6 @@
 from chuk_virtual_shell.sandbox_manager import SandboxManager
 
+
 def demo():
     # Create a SandboxManager
     mgr = SandboxManager()
@@ -24,6 +25,7 @@ def demo():
 
     # 6) Stop the sandbox
     mgr.stop_sandbox(session_id)
+
 
 if __name__ == "__main__":
     demo()

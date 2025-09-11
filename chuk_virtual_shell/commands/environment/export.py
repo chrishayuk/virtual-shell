@@ -1,6 +1,7 @@
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
+
 class ExportCommand(ShellCommand):
     name = "export"
     help_text = (
@@ -13,7 +14,9 @@ class ExportCommand(ShellCommand):
 
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('assignments', nargs='*', help='Assignments in KEY=VALUE format')
+        parser.add_argument(
+            "assignments", nargs="*", help="Assignments in KEY=VALUE format"
+        )
         try:
             parsed_args = parser.parse_args(args)
         except SystemExit:
@@ -23,7 +26,9 @@ class ExportCommand(ShellCommand):
         messages = []
         for assignment in parsed_args.assignments:
             if "=" not in assignment:
-                messages.append(f"export: invalid assignment '{assignment}' (expected KEY=VALUE)")
+                messages.append(
+                    f"export: invalid assignment '{assignment}' (expected KEY=VALUE)"
+                )
                 continue
             key, value = assignment.split("=", 1)
             if not key:

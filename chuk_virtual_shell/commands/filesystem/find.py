@@ -1,12 +1,14 @@
 """
 chuk_virtual_shell/commands/filesystem/find.py - Find files and directories
 """
+
 import argparse
 import fnmatch
 import os
 import re
 from typing import List, Optional
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class FindCommand(ShellCommand):
     name = "find"
@@ -24,11 +26,17 @@ class FindCommand(ShellCommand):
 
     def execute(self, args: List[str]) -> str:
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('paths', nargs='*', default=['.'], help='Paths to search')
-        parser.add_argument('-name', type=str, help='Search for files matching pattern')
-        parser.add_argument('-type', choices=['d', 'f'], help='Search for files of type (d=directory, f=file)')
-        parser.add_argument('-maxdepth', type=int, help='Maximum depth to search')
-        parser.add_argument('-regex', type=str, help='Search for files matching regex pattern')
+        parser.add_argument("paths", nargs="*", default=["."], help="Paths to search")
+        parser.add_argument("-name", type=str, help="Search for files matching pattern")
+        parser.add_argument(
+            "-type",
+            choices=["d", "f"],
+            help="Search for files of type (d=directory, f=file)",
+        )
+        parser.add_argument("-maxdepth", type=int, help="Maximum depth to search")
+        parser.add_argument(
+            "-regex", type=str, help="Search for files matching regex pattern"
+        )
 
         try:
             parsed_args, _ = parser.parse_known_args(args)
@@ -54,7 +62,9 @@ class FindCommand(ShellCommand):
                 try:
                     regex_pattern = re.compile(parsed_args.regex)
                 except re.error:
-                    results.append(f"find: invalid regular expression '{parsed_args.regex}'")
+                    results.append(
+                        f"find: invalid regular expression '{parsed_args.regex}'"
+                    )
                     continue
 
             # Search recursively
@@ -64,7 +74,7 @@ class FindCommand(ShellCommand):
                 parsed_args.maxdepth,
                 parsed_args.name,
                 parsed_args.type,
-                regex_pattern
+                regex_pattern,
             )
 
             # If -name filter is provided, show only the matching file’s basename.
@@ -78,13 +88,15 @@ class FindCommand(ShellCommand):
 
         return "\n".join(results) if results else ""
 
-    def _find_recursive(self,
-                        path: str,
-                        current_depth: int,
-                        max_depth: Optional[int],
-                        name_pattern: Optional[str],
-                        type_filter: Optional[str],
-                        regex_pattern: Optional[re.Pattern] = None) -> List[str]:
+    def _find_recursive(
+        self,
+        path: str,
+        current_depth: int,
+        max_depth: Optional[int],
+        name_pattern: Optional[str],
+        type_filter: Optional[str],
+        regex_pattern: Optional[re.Pattern] = None,
+    ) -> List[str]:
         """
         Recursively find files and directories that match the given criteria.
         """
@@ -99,9 +111,9 @@ class FindCommand(ShellCommand):
         include_this = True
 
         # Filter by type.
-        if type_filter == 'd' and not node_info.is_dir:
+        if type_filter == "d" and not node_info.is_dir:
             include_this = False
-        elif type_filter == 'f' and node_info.is_dir:
+        elif type_filter == "f" and node_info.is_dir:
             include_this = False
 
         base_name = os.path.basename(path) or path
@@ -122,14 +134,16 @@ class FindCommand(ShellCommand):
                 contents = self.shell.fs.ls(path)
                 for item in contents:
                     item_path = os.path.join(path, item)
-                    results.extend(self._find_recursive(
-                        item_path,
-                        current_depth + 1,
-                        max_depth,
-                        name_pattern,
-                        type_filter,
-                        regex_pattern
-                    ))
+                    results.extend(
+                        self._find_recursive(
+                            item_path,
+                            current_depth + 1,
+                            max_depth,
+                            name_pattern,
+                            type_filter,
+                            regex_pattern,
+                        )
+                    )
             except Exception as e:
                 self.shell.error_log.append(f"find: '{path}': {str(e)}")
 

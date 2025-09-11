@@ -1,10 +1,12 @@
 """
 chuk_virtual_shell/commands/filesystem/quota.py - Display disk usage and limits
 """
+
 import argparse
 import os
 from typing import Dict, Optional, Any, Tuple
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class QuotaCommand(ShellCommand):
     name = "quota"
@@ -20,9 +22,18 @@ class QuotaCommand(ShellCommand):
 
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('-h', '--human-readable', action='store_true', help='Print sizes in human readable format')
-        parser.add_argument('-g', '--group', action='store_true', help='Display group quotas')
-        parser.add_argument('targets', nargs='*', help='Users or groups to display quotas for')
+        parser.add_argument(
+            "-h",
+            "--human-readable",
+            action="store_true",
+            help="Print sizes in human readable format",
+        )
+        parser.add_argument(
+            "-g", "--group", action="store_true", help="Display group quotas"
+        )
+        parser.add_argument(
+            "targets", nargs="*", help="Users or groups to display quotas for"
+        )
 
         try:
             parsed_args = parser.parse_args(args)
@@ -42,7 +53,9 @@ class QuotaCommand(ShellCommand):
         else:
             header = "Disk quotas for users:"
         results.append(header)
-        results.append("Filesystem  blocks   quota   limit   grace   files   quota   limit   grace")
+        results.append(
+            "Filesystem  blocks   quota   limit   grace   files   quota   limit   grace"
+        )
 
         for target in targets:
             # Get quota information from the shell
@@ -55,21 +68,23 @@ class QuotaCommand(ShellCommand):
 
             # Format values based on human-readable flag
             if parsed_args.human_readable:
-                blocks = self._format_size(quota_info['blocks'] * 1024)  # blocks are traditionally in KB
-                quota = self._format_size(quota_info['quota'] * 1024)
-                limit = self._format_size(quota_info['limit'] * 1024)
+                blocks = self._format_size(
+                    quota_info["blocks"] * 1024
+                )  # blocks are traditionally in KB
+                quota = self._format_size(quota_info["quota"] * 1024)
+                limit = self._format_size(quota_info["limit"] * 1024)
             else:
-                blocks = str(quota_info['blocks'])
-                quota = str(quota_info['quota'])
-                limit = str(quota_info['limit'])
+                blocks = str(quota_info["blocks"])
+                quota = str(quota_info["quota"])
+                limit = str(quota_info["limit"])
 
             # Format the output line
-            fs = quota_info['filesystem']
-            files = str(quota_info['files'])
-            files_quota = str(quota_info['files_quota'])
-            files_limit = str(quota_info['files_limit'])
-            grace_block = quota_info['grace_block'] or "-"
-            grace_file = quota_info['grace_file'] or "-"
+            fs = quota_info["filesystem"]
+            files = str(quota_info["files"])
+            files_quota = str(quota_info["files_quota"])
+            files_limit = str(quota_info["files_limit"])
+            grace_block = quota_info["grace_block"] or "-"
+            grace_file = quota_info["grace_file"] or "-"
 
             line = f"{fs:<12} {blocks:<8} {quota:<7} {limit:<7} {grace_block:<7} {files:<7} {files_quota:<7} {files_limit:<7} {grace_file}"
             results.append(line)
@@ -81,18 +96,18 @@ class QuotaCommand(ShellCommand):
         Check if the filesystem has a security wrapper with quota information.
         """
         # Check if get_storage_stats method exists and returns security-related info
-        if hasattr(self.shell.fs, 'get_storage_stats'):
+        if hasattr(self.shell.fs, "get_storage_stats"):
             try:
                 stats = self.shell.fs.get_storage_stats()
-                return 'max_file_size' in stats and 'max_total_size' in stats
+                return "max_file_size" in stats and "max_total_size" in stats
             except Exception:
                 pass
 
         # Check if the provider name contains 'security'
-        if hasattr(self.shell.fs, 'get_provider_name'):
+        if hasattr(self.shell.fs, "get_provider_name"):
             try:
                 provider_name = self.shell.fs.get_provider_name().lower()
-                return 'security' in provider_name
+                return "security" in provider_name
             except Exception:
                 pass
 
@@ -124,7 +139,9 @@ class QuotaCommand(ShellCommand):
             return None
 
         # Use quota information if we can get it
-        quota_dict = self._get_real_quota_info(target, is_group, blocks_used, files_used)
+        quota_dict = self._get_real_quota_info(
+            target, is_group, blocks_used, files_used
+        )
         if quota_dict:
             return quota_dict
 
@@ -135,13 +152,13 @@ class QuotaCommand(ShellCommand):
         """Check if user or group exists."""
         try:
             if is_group:
-                if hasattr(self.shell, 'group_exists'):
+                if hasattr(self.shell, "group_exists"):
                     return self.shell.group_exists(target)
             else:
-                if hasattr(self.shell, 'user_exists'):
+                if hasattr(self.shell, "user_exists"):
                     return self.shell.user_exists(target)
                 # Check if it's the current user
-                if hasattr(self.shell, 'current_user'):
+                if hasattr(self.shell, "current_user"):
                     return target == self.shell.current_user
             return False
         except Exception:
@@ -156,15 +173,15 @@ class QuotaCommand(ShellCommand):
         base_path = None
 
         # First try user-specific APIs that might exist
-        if hasattr(self.shell, 'get_user_home'):
+        if hasattr(self.shell, "get_user_home"):
             base_path = self.shell.get_user_home(target)
-        elif hasattr(self.shell, 'get_group_directory') and is_group:
+        elif hasattr(self.shell, "get_group_directory") and is_group:
             base_path = self.shell.get_group_directory(target)
 
         # If we still don't have a path and current user, try environment variables
-        if base_path is None and hasattr(self.shell, 'environ'):
-            if not is_group and target == getattr(self.shell, 'current_user', None):
-                base_path = self.shell.environ.get('HOME')
+        if base_path is None and hasattr(self.shell, "environ"):
+            if not is_group and target == getattr(self.shell, "current_user", None):
+                base_path = self.shell.environ.get("HOME")
 
         # If we still don't have a directory, we can't determine stats
         if base_path is None:
@@ -173,10 +190,10 @@ class QuotaCommand(ShellCommand):
         try:
             # Different methods to find files based on available APIs
             all_files = []
-            if hasattr(self.shell.fs, 'find') and callable(self.shell.fs.find):
+            if hasattr(self.shell.fs, "find") and callable(self.shell.fs.find):
                 all_files = self.shell.fs.find(base_path, recursive=True)
             # Try using walk method if find is not available
-            elif hasattr(self.shell.fs, 'walk') and callable(self.shell.fs.walk):
+            elif hasattr(self.shell.fs, "walk") and callable(self.shell.fs.walk):
                 for root, _, files in self.shell.fs.walk(base_path):
                     for file in files:
                         all_files.append(os.path.join(root, file))
@@ -185,23 +202,25 @@ class QuotaCommand(ShellCommand):
             for file_path in all_files:
                 # Check if file (not directory)
                 is_dir = False
-                if hasattr(self.shell.fs, 'is_dir'):
+                if hasattr(self.shell.fs, "is_dir"):
                     is_dir = self.shell.fs.is_dir(file_path)
-                elif hasattr(self.shell.fs, 'isdir'):
+                elif hasattr(self.shell.fs, "isdir"):
                     is_dir = self.shell.fs.isdir(file_path)
-                elif hasattr(self.shell.fs, 'get_node_info'):
+                elif hasattr(self.shell.fs, "get_node_info"):
                     node_info = self.shell.fs.get_node_info(file_path)
-                    is_dir = node_info and hasattr(node_info, 'is_dir') and node_info.is_dir
+                    is_dir = (
+                        node_info and hasattr(node_info, "is_dir") and node_info.is_dir
+                    )
 
                 if not is_dir:
                     try:
                         # Get file size
                         size = 0
-                        if hasattr(self.shell.fs, 'get_size'):
+                        if hasattr(self.shell.fs, "get_size"):
                             size = self.shell.fs.get_size(file_path)
-                        elif hasattr(self.shell, 'get_size'):
+                        elif hasattr(self.shell, "get_size"):
                             size = self.shell.get_size(file_path)
-                        elif hasattr(self.shell.fs, 'read_file'):
+                        elif hasattr(self.shell.fs, "read_file"):
                             content = self.shell.fs.read_file(file_path)
                             if content:
                                 size = len(content)
@@ -217,7 +236,9 @@ class QuotaCommand(ShellCommand):
 
         return blocks_used, files_used
 
-    def _get_security_wrapper_quota_info(self, target, is_group=False) -> Optional[Dict[str, Any]]:
+    def _get_security_wrapper_quota_info(
+        self, target, is_group=False
+    ) -> Optional[Dict[str, Any]]:
         """Get quota info from security wrapper."""
         blocks_used, files_used = self._calculate_usage_stats(target, is_group)
 
@@ -225,13 +246,13 @@ class QuotaCommand(ShellCommand):
         stats = self.shell.fs.get_storage_stats()
 
         # Only proceed if we have the needed quota info
-        if 'max_total_size' not in stats or 'max_files' not in stats:
+        if "max_total_size" not in stats or "max_files" not in stats:
             return None
 
         # Get quota values
-        quota = stats.get('max_total_size', 0) // 1024  # Convert to KB
+        quota = stats.get("max_total_size", 0) // 1024  # Convert to KB
         limit = int(quota * 1.2)  # 20% over quota as hard limit
-        max_files = stats.get('max_files', 0)
+        max_files = stats.get("max_files", 0)
 
         # Handle grace periods
         grace_block = None
@@ -249,18 +270,20 @@ class QuotaCommand(ShellCommand):
             filesystem = stats["provider_name"]
 
         return {
-            'filesystem': filesystem,
-            'blocks': blocks_used,
-            'quota': quota,
-            'limit': limit,
-            'grace_block': grace_block,
-            'files': files_used,
-            'files_quota': max_files,
-            'files_limit': int(max_files * 1.2),  # 20% over as hard limit
-            'grace_file': grace_file
+            "filesystem": filesystem,
+            "blocks": blocks_used,
+            "quota": quota,
+            "limit": limit,
+            "grace_block": grace_block,
+            "files": files_used,
+            "files_quota": max_files,
+            "files_limit": int(max_files * 1.2),  # 20% over as hard limit
+            "grace_file": grace_file,
         }
 
-    def _get_real_quota_info(self, target, is_group, blocks_used, files_used) -> Optional[Dict[str, Any]]:
+    def _get_real_quota_info(
+        self, target, is_group, blocks_used, files_used
+    ) -> Optional[Dict[str, Any]]:
         """Get real quota info if available from filesystem."""
         # In a real implementation, this would talk to a quota system API
         # For our virtual system, if we don't have a security wrapper,
@@ -269,9 +292,9 @@ class QuotaCommand(ShellCommand):
 
     def _format_size(self, size_bytes):
         """Format size in human-readable format"""
-        for unit in ['B', 'K', 'M', 'G', 'T']:
-            if size_bytes < 1024 or unit == 'T':
-                if unit == 'B':
+        for unit in ["B", "K", "M", "G", "T"]:
+            if size_bytes < 1024 or unit == "T":
+                if unit == "B":
                     return f"{size_bytes}{unit}"
                 return f"{size_bytes:.1f}{unit}"
             size_bytes /= 1024

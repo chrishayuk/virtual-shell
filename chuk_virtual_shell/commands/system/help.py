@@ -1,8 +1,10 @@
 """
 chuk_virtual_shell/commands/system/help.py - Help command
 """
+
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class HelpCommand(ShellCommand):
     name = "help"
@@ -17,7 +19,7 @@ class HelpCommand(ShellCommand):
     def execute(self, args):
         # Use argparse to optionally accept a command argument.
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
-        parser.add_argument('command', nargs='?', help="Command to display help for")
+        parser.add_argument("command", nargs="?", help="Command to display help for")
         try:
             parsed_args = parser.parse_args(args)
         except SystemExit:

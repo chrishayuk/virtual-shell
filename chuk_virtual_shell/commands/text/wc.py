@@ -1,7 +1,9 @@
 """
 chuk_virtual_shell/commands/text/wc.py - Word, line, character, and byte count
 """
+
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
 
 class WcCommand(ShellCommand):
     name = "wc"
@@ -19,11 +21,11 @@ Default: Print lines, words, and bytes"""
     def execute(self, args):
         # Parse options
         options = {
-            'lines': False,
-            'words': False,
-            'bytes': False,
-            'chars': False,
-            'max_line': False
+            "lines": False,
+            "words": False,
+            "bytes": False,
+            "chars": False,
+            "max_line": False,
         }
 
         files = []
@@ -33,33 +35,33 @@ Default: Print lines, words, and bytes"""
         # Parse arguments
         while i < len(args):
             arg = args[i]
-            if arg.startswith('-'):
+            if arg.startswith("-"):
                 has_options = True
                 for char in arg[1:]:
-                    if char == 'l':
-                        options['lines'] = True
-                    elif char == 'w':
-                        options['words'] = True
-                    elif char == 'c':
-                        options['bytes'] = True
-                    elif char == 'm':
-                        options['chars'] = True
-                    elif char == 'L':
-                        options['max_line'] = True
+                    if char == "l":
+                        options["lines"] = True
+                    elif char == "w":
+                        options["words"] = True
+                    elif char == "c":
+                        options["bytes"] = True
+                    elif char == "m":
+                        options["chars"] = True
+                    elif char == "L":
+                        options["max_line"] = True
             else:
                 files.append(arg)
             i += 1
 
         # If no options specified, default to lines, words, bytes
         if not has_options:
-            options['lines'] = True
-            options['words'] = True
-            options['bytes'] = True
+            options["lines"] = True
+            options["words"] = True
+            options["bytes"] = True
 
         # Process input
         if not files:
             # Use stdin if available
-            if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
+            if hasattr(self.shell, "_stdin_buffer") and self.shell._stdin_buffer:
                 content = self.shell._stdin_buffer
                 counts = self._count_content(content, options)
                 return self._format_output([counts], [""], options, False)
@@ -95,7 +97,7 @@ Default: Print lines, words, and bytes"""
             word_count += len(line.split())
 
         # Count bytes
-        byte_count = len(content.encode('utf-8'))
+        byte_count = len(content.encode("utf-8"))
 
         # Count characters
         char_count = len(content)
@@ -132,19 +134,19 @@ Default: Print lines, words, and bytes"""
         for i, counts in enumerate(counts_list):
             parts = []
 
-            if options['lines']:
+            if options["lines"]:
                 parts.append(f"{counts[0]:8d}")
-            if options['words']:
+            if options["words"]:
                 parts.append(f"{counts[1]:8d}")
-            if options['bytes']:
+            if options["bytes"]:
                 parts.append(f"{counts[2]:8d}")
-            if options['chars'] and not options['bytes']:
+            if options["chars"] and not options["bytes"]:
                 parts.append(f"{counts[3]:8d}")
-            if options['max_line']:
+            if options["max_line"]:
                 parts.append(f"{counts[4]:8d}")
 
             # Add filename if provided
-            line = ' '.join(parts)
+            line = " ".join(parts)
             if filenames[i]:
                 line += f" {filenames[i]}"
 
@@ -154,18 +156,18 @@ Default: Print lines, words, and bytes"""
         if show_total:
             parts = []
 
-            if options['lines']:
+            if options["lines"]:
                 parts.append(f"{total_lines:8d}")
-            if options['words']:
+            if options["words"]:
                 parts.append(f"{total_words:8d}")
-            if options['bytes']:
+            if options["bytes"]:
                 parts.append(f"{total_bytes:8d}")
-            if options['chars'] and not options['bytes']:
+            if options["chars"] and not options["bytes"]:
                 parts.append(f"{total_chars:8d}")
-            if options['max_line']:
+            if options["max_line"]:
                 parts.append(f"{max_of_max:8d}")
 
-            line = ' '.join(parts) + " total"
+            line = " ".join(parts) + " total"
             results.append(line.strip())
 
-        return '\n'.join(results)
+        return "\n".join(results)
