@@ -1,7 +1,6 @@
 """
 Test AWK command quote escaping fixes
 """
-import pytest
 from unittest.mock import Mock
 from chuk_virtual_shell.commands.text.awk import AwkCommand
 

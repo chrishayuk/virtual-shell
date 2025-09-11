@@ -224,8 +224,8 @@ def test_awk_field_zero_access(awk_command):
     output = awk_command.execute(['{print $0}', "data.txt"])
     assert "Alice 30 Engineer" in output
 
-def test_awk_high_field_number(awk_command):
-    # Test accessing non-existent field
+def test_awk_very_high_field_number(awk_command):
+    # Test accessing non-existent field with very high number
     output = awk_command.execute(['{print $99}', "data.txt"])
     # Should not crash and return some lines (may be empty)
     lines = output.splitlines()

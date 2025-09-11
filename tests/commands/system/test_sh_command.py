@@ -2,7 +2,7 @@
 Tests for the sh command
 """
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.system.sh import ShCommand
 
@@ -85,7 +85,7 @@ class TestShCommand:
         """Test executing script with comments"""
         with patch.object(self.shell, 'execute') as mock_exec:
             mock_exec.side_effect = ["arg1", "file1 file2"]
-            result = self.cmd.execute(["/complex.sh", "arg1"])
+            self.cmd.execute(["/complex.sh", "arg1"])
             # Comments should be skipped
             assert mock_exec.call_count == 2
 
@@ -147,7 +147,6 @@ class TestShCommand:
 
     def test_sh_run_with_asyncio_running(self):
         """Test run method when asyncio loop is running"""
-        import asyncio
         
         with patch('asyncio.get_running_loop') as mock_get_loop:
             mock_loop = MagicMock()
@@ -160,7 +159,7 @@ class TestShCommand:
                 mock_run_threadsafe.return_value = future
                 
                 with patch.object(self.shell, 'execute', return_value="test output"):
-                    result = self.cmd.run(["-c", "test"])
+                    self.cmd.run(["-c", "test"])
                     # Should use run_coroutine_threadsafe for running loop
                     assert mock_run_threadsafe.called
 

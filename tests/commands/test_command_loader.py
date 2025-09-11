@@ -4,7 +4,6 @@ tests/chuk_virtual_shell/commands/test_command_loader.py
 from chuk_virtual_shell.commands.command_loader import CommandLoader
 from chuk_virtual_shell.commands.command_base import ShellCommand
 from tests.dummy_shell import DummyShell
-import builtins
 
 # Test for discover_commands
 def test_discover_commands():

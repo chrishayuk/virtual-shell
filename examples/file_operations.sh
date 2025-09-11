@@ -24,6 +24,11 @@ echo ""
 echo "Directory structure:"
 ls -la /tmp/data/
 
+# Show directory tree
+echo ""
+echo "Directory tree view:"
+tree /tmp/data/
+
 # Copy files
 echo ""
 echo "Copying files..."
@@ -48,6 +53,11 @@ wc /tmp/data/input/file1.txt
 echo ""
 echo "Finding .txt files:"
 find /tmp/data -name "*.txt"
+
+# Use which to locate commands
+echo ""
+echo "Locating commands:"
+which find cp mv cat
 
 # Check disk usage
 echo ""

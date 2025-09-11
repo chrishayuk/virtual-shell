@@ -7,11 +7,8 @@ within the virtual shell environment, providing a comprehensive test
 of all shell functionality.
 """
 
-import os
 import sys
-import glob
 import time
-import asyncio
 from pathlib import Path
 from typing import List, Tuple, Dict
 

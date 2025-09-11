@@ -360,7 +360,6 @@ async def test_mcp_command_async_execution_import_success():
     mock_stdio_context.__aexit__.return_value = None
     
     # Mock the path that execute_async actually takes with successful response
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -408,7 +407,6 @@ async def test_mcp_command_async_execution_init_failure():
     mock_stdio_context.__aenter__.return_value = (mock_read_stream, mock_write_stream)
     mock_stdio_context.__aexit__.return_value = None
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -448,7 +446,6 @@ async def test_mcp_command_async_execution_ping_failure():
     mock_stdio_context.__aenter__.return_value = (mock_read_stream, mock_write_stream)
     mock_stdio_context.__aexit__.return_value = None
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -490,7 +487,6 @@ async def test_mcp_command_async_execution_no_response():
     mock_stdio_context.__aenter__.return_value = (mock_read_stream, mock_write_stream)
     mock_stdio_context.__aexit__.return_value = None
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -534,7 +530,6 @@ async def test_mcp_command_async_execution_error_response():
     mock_stdio_context.__aenter__.return_value = (mock_read_stream, mock_write_stream)
     mock_stdio_context.__aexit__.return_value = None
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -578,7 +573,6 @@ async def test_mcp_command_async_execution_error_without_message():
     mock_stdio_context.__aenter__.return_value = (mock_read_stream, mock_write_stream)
     mock_stdio_context.__aexit__.return_value = None
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -644,7 +638,6 @@ async def test_load_mcp_tools_with_object_config():
     mock_send_ping = AsyncMock(return_value=True)
     mock_send_tools_list = AsyncMock(return_value={"tools": [{"name": "object_tool"}]})
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -673,7 +666,6 @@ async def test_load_mcp_tools_ping_failure():
     mock_send_initialize = AsyncMock(return_value=True)
     mock_send_ping = AsyncMock(return_value=False)  # Ping fails
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),
@@ -693,7 +685,6 @@ async def test_load_mcp_tools_exception_handling():
     
     mock_stdio_client = MagicMock(side_effect=Exception("Connection error"))
     
-    import sys
     mock_modules = {
         'chuk_mcp': MagicMock(),
         'chuk_mcp.mcp_client': MagicMock(),

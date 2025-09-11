@@ -242,7 +242,7 @@ class TestCpCommand:
         
         # Need to patch where the hasattr is called, which is inside the cp module
         with patch('chuk_virtual_shell.commands.filesystem.cp.hasattr', side_effect=mock_hasattr):
-            result = self.cmd.execute(["-r", "/srcdir", "/copydir_manual"])
+            self.cmd.execute(["-r", "/srcdir", "/copydir_manual"])
             
             # The key test: verify that the manual copy path was taken
             # Since we mocked copy_dir to not exist, the command should attempt manual copy

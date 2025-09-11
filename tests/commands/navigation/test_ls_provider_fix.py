@@ -1,8 +1,7 @@
 """
 Test ls command with FileSystemCompat.provider fix
 """
-import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 from chuk_virtual_shell.filesystem_compat import FileSystemCompat
 
 
@@ -127,22 +126,22 @@ class TestFileSystemCompatProviderFix:
         
         # Test exists method
         mock_fs.get_node_info.return_value = Mock()
-        assert fs_compat.exists("/test") == True
+        assert fs_compat.exists("/test")
         
         mock_fs.get_node_info.side_effect = Exception("Not found")
-        assert fs_compat.exists("/notfound") == False
+        assert not fs_compat.exists("/notfound")
         
         # Test is_file method
         mock_fs.get_node_info.side_effect = None
         mock_fs.get_node_info.return_value = Mock(is_dir=False)
-        assert fs_compat.is_file("/file") == True
+        assert fs_compat.is_file("/file")
         
         mock_fs.get_node_info.return_value = Mock(is_dir=True)
-        assert fs_compat.is_file("/dir") == False
+        assert not fs_compat.is_file("/dir")
         
         # Test is_dir method
         mock_fs.get_node_info.return_value = Mock(is_dir=True)
-        assert fs_compat.is_dir("/dir") == True
+        assert fs_compat.is_dir("/dir")
         
         mock_fs.get_node_info.return_value = Mock(is_dir=False)
-        assert fs_compat.is_dir("/file") == False
+        assert not fs_compat.is_dir("/file")

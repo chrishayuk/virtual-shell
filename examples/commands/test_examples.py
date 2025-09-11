@@ -6,7 +6,6 @@ This script provides a quick way to test that the virtual shell
 is working correctly by running key example scripts.
 """
 
-import os
 import sys
 import time
 from pathlib import Path

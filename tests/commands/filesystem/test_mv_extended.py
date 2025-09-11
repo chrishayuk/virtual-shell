@@ -58,7 +58,6 @@ class TestMvExtended:
     def test_mv_remove_failure(self):
         """Test when source cannot be removed after copy"""
         # Mock rm to fail
-        original_rm = self.shell.fs.rm
         self.shell.fs.rm = lambda p: False
         
         result = self.cmd.execute(["/file1.txt", "/newfile.txt"])
