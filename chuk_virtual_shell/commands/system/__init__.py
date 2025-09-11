@@ -6,6 +6,9 @@ from chuk_virtual_shell.commands.system.time import TimeCommand
 from chuk_virtual_shell.commands.system.uptime import UptimeCommand
 from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
 from chuk_virtual_shell.commands.system.date import DateCommand
+from chuk_virtual_shell.commands.system.which import WhichCommand
+from chuk_virtual_shell.commands.system.history import HistoryCommand
+from chuk_virtual_shell.commands.system.timings import TimingsCommand
 
 __all__ = [
     "ClearCommand",
@@ -16,4 +19,7 @@ __all__ = [
     "UptimeCommand",
     "WhoamiCommand",
     "DateCommand",
+    "WhichCommand",
+    "HistoryCommand",
+    "TimingsCommand",
 ]

@@ -158,7 +158,7 @@ class TestAsyncEventLoopFix:
         """Test commands work in purely synchronous context"""
         # No event loop should be running
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             pytest.skip("Event loop is running, can't test sync context")
         except RuntimeError:
             # Good, no loop running

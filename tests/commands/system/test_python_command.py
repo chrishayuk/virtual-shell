@@ -71,7 +71,7 @@ class TestPythonCommand:
         """Test executing a python script with arguments"""
         with patch.object(self.cmd, 'interpreter') as mock_interp:
             mock_interp.run_script_sync.return_value = "['/args.py', 'arg1', 'arg2']"
-            result = self.cmd.execute(["/args.py", "arg1", "arg2"])
+            self.cmd.execute(["/args.py", "arg1", "arg2"])
             mock_interp.run_script_sync.assert_called_with("/args.py", ["arg1", "arg2"])
 
     def test_python_nonexistent_script(self):
@@ -131,7 +131,6 @@ class TestPythonCommand:
 
     def test_python_run_with_asyncio_running(self):
         """Test run method when asyncio loop is running"""
-        import asyncio
         
         # Mock the asyncio functions
         with patch('asyncio.get_running_loop') as mock_get_loop:
@@ -164,7 +163,7 @@ class TestPythonCommand:
         assert cmd.interpreter is None
         
         # Execute something to trigger initialization - test with -c that requires interpreter
-        result = cmd._execute_sync(["-c", "print('test')"])
+        cmd._execute_sync(["-c", "print('test')"])
         # After execution, interpreter should be initialized  
         assert cmd.interpreter is not None
 
@@ -182,7 +181,7 @@ class TestPythonCommand:
         # Test -c with additional args
         with patch.object(self.cmd, 'interpreter') as mock_interp:
             mock_interp.execute_code_sync.return_value = "executed"
-            result = self.cmd.execute(["-c", "print('test')", "/script.py"])
+            self.cmd.execute(["-c", "print('test')", "/script.py"])
             mock_interp.execute_code_sync.assert_called_with("print('test')")
 
     def test_python_help(self):

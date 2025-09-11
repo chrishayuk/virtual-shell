@@ -155,7 +155,7 @@ def test_quota_security_wrapper_via_provider_name():
     quota_cmd = QuotaCommand(shell_context=dummy_shell)
     
     # Should detect security wrapper via provider name
-    assert quota_cmd._has_security_wrapper() == True
+    assert quota_cmd._has_security_wrapper()
 
 def test_quota_security_wrapper_provider_name_fails():
     """
@@ -171,7 +171,7 @@ def test_quota_security_wrapper_provider_name_fails():
     quota_cmd = QuotaCommand(shell_context=dummy_shell)
     
     # Should handle exception gracefully
-    assert quota_cmd._has_security_wrapper() == False
+    assert not quota_cmd._has_security_wrapper()
 
 def test_quota_user_exists_check_current_user():
     """
@@ -183,8 +183,8 @@ def test_quota_user_exists_check_current_user():
     quota_cmd = QuotaCommand(shell_context=dummy_shell)
     
     # Should recognize current user as existing
-    assert quota_cmd._check_user_exists("testuser", is_group=False) == True
-    assert quota_cmd._check_user_exists("otheruser", is_group=False) == False
+    assert quota_cmd._check_user_exists("testuser", is_group=False)
+    assert not quota_cmd._check_user_exists("otheruser", is_group=False)
 
 def test_quota_user_exists_check_no_methods():
     """
@@ -195,8 +195,8 @@ def test_quota_user_exists_check_no_methods():
     quota_cmd = QuotaCommand(shell_context=dummy_shell)
     
     # Should return False when no methods available
-    assert quota_cmd._check_user_exists("user", is_group=False) == False
-    assert quota_cmd._check_user_exists("group", is_group=True) == False
+    assert not quota_cmd._check_user_exists("user", is_group=False)
+    assert not quota_cmd._check_user_exists("group", is_group=True)
 
 def test_quota_user_exists_exception():
     """
@@ -215,8 +215,8 @@ def test_quota_user_exists_exception():
     quota_cmd = QuotaCommand(shell_context=dummy_shell)
     
     # Should handle exceptions gracefully
-    assert quota_cmd._check_user_exists("user", is_group=False) == False
-    assert quota_cmd._check_user_exists("group", is_group=True) == False
+    assert not quota_cmd._check_user_exists("user", is_group=False)
+    assert not quota_cmd._check_user_exists("group", is_group=True)
 
 def test_quota_usage_stats_group_directory():
     """

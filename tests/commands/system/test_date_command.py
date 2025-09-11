@@ -1,7 +1,6 @@
 """
 Test date command implementation
 """
-import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
 from chuk_virtual_shell.commands.system.date import DateCommand

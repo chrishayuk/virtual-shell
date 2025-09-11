@@ -116,13 +116,13 @@ def test_async_detection_logic():
     dummy = DummyCommand(shell_context={})
     has_custom_async = (hasattr(dummy, 'execute_async') and
                        dummy.execute_async.__func__ is not ShellCommand.execute_async)
-    assert has_custom_async == False
+    assert not has_custom_async
     
     # Test with async command
     async_cmd = AsyncCommand(shell_context={})
     has_custom_async = (hasattr(async_cmd, 'execute_async') and
                        async_cmd.execute_async.__func__ is not ShellCommand.execute_async)
-    assert has_custom_async == True
+    assert has_custom_async
 
 # Test command with neither execute nor custom execute_async
 class AsyncOnlyCommand(ShellCommand):

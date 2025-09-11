@@ -266,7 +266,7 @@ def test_du_file_size_error_in_directory():
     })
     
     # Mock get_size to fail for specific file
-    original_get_size = dummy_shell.fs.get_size if hasattr(dummy_shell.fs, 'get_size') else None
+    dummy_shell.fs.get_size if hasattr(dummy_shell.fs, 'get_size') else None
     def mock_get_size(path):
         if "bad.txt" in path:
             raise Exception("Cannot read size")

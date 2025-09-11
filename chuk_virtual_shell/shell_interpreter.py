@@ -51,6 +51,10 @@ class ShellInterpreter:
 
         # Record start time (useful for uptime commands).
         self.start_time = time.time()
+        
+        # Command timing statistics
+        self.command_timing = {}
+        self.enable_timing = False
 
         # Set current_user based on environment.
         self.current_user = self.environ.get("USER", "user")
@@ -65,6 +69,13 @@ class ShellInterpreter:
         # Initialize MCP servers list if not already set
         if not hasattr(self, "mcp_servers"):
             self.mcp_servers = []
+        
+        # Initialize aliases dictionary
+        if not hasattr(self, "aliases"):
+            self.aliases = {}
+        
+        # Load .shellrc file if it exists
+        self._load_shellrc()
 
     def _initialize_from_sandbox(self, sandbox_yaml: str) -> None:
         """Initialize filesystem and environment using a YAML sandbox configuration."""
@@ -241,6 +252,9 @@ class ShellInterpreter:
 
         # Handle command substitution $(command)
         cmd_line = self._expand_command_substitution(cmd_line)
+        
+        # Handle alias expansion
+        cmd_line = self._expand_aliases(cmd_line)
 
         self.history.append(cmd_line)
         if cmd_line == "exit":
@@ -358,8 +372,28 @@ class ShellInterpreter:
 
         if cmd in self.commands:
             try:
+                # Track command timing if enabled
+                start_time = time.time() if self.enable_timing else None
+                
                 # Use run() instead of execute() to handle async commands properly
                 result = self.commands[cmd].run(args)
+                
+                # Record timing statistics
+                if self.enable_timing and start_time:
+                    elapsed = time.time() - start_time
+                    if cmd not in self.command_timing:
+                        self.command_timing[cmd] = {
+                            'count': 0,
+                            'total_time': 0.0,
+                            'min_time': float('inf'),
+                            'max_time': 0.0
+                        }
+                    stats = self.command_timing[cmd]
+                    stats['count'] += 1
+                    stats['total_time'] += elapsed
+                    stats['min_time'] = min(stats['min_time'], elapsed)
+                    stats['max_time'] = max(stats['max_time'], elapsed)
+                
                 if cmd == "cd":
                     self.environ["PWD"] = self.fs.pwd()
 
@@ -740,6 +774,78 @@ class ShellInterpreter:
     def complete(self, text: str, state: int) -> Optional[str]:
         """Stub for tab completion (to be implemented)."""
         return None
+    
+    def _load_shellrc(self):
+        """Load and execute .shellrc file if it exists."""
+        shellrc_paths = [
+            f"{self.environ.get('HOME', '/home/user')}/.shellrc",
+            "/.shellrc"
+        ]
+        
+        for rc_path in shellrc_paths:
+            try:
+                if self.fs.exists(rc_path) and self.fs.is_file(rc_path):
+                    content = self.fs.read_file(rc_path)
+                    if content:
+                        logger.info(f"Loading shell configuration from {rc_path}")
+                        # Execute each line in the .shellrc file
+                        for line in content.splitlines():
+                            line = line.strip()
+                            # Skip comments and empty lines
+                            if line and not line.startswith('#'):
+                                try:
+                                    # Execute the command silently
+                                    self.execute(line)
+                                except Exception as e:
+                                    logger.warning(f"Error executing .shellrc line '{line}': {e}")
+                        break  # Only load the first found .shellrc
+            except Exception as e:
+                logger.debug(f"Could not load {rc_path}: {e}")
+    
+    def _expand_aliases(self, cmd_line):
+        """Expand aliases in the command line."""
+        if not hasattr(self, 'aliases') or not self.aliases:
+            return cmd_line
+        
+        # Split the command line to get the first word (command)
+        import shlex
+        try:
+            parts = shlex.split(cmd_line)
+            if not parts:
+                return cmd_line
+        except ValueError:
+            # If shlex fails, try simple split
+            parts = cmd_line.split()
+            if not parts:
+                return cmd_line
+        
+        # Check if the first word is an alias
+        cmd = parts[0]
+        if cmd in self.aliases:
+            # Replace with alias value
+            alias_value = self.aliases[cmd]
+            if len(parts) > 1:
+                # Append remaining arguments
+                expanded = alias_value + " " + " ".join(parts[1:])
+            else:
+                expanded = alias_value
+            
+            # Prevent infinite recursion by tracking expansion depth
+            if not hasattr(self, '_alias_depth'):
+                self._alias_depth = 0
+            
+            self._alias_depth += 1
+            if self._alias_depth < 10:  # Max recursion depth
+                # Recursively expand in case alias contains other aliases
+                expanded = self._expand_aliases(expanded)
+            
+            self._alias_depth -= 1
+            if self._alias_depth == 0:
+                del self._alias_depth
+            
+            return expanded
+        
+        return cmd_line
 
     # Helper methods.
     def user_exists(self, target: str) -> bool:

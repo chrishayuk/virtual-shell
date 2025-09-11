@@ -150,6 +150,77 @@ pyodideshell/
 
 ## Core Features
 
+### Shell Configuration (.shellrc)
+
+The shell automatically loads configuration from `~/.shellrc` on startup, allowing you to:
+- Set environment variables
+- Define command aliases
+- Enable features like command timing
+- Run initialization commands
+
+Example `.shellrc`:
+```bash
+# Environment variables
+export EDITOR=nano
+export MY_PROJECT=/home/user/projects
+
+# Aliases
+alias ll="ls -la"
+alias ..="cd .."
+alias grep="grep --color"
+
+# Enable command timing
+timings -e
+```
+
+### Command Aliases
+
+Create shortcuts for frequently used commands:
+```bash
+alias ll="ls -la"          # Create alias
+alias                      # List all aliases
+unalias ll                 # Remove alias
+```
+
+### Command History
+
+Track and search through your command history:
+```bash
+history                    # Show all history
+history 10                 # Show last 10 commands
+history grep              # Search for commands containing 'grep'
+history -c                # Clear history
+```
+
+### Command Timing Statistics
+
+Monitor command execution performance:
+```bash
+timings -e                # Enable timing
+timings                   # Show statistics
+timings -s avg            # Sort by average time
+timings -c                # Clear statistics
+timings -d                # Disable timing
+```
+
+### Directory Tree Visualization
+
+Visualize directory structures with the `tree` command:
+```bash
+tree                      # Show current directory tree
+tree -L 2                 # Limit depth to 2 levels
+tree -d                   # Show directories only
+tree -a                   # Include hidden files
+```
+
+### Command Location (which)
+
+Find where commands are located:
+```bash
+which ls                  # Find the ls command
+which -a python          # Find all python executables
+```
+
 ### Modular Design
 
 - Each component is isolated in its own module
@@ -189,13 +260,13 @@ All commands are implemented as separate classes that extend the `ShellCommand` 
 
 ### Available Commands
 
-The shell includes 47+ commands organized into logical categories. For complete documentation with usage examples, options, and integration guides, see the [Command Documentation](docs/README.md).
+The shell includes 50+ commands organized into logical categories. For complete documentation with usage examples, options, and integration guides, see the [Command Documentation](docs/README.md).
 
-- **[Navigation](docs/commands/navigation/README.md)**: ls, cd, pwd
+- **[Navigation](docs/commands/navigation/README.md)**: ls, cd, pwd, tree
 - **[File Management](docs/commands/filesystem/README.md)**: cat, cp, echo, find, mkdir, more, mv, rm, rmdir, touch, df, du, quota  
 - **[Text Processing](docs/commands/text/README.md)**: awk, diff, grep, head, patch, sed, sort, tail, uniq, wc
-- **[Environment](docs/commands/environment/README.md)**: env, export
-- **[System](docs/commands/system/README.md)**: clear, exit, help, python, script, sh, time, uptime, whoami
+- **[Environment](docs/commands/environment/README.md)**: env, export, alias, unalias
+- **[System](docs/commands/system/README.md)**: clear, exit, help, history, python, script, sh, time, timings, uptime, which, whoami
 - **[MCP Integration](docs/commands/mcp/README.md)**: Dynamically loaded MCP server commands
 
 ### Shell Redirection and Pipelines
