@@ -1,107 +1,102 @@
 #!/bin/sh
-# Demonstrate control flow in bash scripts
+# Demonstrate working control flow patterns in virtual shell
 
 echo "=== Control Flow Demo ==="
 echo ""
-
-# Variables
-COUNT=5
-NAME="User"
-
-# If statements
-echo "If statement example:"
-if [ -f "employees.txt" ]; then
-    echo "  employees.txt exists"
-else
-    echo "  employees.txt does not exist"
-fi
+echo "This demo shows control flow patterns that work in the virtual shell."
 echo ""
 
-# Numeric comparison
-echo "Numeric comparison:"
-if [ $COUNT -gt 3 ]; then
-    echo "  Count ($COUNT) is greater than 3"
-fi
+# Create test files first
+echo "Setting up test environment..."
+echo "Test content" > /tmp/test_file.txt
+echo "Alice data" > /tmp/alice.txt
+echo "Bob data" > /tmp/bob.txt
+mkdir -p /tmp/test_dir
 echo ""
 
-# String comparison
-echo "String comparison:"
-if [ "$NAME" = "User" ]; then
-    echo "  Name matches 'User'"
-fi
+echo "=== Working Patterns ==="
 echo ""
 
-# For loops
-echo "For loop - counting:"
-for i in 1 2 3 4 5; do
-    echo "  Number: $i"
-done
+echo "1. Command chaining with && (AND):"
+echo "   Creating a file and confirming success..."
+echo "test" > /tmp/chain1.txt && echo "   ✓ File created successfully"
 echo ""
 
-echo "For loop - files:"
-echo "Creating test files..."
-for name in alice bob charlie; do
-    echo "Hello $name" > "${name}.txt"
-    echo "  Created ${name}.txt"
-done
+echo "2. Command chaining with || (OR):"
+echo "   Trying to read non-existent file..."
+cat /tmp/nonexistent.txt 2>/dev/null || echo "   ✓ Handled missing file gracefully"
 echo ""
 
-# For loop with command substitution
-echo "For loop - processing files:"
-for file in *.txt; do
-    if [ -f "$file" ]; then
-        lines=$(wc -l < "$file")
-        echo "  $file has $lines lines"
-    fi
-done
+echo "3. Sequential commands with semicolon:"
+echo "   Running multiple commands..."
+echo "   Step 1: Create file" ; echo "data" > /tmp/seq.txt ; echo "   Step 2: Read file" ; cat /tmp/seq.txt
 echo ""
 
-# While loop (simplified)
-echo "While loop example:"
-COUNTER=1
-while [ $COUNTER -le 3 ]; do
-    echo "  Counter: $COUNTER"
-    COUNTER=$((COUNTER + 1))
-done
+echo "4. Command substitution:"
+echo "   Current directory is: $(pwd)"
+echo "   Current user is: $(whoami)"
+echo "   File count in /tmp: $(ls /tmp/*.txt 2>/dev/null | wc -l)"
 echo ""
 
-# Case statement (if interpreter supports it)
-echo "Case statement example:"
-FRUIT="apple"
-case $FRUIT in
-    apple)
-        echo "  It's an apple"
-        ;;
-    banana)
-        echo "  It's a banana"
-        ;;
-    *)
-        echo "  Unknown fruit"
-        ;;
-esac
+echo "5. Pipelines:"
+echo "   Finding .txt files and counting them..."
+ls /tmp/*.txt | wc -l
 echo ""
 
-# Functions (if interpreter supports it)
-echo "Function example:"
-greet() {
-    echo "  Hello, $1!"
-}
-
-greet "World"
-greet "Virtual Shell"
+echo "   Processing text through pipeline..."
+echo "Line 1\nLine 2\nLine 3" | grep "Line" | sed 's/Line/Item/'
 echo ""
 
-# Command chaining
-echo "Command chaining:"
-echo "  Creating file..." && echo "test content" > chain_test.txt && echo "  File created successfully"
+echo "6. Output redirection:"
+echo "   Writing to file..."
+echo "Hello World" > /tmp/output.txt
+echo "   Appending to file..."
+echo "Second line" >> /tmp/output.txt
+echo "   File contents:"
+cat /tmp/output.txt
 echo ""
 
-# Conditional execution
-echo "Conditional execution:"
-[ -f "chain_test.txt" ] && echo "  chain_test.txt exists" || echo "  chain_test.txt not found"
+echo "7. Input redirection:"
+echo "   Counting lines in file..."
+wc -l < /tmp/output.txt
 echo ""
 
-# Clean up
-echo "Cleaning up test files..."
-rm -f alice.txt bob.txt charlie.txt chain_test.txt
-echo "Done!"
+echo "=== Pattern Examples ==="
+echo ""
+
+echo "Example 1: Processing multiple files"
+echo "-----------------------------------------"
+echo "Instead of: for file in *.txt; do ... done"
+echo "Use: Multiple explicit commands or pipes"
+echo ""
+echo "Processing alice.txt:"
+cat /tmp/alice.txt | sed 's/^/  > /'
+echo "Processing bob.txt:"
+cat /tmp/bob.txt | sed 's/^/  > /'
+echo ""
+
+echo "Example 2: Conditional-like behavior"
+echo "-----------------------------------------"
+echo "Instead of: if [ -f file ]; then ... fi"
+echo "Use: Command chaining with && and ||"
+echo ""
+ls /tmp/test_file.txt >/dev/null 2>&1 && echo "  ✓ test_file.txt exists" || echo "  ✗ test_file.txt not found"
+ls /tmp/missing.txt >/dev/null 2>&1 && echo "  ✓ missing.txt exists" || echo "  ✗ missing.txt not found (expected)"
+echo ""
+
+echo "Example 3: Iteration-like behavior"
+echo "-----------------------------------------"
+echo "Instead of: while read line; do ... done"
+echo "Use: Pipes and text processing commands"
+echo ""
+echo "Processing each line:"
+echo "First\nSecond\nThird" | sed 's/^/  Processing: /'
+echo ""
+
+echo "=== Clean Up ==="
+echo "Removing test files..."
+rm -f /tmp/test_file.txt /tmp/alice.txt /tmp/bob.txt
+rm -f /tmp/chain1.txt /tmp/seq.txt /tmp/output.txt
+rm -rf /tmp/test_dir
+echo ""
+echo "Demo complete!"

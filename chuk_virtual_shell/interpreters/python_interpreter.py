@@ -24,8 +24,8 @@ class VirtualPythonInterpreter:
 
         # Create virtual os module
         virtual_os = types.ModuleType('os')
-        virtual_os.getcwd = lambda: shell_fs.cwd  # type: ignore
-        virtual_os.chdir = lambda path: shell_fs.chdir(path)  # type: ignore
+        virtual_os.getcwd = lambda: shell_fs.pwd() if hasattr(shell_fs, 'pwd') else shell_fs.cwd  # type: ignore
+        virtual_os.chdir = lambda path: shell_fs.cd(path) if hasattr(shell_fs, 'cd') else None  # type: ignore
         virtual_os.listdir = lambda path='.': self._listdir(path)  # type: ignore
         virtual_os.environ = shell_environ  # type: ignore
         virtual_os.getenv = lambda key, default=None: shell_environ.get(key, default)  # type: ignore
@@ -40,6 +40,9 @@ class VirtualPythonInterpreter:
         virtual_os.makedirs = lambda path, exist_ok=False: self._makedirs(path, exist_ok)  # type: ignore
         virtual_os.remove = lambda path: shell_fs.rm(path)  # type: ignore
         virtual_os.rmdir = lambda path: shell_fs.rmdir(path)  # type: ignore
+        virtual_os.walk = lambda path='.': self._walk(path)  # type: ignore
+        virtual_os.sep = '/'  # type: ignore  # Unix-style separator for virtual FS
+        virtual_os.pathsep = ':'  # type: ignore  # Unix-style path separator
 
         # Create virtual sys module
         virtual_sys = types.ModuleType('sys')
@@ -273,6 +276,36 @@ class VirtualPythonInterpreter:
                 current = current + '/' + part if current else '/' + part
                 if not self.shell.fs.exists(current):
                     self.shell.fs.mkdir(current)
+    
+    def _walk(self, top):
+        """Walk directory tree, yielding tuples (dirpath, dirnames, filenames)"""
+        # Resolve the top directory path
+        top = self.shell.fs.resolve_path(top)
+        
+        # Get all items in the current directory
+        items = self.shell.fs.ls(top)
+        if items is None:
+            return
+            
+        dirnames = []
+        filenames = []
+        
+        # Separate directories and files
+        for item in items:
+            item_path = f"{top}/{item}" if top != "/" else f"/{item}"
+            if self.shell.fs.is_dir(item_path):
+                dirnames.append(item)
+            else:
+                filenames.append(item)
+        
+        # Yield current directory info
+        yield (top, dirnames, filenames)
+        
+        # Recursively walk subdirectories
+        for dirname in dirnames:
+            subdir = f"{top}/{dirname}" if top != "/" else f"/{dirname}"
+            # Use yield from for recursive generator
+            yield from self._walk(subdir)
 
     async def run_script(self, script_path: str, args: Optional[List[str]] = None) -> str:
         """Execute Python script from virtual FS"""

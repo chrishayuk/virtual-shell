@@ -6,8 +6,8 @@ echo "Current directory: $(pwd)"
 echo "Current user: $(whoami)"
 echo "System uptime: $(uptime)"
 
-# Set a variable
-NAME="Virtual Shell User"
+# Set a variable using export
+export NAME="Virtual Shell User"
 echo "Welcome, $NAME!"
 
 # Create a file

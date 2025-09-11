@@ -107,10 +107,9 @@ class TestShCommand:
         cmd = ShCommand(self.shell)
         
         # Test -c async
-        with patch.object(cmd, 'interpreter') as mock_interp:
-            mock_interp.execute_line = AsyncMock(return_value="async output")
+        with patch.object(self.shell, 'execute', return_value="async output") as mock_exec:
             result = await cmd.execute_async(["-c", "echo async"])
-            mock_interp.execute_line.assert_called_with("echo async")
+            mock_exec.assert_called_with("echo async")
             assert result == "async output"
 
     @pytest.mark.asyncio
@@ -118,11 +117,12 @@ class TestShCommand:
         """Test async script execution"""
         cmd = ShCommand(self.shell)
         
-        with patch.object(cmd, 'interpreter') as mock_interp:
-            mock_interp.run_script = AsyncMock(return_value="script output")
+        # Use the actual script that's already set up
+        with patch.object(self.shell, 'execute', return_value="Hello") as mock_exec:
             result = await cmd.execute_async(["/script.sh"])
-            mock_interp.run_script.assert_called_with("/script.sh")
-            assert result == "script output"
+            # Should execute the lines from the script
+            assert mock_exec.called
+            assert "Hello" in result
 
     @pytest.mark.asyncio
     async def test_sh_async_no_args(self):
@@ -145,22 +145,24 @@ class TestShCommand:
         result = await cmd.execute_async(["/testdir"])
         assert "Is a directory" in result
 
-    def test_sh_execute_with_asyncio_running(self):
-        """Test execute method when asyncio loop is running"""
+    def test_sh_run_with_asyncio_running(self):
+        """Test run method when asyncio loop is running"""
         import asyncio
         
-        with patch('asyncio.get_event_loop') as mock_get_loop:
+        with patch('asyncio.get_running_loop') as mock_get_loop:
             mock_loop = MagicMock()
             mock_loop.is_running.return_value = True
             mock_get_loop.return_value = mock_loop
             
-            with patch('asyncio.create_task') as mock_create_task:
-                mock_task = MagicMock()
-                mock_create_task.return_value = mock_task
-                mock_loop.run_until_complete = MagicMock(return_value="async result")
+            with patch('asyncio.run_coroutine_threadsafe') as mock_run_threadsafe:
+                future = MagicMock()
+                future.result.return_value = "test output"
+                mock_run_threadsafe.return_value = future
                 
-                result = self.cmd.execute(["-c", "test"])
-                assert mock_get_loop.called
+                with patch.object(self.shell, 'execute', return_value="test output"):
+                    result = self.cmd.run(["-c", "test"])
+                    # Should use run_coroutine_threadsafe for running loop
+                    assert mock_run_threadsafe.called
 
     def test_sh_execute_fallback_to_sync(self):
         """Test execute method fallback to sync when async fails"""

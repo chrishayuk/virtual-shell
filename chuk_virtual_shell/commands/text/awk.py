@@ -335,10 +335,31 @@ Common patterns:
 
             # Find the format string and arguments
             if printf_args.startswith('"'):
-                # Extract format string
-                end_quote = printf_args.index('"', 1)
-                format_str = printf_args[1:end_quote]
-                remaining = printf_args[end_quote+1:].strip()
+                # Extract format string handling escaped quotes
+                i = 1
+                end_quote = -1
+                while i < len(printf_args):
+                    if printf_args[i] == '\\' and i + 1 < len(printf_args):
+                        i += 2  # Skip escaped character
+                    elif printf_args[i] == '"':
+                        end_quote = i
+                        break
+                    else:
+                        i += 1
+                
+                if end_quote == -1:
+                    # No closing quote found, treat whole thing as format string
+                    format_str = printf_args[1:]
+                    remaining = ""
+                else:
+                    format_str = printf_args[1:end_quote]
+                    remaining = printf_args[end_quote+1:].strip()
+                
+                # Handle escaped quotes in format string
+                # Handle bash-style single quote escaping '\''
+                format_str = format_str.replace("'\\''", "'")
+                format_str = format_str.replace("\\'", "'")
+                format_str = format_str.replace('\\"', '"')
 
                 # Parse arguments after format string
                 args = []

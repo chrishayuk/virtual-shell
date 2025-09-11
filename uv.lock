@@ -126,6 +126,7 @@ dependencies = [
     { name = "chuk-virtual-fs" },
     { name = "pydantic" },
     { name = "pyyaml" },
+    { name = "trio" },
 ]
 
 [package.dev-dependencies]
@@ -144,6 +145,7 @@ requires-dist = [
     { name = "chuk-virtual-shell", marker = "extra == 'boto3'", editable = "." },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "trio", specifier = ">=0.31.0" },
 ]
 provides-extras = ["boto3"]
 

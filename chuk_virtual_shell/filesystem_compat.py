@@ -8,6 +8,8 @@ class FileSystemCompat:
     def __init__(self, fs):
         self.fs = fs
         self._cwd = None
+        # Provide provider attribute for compatibility
+        self.provider = fs
 
     # Basic file operations
     def read_file(self, path):
@@ -87,6 +89,10 @@ class FileSystemCompat:
             return info is not None and info.is_dir
         except Exception:
             return False
+    
+    def get_node_info(self, path):
+        """Get node information for a path"""
+        return self.fs.get_node_info(path)
 
     # Search operations
     def find(self, pattern, path=None):
@@ -102,9 +108,6 @@ class FileSystemCompat:
         return []
 
     # Info methods
-    def get_node_info(self, path):
-        """Get node information"""
-        return self.fs.get_node_info(path)
 
     def get_fs_info(self):
         """Get filesystem info"""

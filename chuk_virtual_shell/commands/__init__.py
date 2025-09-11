@@ -75,6 +75,7 @@ from chuk_virtual_shell.commands.system.help import HelpCommand
 from chuk_virtual_shell.commands.system.time import TimeCommand
 from chuk_virtual_shell.commands.system.uptime import UptimeCommand
 from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
+from chuk_virtual_shell.commands.system.date import DateCommand
 
 # Register all command classes using a compact loop.
 for command in (
@@ -82,7 +83,7 @@ for command in (
     MkdirCommand, TouchCommand, CatCommand, EchoCommand, RmCommand, RmdirCommand,
     EnvCommand, ExportCommand,
     ClearCommand, ExitCommand, HelpCommand,
-    TimeCommand, UptimeCommand, WhoamiCommand,
+    TimeCommand, UptimeCommand, WhoamiCommand, DateCommand,
 ):
     register_command_class(command)
 

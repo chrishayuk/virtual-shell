@@ -6,56 +6,56 @@ echo ""
 
 # Create directory structure
 echo "Creating directory structure..."
-mkdir -p data/input
-mkdir -p data/output
-mkdir -p data/temp
+mkdir -p /tmp/data/input
+mkdir -p /tmp/data/output
+mkdir -p /tmp/data/temp
 
 # Create some test files
 echo "Creating test files..."
-echo "Sample data line 1" > data/input/file1.txt
-echo "Sample data line 2" >> data/input/file1.txt
-echo "Sample data line 3" >> data/input/file1.txt
+echo "Sample data line 1" > /tmp/data/input/file1.txt
+echo "Sample data line 2" >> /tmp/data/input/file1.txt
+echo "Sample data line 3" >> /tmp/data/input/file1.txt
 
-echo "Another file content" > data/input/file2.txt
-echo "With multiple lines" >> data/input/file2.txt
+echo "Another file content" > /tmp/data/input/file2.txt
+echo "With multiple lines" >> /tmp/data/input/file2.txt
 
 # List directory contents
 echo ""
 echo "Directory structure:"
-ls -la data/
+ls -la /tmp/data/
 
 # Copy files
 echo ""
 echo "Copying files..."
-cp data/input/file1.txt data/output/file1_copy.txt
-cp data/input/file2.txt data/temp/
+cp /tmp/data/input/file1.txt /tmp/data/output/file1_copy.txt
+cp /tmp/data/input/file2.txt /tmp/data/temp/
 
 # Move files
 echo "Moving files..."
-mv data/temp/file2.txt data/temp/file2_renamed.txt
+mv /tmp/data/temp/file2.txt /tmp/data/temp/file2_renamed.txt
 
 # Read file contents
 echo ""
 echo "Contents of file1.txt:"
-cat data/input/file1.txt
+cat /tmp/data/input/file1.txt
 
 # Count lines, words, characters
 echo ""
 echo "File statistics:"
-wc data/input/file1.txt
+wc /tmp/data/input/file1.txt
 
 # Find files
 echo ""
 echo "Finding .txt files:"
-find data -name "*.txt"
+find /tmp/data -name "*.txt"
 
 # Check disk usage
 echo ""
 echo "Disk usage:"
-du -h data/
+du -h /tmp/data/
 
 # Clean up
 echo ""
 echo "Cleaning up temp directory..."
-rm -r data/temp
+rm -r /tmp/data/temp
 echo "Done!"

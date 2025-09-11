@@ -129,24 +129,25 @@ class TestPythonCommand:
         result = await cmd.execute_async(["-m", "unittest"])
         assert "module execution not fully implemented" in result
 
-    def test_python_execute_with_asyncio_running(self):
-        """Test execute method when asyncio loop is running"""
+    def test_python_run_with_asyncio_running(self):
+        """Test run method when asyncio loop is running"""
         import asyncio
         
         # Mock the asyncio functions
-        with patch('asyncio.get_event_loop') as mock_get_loop:
+        with patch('asyncio.get_running_loop') as mock_get_loop:
             mock_loop = MagicMock()
             mock_loop.is_running.return_value = True
-            mock_loop.run_until_complete = MagicMock(return_value="async result")
             mock_get_loop.return_value = mock_loop
             
-            with patch('asyncio.create_task') as mock_create_task:
-                mock_task = MagicMock()
-                mock_create_task.return_value = mock_task
+            with patch('asyncio.run_coroutine_threadsafe') as mock_run_threadsafe:
+                future = MagicMock()
+                future.result.return_value = "Python 3.x.x (virtual environment)"
+                mock_run_threadsafe.return_value = future
                     
-                result = self.cmd.execute(["-V"])
-                # Should try async path
-                assert mock_get_loop.called
+                result = self.cmd.run(["-V"])
+                # Should use run_coroutine_threadsafe for running loop
+                assert mock_run_threadsafe.called
+                assert "Python" in result
 
     def test_python_execute_fallback_to_sync(self):
         """Test execute method fallback to sync when async fails"""
