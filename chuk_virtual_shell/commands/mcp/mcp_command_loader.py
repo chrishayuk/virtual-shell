@@ -75,12 +75,12 @@ def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
 
             try:
                 # Import here to avoid circular references.
-                from chuk_mcp.mcp_client.transport.stdio.stdio_client import (
+                from chuk_mcp.mcp_client.transport.stdio.stdio_client import (  # type: ignore
                     stdio_client,
-                )  # type: ignore
-                from chuk_mcp.mcp_client.messages.initialize.send_messages import (
+                )
+                from chuk_mcp.mcp_client.messages.initialize.send_messages import (  # type: ignore
                     send_initialize,
-                )  # type: ignore
+                )
                 from chuk_mcp.mcp_client.messages.ping.send_messages import send_ping  # type: ignore
 
                 # Connect to the MCP server.

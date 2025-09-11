@@ -26,32 +26,32 @@ class VirtualPythonInterpreter:
 
         # Create virtual os module
         virtual_os = types.ModuleType("os")
-        virtual_os.getcwd = (
+        virtual_os.getcwd = (  # type: ignore
             lambda: shell_fs.pwd() if hasattr(shell_fs, "pwd") else shell_fs.cwd
-        )  # type: ignore
-        virtual_os.chdir = (
+        )
+        virtual_os.chdir = (  # type: ignore
             lambda path: shell_fs.cd(path) if hasattr(shell_fs, "cd") else None
-        )  # type: ignore
+        )
         virtual_os.listdir = lambda path=".": self._listdir(path)  # type: ignore
         virtual_os.environ = shell_environ  # type: ignore
         virtual_os.getenv = lambda key, default=None: shell_environ.get(key, default)  # type: ignore
         virtual_os.path = types.ModuleType("path")  # type: ignore
-        virtual_os.path.exists = lambda path: shell_fs.exists(
+        virtual_os.path.exists = lambda path: shell_fs.exists(  # type: ignore
             shell_fs.resolve_path(path)
-        )  # type: ignore
-        virtual_os.path.isfile = lambda path: shell_fs.is_file(
+        )
+        virtual_os.path.isfile = lambda path: shell_fs.is_file(  # type: ignore
             shell_fs.resolve_path(path)
-        )  # type: ignore
-        virtual_os.path.isdir = lambda path: shell_fs.is_dir(
+        )
+        virtual_os.path.isdir = lambda path: shell_fs.is_dir(  # type: ignore
             shell_fs.resolve_path(path)
-        )  # type: ignore
+        )
         virtual_os.path.join = lambda *parts: "/".join(parts).replace("//", "/")  # type: ignore
         virtual_os.path.basename = lambda path: path.split("/")[-1]  # type: ignore
         virtual_os.path.dirname = lambda path: "/".join(path.split("/")[:-1]) or "/"  # type: ignore
         virtual_os.path.abspath = lambda path: shell_fs.resolve_path(path)  # type: ignore
-        virtual_os.makedirs = lambda path, exist_ok=False: self._makedirs(
+        virtual_os.makedirs = lambda path, exist_ok=False: self._makedirs(  # type: ignore
             path, exist_ok
-        )  # type: ignore
+        )
         virtual_os.remove = lambda path: shell_fs.rm(path)  # type: ignore
         virtual_os.rmdir = lambda path: shell_fs.rmdir(path)  # type: ignore
         virtual_os.walk = lambda path=".": self._walk(path)  # type: ignore
