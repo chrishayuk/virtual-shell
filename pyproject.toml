@@ -26,8 +26,11 @@ boto3 = [
 
 [dependency-groups]
 dev = [
+    "mypy>=1.13.0",
     "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.0.0",
     "pytest>=8.4.2",
+    "ruff>=0.8.0",
     "trio>=0.31.0",
     "types-pyyaml>=6.0.12.20250822",
 ]
