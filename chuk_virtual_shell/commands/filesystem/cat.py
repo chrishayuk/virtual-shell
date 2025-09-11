@@ -9,7 +9,14 @@ class CatCommand(ShellCommand):
     category = "file"
     
     def execute(self, args):
+        # Check if we have stdin input (from input redirection or pipe)
         if not args:
+            # If no arguments, read from stdin if available
+            if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
+                result = self.shell._stdin_buffer
+                # Clear the buffer after use
+                self.shell._stdin_buffer = None
+                return result
             return "cat: missing operand"
             
         result = []

@@ -46,6 +46,9 @@ def test_create_mcp_command_class_basic():
 
 def test_create_mcp_command_class_with_input_schema():
     """Test command creation with different input schemas"""
+    # Import the input formatter to test input formatting
+    from chuk_virtual_shell.commands.mcp.mcp_input_formatter import format_mcp_input
+    
     # Test with query-type tool
     query_tool = {
         "name": "query_tool",
@@ -66,8 +69,8 @@ def test_create_mcp_command_class_with_input_schema():
     CommandClass = create_mcp_command_class(query_tool, {})
     cmd = CommandClass(MagicMock())
     
-    # Test the _format_input method with a query
-    input_data = cmd._format_input(["SELECT", "*", "FROM", "table"])
+    # Test the input formatting with a query
+    input_data = format_mcp_input(["SELECT", "*", "FROM", "table"], query_tool["inputSchema"])
     assert "query" in input_data
     assert input_data["query"] == "SELECT * FROM table"
     
@@ -91,8 +94,8 @@ def test_create_mcp_command_class_with_input_schema():
     CommandClass = create_mcp_command_class(table_tool, {})
     cmd = CommandClass(MagicMock())
     
-    # Test the _format_input method with a table name
-    input_data = cmd._format_input(["users"])
+    # Test the input formatting with a table name
+    input_data = format_mcp_input(["users"], table_tool["inputSchema"])
     assert "table_name" in input_data
     assert input_data["table_name"] == "users"
     
@@ -110,8 +113,8 @@ def test_create_mcp_command_class_with_input_schema():
     CommandClass = create_mcp_command_class(no_args_tool, {})
     cmd = CommandClass(MagicMock())
     
-    # Test the _format_input method with no arguments
-    input_data = cmd._format_input([])
+    # Test the input formatting with no arguments
+    input_data = format_mcp_input([], no_args_tool["inputSchema"])
     assert input_data == {}
 
 def test_mcp_command_execution():

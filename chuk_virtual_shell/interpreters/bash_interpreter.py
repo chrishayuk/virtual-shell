@@ -59,7 +59,12 @@ class VirtualBashInterpreter:
     
     def execute_line_sync(self, line: str) -> str:
         """Synchronous version of execute_line"""
-        # Expand variables first
+        
+        # Skip complex constructs in sync mode (they need async)
+        if any(line.startswith(kw) for kw in ['if ', 'for ', 'while ', 'case ']):
+            return ""
+        
+        # Expand variables for regular commands
         line = self._expand_variables(line)
         
         # Handle variable assignment
@@ -84,7 +89,26 @@ class VirtualBashInterpreter:
     async def execute_line(self, line: str) -> str:
         """Execute a single bash line"""
         
-        # Expand variables first
+        # Don't expand variables yet for control structures
+        # They need to handle variable expansion internally
+        
+        # Handle for loops (before variable expansion)
+        if line.startswith('for '):
+            return await self._handle_for_loop(line)
+        
+        # Handle if statements (before variable expansion)
+        if line.startswith('if '):
+            return await self._handle_if(line)
+        
+        # Handle while loops (before variable expansion)
+        if line.startswith('while '):
+            return await self._handle_while_loop(line)
+        
+        # Handle case statements (before variable expansion)
+        if line.startswith('case '):
+            return await self._handle_case(line)
+        
+        # Now expand variables for other commands
         line = self._expand_variables(line)
         
         # Handle variable assignment
@@ -94,22 +118,6 @@ class VirtualBashInterpreter:
         # Handle export
         if line.startswith('export '):
             return self._handle_export(line)
-        
-        # Handle if statements
-        if line.startswith('if '):
-            return await self._handle_if(line)
-        
-        # Handle for loops
-        if line.startswith('for '):
-            return await self._handle_for_loop(line)
-        
-        # Handle while loops
-        if line.startswith('while '):
-            return await self._handle_while_loop(line)
-        
-        # Handle case statements
-        if line.startswith('case '):
-            return await self._handle_case(line)
         
         # Handle function definitions
         if '()' in line and '{' in line:
@@ -357,13 +365,15 @@ class VirtualBashInterpreter:
         # Split by && and ||
         parts = re.split(r'(\s*&&\s*|\s*\|\|\s*)', line)
         
-        result = ""
+        results = []
         i = 0
         while i < len(parts):
             if i % 2 == 0:  # Command part
                 cmd = parts[i].strip()
                 if cmd:
                     result = self._execute_command_sync(cmd)
+                    if result:
+                        results.append(result)
                     
                     # Check operator
                     if i + 1 < len(parts):
@@ -376,7 +386,7 @@ class VirtualBashInterpreter:
                             break
             i += 1
         
-        return result
+        return '\n'.join(results)
     
     async def _handle_logical_operators(self, line: str) -> str:
         """Handle && and || operators"""
@@ -384,13 +394,15 @@ class VirtualBashInterpreter:
         # Split by && and ||
         parts = re.split(r'(\s*&&\s*|\s*\|\|\s*)', line)
         
-        result = ""
+        results = []
         i = 0
         while i < len(parts):
             if i % 2 == 0:  # Command part
                 cmd = parts[i].strip()
                 if cmd:
                     result = await self._execute_command(cmd)
+                    if result:
+                        results.append(result)
                     
                     # Check operator
                     if i + 1 < len(parts):
@@ -403,7 +415,7 @@ class VirtualBashInterpreter:
                             break
             i += 1
         
-        return result
+        return '\n'.join(results)
     
     def _execute_command_sync(self, command: str) -> str:
         """Synchronous version of execute command"""
@@ -480,7 +492,10 @@ class VirtualBashInterpreter:
             results = []
             for item in items:
                 self.variables[var_name] = item
-                result = await self.execute_line(command)
+                # Don't call execute_line since it will expand variables before we set them
+                # Instead, expand variables now and execute the command
+                expanded_command = self._expand_variables(command)
+                result = await self._execute_command(expanded_command)
                 if result:
                     results.append(result)
             
@@ -524,6 +539,11 @@ class VirtualBashInterpreter:
             if len(parts) == 2:
                 left = self._expand_variables(parts[0].strip())
                 right = self._expand_variables(parts[1].strip())
+                # Remove quotes if present
+                if left.startswith('"') and left.endswith('"'):
+                    left = left[1:-1]
+                if right.startswith('"') and right.endswith('"'):
+                    right = right[1:-1]
                 return left == right
         
         if '!=' in condition:
@@ -531,6 +551,11 @@ class VirtualBashInterpreter:
             if len(parts) == 2:
                 left = self._expand_variables(parts[0].strip())
                 right = self._expand_variables(parts[1].strip())
+                # Remove quotes if present
+                if left.startswith('"') and left.endswith('"'):
+                    left = left[1:-1]
+                if right.startswith('"') and right.endswith('"'):
+                    right = right[1:-1]
                 return left != right
         
         # Numeric tests

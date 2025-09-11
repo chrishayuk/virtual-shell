@@ -28,9 +28,16 @@ class EchoCommand(ShellCommand):
             output = " ".join(args[:redirect_index])
             if redirect_index + 1 < len(args):
                 redirection = args[redirect_index + 1]
-                # Append mode
+                append_mode = True
+                # Append mode - add newline if file exists and is not empty
                 current = self.shell.fs.read_file(redirection) or ""
-                output = current + output
+                if current and not current.endswith('\n'):
+                    output = current + '\n' + output
+                elif current:
+                    output = current + output
+                else:
+                    # File is empty or doesn't exist, just use the output
+                    pass
         
         if redirection:
             if not self.shell.fs.write_file(redirection, output):

@@ -107,9 +107,6 @@ Options:
         # Prepare regex pattern
         regex_pattern = pattern
         
-        if options['whole_word']:
-            regex_pattern = r'\b' + regex_pattern + r'\b'
-        
         flags = 0
         if options['case_insensitive']:
             flags |= re.IGNORECASE
@@ -117,6 +114,9 @@ Options:
         if not options['extended_regex']:
             # Escape special regex characters for basic regex
             regex_pattern = re.escape(pattern)
+        
+        if options['whole_word']:
+            regex_pattern = r'\b' + regex_pattern + r'\b'
         
         try:
             compiled = re.compile(regex_pattern, flags)

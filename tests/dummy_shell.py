@@ -23,6 +23,10 @@ class DummyShell:
     def read_file(self, path):
         return self.fs.read_file(path)
     
+    def create_file(self, path, content):
+        """Create a file with the given content."""
+        return self.fs.write_file(path, content)
+    
     def resolve_path(self, path):
         return self.fs.resolve_path(path)
     
@@ -58,7 +62,12 @@ class DummyShell:
         """Execute a command (simplified for testing)."""
         # Simple command execution for testing
         if command.startswith("echo "):
-            return command[5:].strip().strip('"').strip("'")
+            # Return the text after echo, handling quotes properly
+            text = command[5:].strip()
+            # Remove outer quotes if present
+            if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+                text = text[1:-1]
+            return text
         elif command == "pwd":
             return self.fs.pwd()
         elif command.startswith("cat "):

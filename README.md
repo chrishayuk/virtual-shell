@@ -40,23 +40,51 @@ pyodideshell/
     │   ├── ls.py                    # List directory contents
     │   ├── cd.py                    # Change directory
     │   └── pwd.py                   # Print working directory
-    ├── file/                        # File manipulation commands
+    ├── filesystem/                  # File manipulation commands
     │   ├── __init__.py              # Package initialization
-    │   ├── mkdir.py                 # Make directory
-    │   ├── touch.py                 # Create empty file
     │   ├── cat.py                   # Display file contents
+    │   ├── cp.py                    # Copy files
+    │   ├── df.py                    # Display filesystem usage
+    │   ├── du.py                    # Display disk usage
     │   ├── echo.py                  # Echo text with redirection
+    │   ├── find.py                  # Find files by criteria
+    │   ├── mkdir.py                 # Make directory
+    │   ├── more.py                  # Display file page by page
+    │   ├── mv.py                    # Move/rename files
+    │   ├── quota.py                 # Display disk quota
     │   ├── rm.py                    # Remove files
-    │   └── rmdir.py                 # Remove empty directories
+    │   ├── rmdir.py                 # Remove empty directories
+    │   └── touch.py                 # Create empty file
+    ├── text/                        # Text processing commands
+    │   ├── __init__.py              # Package initialization
+    │   ├── awk.py                   # Pattern scanning and processing
+    │   ├── grep.py                  # Search text patterns
+    │   ├── head.py                  # Display first lines of file
+    │   ├── sed.py                   # Stream editor
+    │   ├── sort.py                  # Sort lines
+    │   ├── tail.py                  # Display last lines of file
+    │   ├── uniq.py                  # Remove duplicate lines
+    │   └── wc.py                    # Word, line, byte count
     ├── environment/                 # Environment commands
     │   ├── __init__.py              # Package initialization
     │   ├── env.py                   # Display environment variables
     │   └── export.py                # Set environment variables
-    └── system/                      # System commands
+    ├── system/                      # System commands
+    │   ├── __init__.py              # Package initialization
+    │   ├── clear.py                 # Clear screen
+    │   ├── exit.py                  # Exit shell
+    │   ├── help.py                  # Display help
+    │   ├── python.py                # Python interpreter
+    │   ├── script.py                # Execute shell scripts
+    │   ├── sh.py                    # Execute shell commands
+    │   ├── time.py                  # Time command execution
+    │   ├── uptime.py                # Display system uptime
+    │   └── whoami.py                # Display current user
+    └── mcp/                         # MCP command support
         ├── __init__.py              # Package initialization
-        ├── clear.py                 # Clear screen
-        ├── exit.py                  # Exit shell
-        └── help.py                  # Display help
+        ├── mcp_command_loader.py    # Dynamic MCP command loader
+        ├── mcp_input_formatter.py   # Format inputs for MCP tools
+        └── mcp_output_formatter.py  # Format MCP tool outputs
 ```
 
 ## Core Features
@@ -91,9 +119,104 @@ All commands are implemented as separate classes that extend the `ShellCommand` 
 ### Available Commands
 
 - **Navigation**: ls, cd, pwd
-- **File Management**: cat, echo, touch, mkdir, rm, rmdir
+- **File Management**: cat, cp, echo, find, mkdir, more, mv, rm, rmdir, touch, df, du, quota
+- **Text Processing**: awk, diff, grep, head, patch, sed, sort, tail, uniq, wc
 - **Environment**: env, export
-- **System**: help, exit, clear
+- **System**: clear, exit, help, python, script, sh, time, uptime, whoami
+- **MCP**: Dynamically loaded MCP server commands
+
+### Shell Redirection and Pipelines
+
+The virtual shell supports full input/output redirection and pipelines, enabling powerful command composition:
+
+#### Output Redirection
+- `>` - Redirect output to a file (overwrites existing content)
+- `>>` - Append output to a file
+
+```bash
+echo "Hello" > file.txt          # Write to file
+echo "World" >> file.txt         # Append to file
+ls -la > directory_list.txt      # Save directory listing
+grep ERROR log.txt > errors.txt  # Save filtered output
+```
+
+#### Input Redirection
+- `<` - Redirect input from a file
+
+```bash
+wc < file.txt                    # Count lines/words/bytes from file
+sort < unsorted.txt              # Sort file contents
+grep pattern < input.txt         # Search in redirected input
+sed 's/old/new/g' < input.txt    # Process redirected input
+```
+
+#### Pipelines
+- `|` - Pipe output of one command to input of another
+
+```bash
+cat file.txt | grep pattern      # Search in file output
+ls -la | grep ".txt"             # Filter directory listing
+cat data.csv | awk -F, '{print $1}' | sort  # Extract and sort CSV column
+cat log.txt | grep ERROR | wc -l # Count error lines
+```
+
+#### Combined Redirection and Pipelines
+
+```bash
+# Sort numbers and save top 3
+cat numbers.txt | sort -n | head -n 3 > top3.txt
+
+# Process CSV and save results
+awk -F, '{print $1,$3}' < data.csv | sort > names_roles.txt
+
+# Filter logs and save errors
+grep ERROR < app.log | sort | uniq > unique_errors.txt
+
+# Complex pipeline with multiple stages
+cat access.log | awk '{print $1}' | sort | uniq -c | sort -rn > ip_stats.txt
+```
+
+## Running Examples
+
+The `examples/` directory contains several demonstration scripts showing the virtual shell's capabilities:
+
+- `hello_world.sh` - Basic shell script demonstration
+- `file_operations.sh` - File system operations
+- `text_processing.sh` - Text processing commands (grep, awk, sed, etc.)
+- `diff_patch_demo.sh` - Demonstrating diff and patch commands
+- `redirection_pipeline_demo.sh` - Comprehensive redirection and pipeline examples
+- `control_flow.sh` - Shell control flow structures
+- `hello_world.py` - Python script execution
+- `data_processing.py` - Python data processing
+- `file_operations.py` - Python file operations
+- `system_interaction.py` - Python system interaction
+
+To run an example script:
+
+```bash
+# Method 1: As a command-line argument
+uv run python -m chuk_virtual_shell.main examples/text_processing.sh
+
+# Method 2: From within the interactive shell
+uv run virtual-shell
+$ script /path/to/example.sh
+
+# Method 3: Using Python
+from chuk_virtual_shell.shell_interpreter import ShellInterpreter
+from chuk_virtual_shell.script_runner import ScriptRunner
+
+shell = ShellInterpreter()
+runner = ScriptRunner(shell)
+
+# Copy script to virtual filesystem
+with open('examples/text_processing.sh', 'r') as f:
+    content = f.read()
+shell.fs.write_file('/tmp/script.sh', content)
+
+# Run it
+result = runner.run_script('/tmp/script.sh')
+print(result)
+```
 
 ## Usage
 
@@ -153,6 +276,7 @@ main.run_interactive_shell("sqlite", {"db_path": ":memory:"})  # With provider s
 
 ## Command Examples
 
+### Basic Navigation and File Management
 ```
 ls /                    # List files in root directory
 cd /home/user           # Change directory
@@ -161,9 +285,93 @@ mkdir my_folder         # Create a directory
 touch file.txt          # Create an empty file
 echo "Hello" > file.txt # Create a file with content
 cat file.txt            # Display file content
+cp file.txt backup.txt  # Copy a file
+mv old.txt new.txt      # Move/rename a file
 rm file.txt             # Remove a file
+find . -name "*.txt"    # Find files by pattern
+```
+
+### Text Processing Commands
+```
+# grep - Search for patterns in files
+grep "pattern" file.txt         # Search for pattern
+grep -i "pattern" file.txt      # Case-insensitive search
+grep -n "pattern" file.txt      # Show line numbers
+grep -c "pattern" file.txt      # Count matches
+grep -v "pattern" file.txt      # Invert match (lines without pattern)
+
+# awk - Pattern scanning and processing
+awk '{print $1}' file.txt       # Print first field
+awk -F: '{print $2}' file.txt   # Use : as field separator
+awk 'NR==2' file.txt            # Print second line
+awk '{sum+=$1} END {print sum}' # Sum first column
+
+# sed - Stream editor for text transformation
+sed 's/old/new/' file.txt       # Replace first occurrence
+sed 's/old/new/g' file.txt      # Replace all occurrences
+sed 's/old/new/i' file.txt      # Case-insensitive replacement
+sed '1d' file.txt               # Delete first line
+sed '$d' file.txt               # Delete last line
+sed '2,4d' file.txt             # Delete lines 2-4
+sed '/pattern/d' file.txt       # Delete lines matching pattern
+sed -i 's/old/new/g' file.txt   # Edit file in-place
+sed -n '/pattern/p' file.txt    # Print only matching lines
+sed -E 's/[0-9]+/NUM/g' file    # Extended regex support
+
+# head/tail - Display beginning/end of files
+head file.txt                   # Show first 10 lines
+head -n 5 file.txt              # Show first 5 lines
+tail file.txt                   # Show last 10 lines
+tail -n 5 file.txt              # Show last 5 lines
+tail -n +5 file.txt             # Show from line 5 to end
+
+# sort - Sort lines in files
+sort file.txt                   # Sort alphabetically
+sort -r file.txt                # Reverse sort
+sort -n file.txt                # Numeric sort
+sort -u file.txt                # Sort and remove duplicates
+
+# uniq - Remove duplicate lines
+uniq file.txt                   # Remove consecutive duplicates
+uniq -c file.txt                # Count occurrences
+uniq -d file.txt                # Show only duplicates
+uniq -u file.txt                # Show only unique lines
+
+# wc - Word, line, and byte count
+wc file.txt                     # Show lines, words, bytes
+wc -l file.txt                  # Count lines only
+wc -w file.txt                  # Count words only
+wc -c file.txt                  # Count bytes only
+
+# diff - Compare files line by line
+diff file1.txt file2.txt        # Show differences
+diff -u old.txt new.txt         # Unified diff format
+diff -c old.txt new.txt         # Context diff format
+diff -i file1 file2             # Case-insensitive comparison
+diff -w file1 file2             # Ignore all whitespace
+diff -b file1 file2             # Ignore whitespace changes
+diff -B file1 file2             # Ignore blank lines
+diff -q file1 file2             # Brief - just report if different
+diff --side-by-side f1 f2       # Side-by-side comparison
+
+# patch - Apply diff patches to files
+patch < changes.patch           # Apply patch from stdin
+patch -i changes.patch file.txt # Apply patch from file
+patch -R < changes.patch        # Reverse a patch
+patch -b < changes.patch        # Create backup (.orig)
+patch -o output.txt < patch     # Output to different file
+patch --dry-run < test.patch    # Test without applying
+patch -p1 < patch               # Strip 1 path component
+```
+
+### Environment and System Commands
+```
 env                     # Show environment variables
 export VAR=value        # Set environment variable
+whoami                  # Display current user
+uptime                  # Show system uptime
+time command            # Time command execution
+clear                   # Clear screen
 help ls                 # Show help for a command
 exit                    # Exit the shell
 ```

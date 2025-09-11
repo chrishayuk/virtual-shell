@@ -180,15 +180,26 @@ class ShellInterpreter:
         self.commands.update(discovered_commands)
 
     def parse_command(self, cmd_line: str) -> Tuple[Optional[str], list]:
-        """Parse a command line into the command name and arguments."""
+        """Parse a command line into the command name and arguments, respecting quotes."""
         if not cmd_line or not cmd_line.strip():
             return None, []
-        parts = cmd_line.strip().split()
+        
+        # Use shlex to properly handle quoted strings
+        import shlex
+        try:
+            parts = shlex.split(cmd_line.strip())
+        except ValueError:
+            # Fallback to simple split if shlex fails (e.g., unclosed quotes)
+            parts = cmd_line.strip().split()
+        
+        if not parts:
+            return None, []
+        
         return parts[0], parts[1:]
 
     def execute(self, cmd_line: str) -> str:
         """
-        Execute a command line synchronously.
+        Execute a command line synchronously, supporting pipes and redirection.
         
         Args:
             cmd_line (str): The full command line string.
@@ -199,25 +210,449 @@ class ShellInterpreter:
         cmd_line = cmd_line.strip()
         if not cmd_line:
             return ""
+        
+        # Handle command substitution $(command)
+        cmd_line = self._expand_command_substitution(cmd_line)
+        
         self.history.append(cmd_line)
         if cmd_line == "exit":
             self.running = False
             return "Goodbye!"
+        
+        # Check for pipes (but not within quotes)
+        if '|' in cmd_line and not self._is_quoted(cmd_line, cmd_line.index('|')):
+            return self._execute_pipeline(cmd_line)
+        
+        # Check for input/output redirection
+        redirect_out_file = None
+        redirect_in_file = None
+        append_mode = False
+        original_cmd_line = cmd_line
+        
+        # First, handle input redirection (<)
+        if '<' in cmd_line:
+            pos = cmd_line.index('<')
+            if not self._is_quoted(cmd_line, pos):
+                # Split command and input file
+                cmd_part = cmd_line[:pos].strip()
+                input_part = cmd_line[pos+1:].strip()
+                
+                # Check if there's also output redirection after input
+                remaining = input_part
+                if '>>' in input_part:
+                    pos2 = input_part.index('>>')
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2+2:].strip()
+                        append_mode = True
+                        remaining = ""
+                elif '>' in input_part:
+                    pos2 = input_part.index('>')
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2+1:].strip()
+                        append_mode = False
+                        remaining = ""
+                else:
+                    redirect_in_file = input_part
+                
+                # Parse the input file (might be quoted)
+                if redirect_in_file:
+                    import shlex
+                    try:
+                        parts = shlex.split(redirect_in_file)
+                        if parts:
+                            redirect_in_file = parts[0]
+                            cmd_line = cmd_part
+                    except ValueError:
+                        redirect_in_file = None
+                
+                # Parse output file if present
+                if redirect_out_file:
+                    try:
+                        parts = shlex.split(redirect_out_file)
+                        if parts:
+                            redirect_out_file = parts[0]
+                    except ValueError:
+                        redirect_out_file = None
+        
+        # If no input redirection, check for output redirection only
+        if not redirect_in_file:
+            # Look for >> first (append mode)
+            if '>>' in cmd_line:
+                pos = cmd_line.index('>>')
+                if not self._is_quoted(cmd_line, pos):
+                    # Split command and redirect file
+                    cmd_part = cmd_line[:pos].strip()
+                    redirect_part = cmd_line[pos+2:].strip()
+                    if redirect_part:
+                        # Parse the redirect file (might be quoted)
+                        import shlex
+                        try:
+                            parts = shlex.split(redirect_part)
+                            if parts:
+                                redirect_out_file = parts[0]
+                                append_mode = True
+                                cmd_line = cmd_part
+                        except ValueError:
+                            pass
+            # Look for > (overwrite mode)
+            elif '>' in cmd_line:
+                pos = cmd_line.index('>')
+                if not self._is_quoted(cmd_line, pos):
+                    # Split command and redirect file
+                    cmd_part = cmd_line[:pos].strip()
+                    redirect_part = cmd_line[pos+1:].strip()
+                    if redirect_part:
+                        # Parse the redirect file (might be quoted)
+                        import shlex
+                        try:
+                            parts = shlex.split(redirect_part)
+                            if parts:
+                                redirect_out_file = parts[0]
+                                append_mode = False
+                                cmd_line = cmd_part
+                        except ValueError:
+                            pass
+        
+        # Handle input redirection
+        if redirect_in_file:
+            # Read the input file content
+            input_content = self.fs.read_file(redirect_in_file)
+            if input_content is None:
+                return f"bash: {redirect_in_file}: No such file or directory"
+            # Set stdin buffer for the command
+            self._stdin_buffer = input_content
+        
+        # Execute the command
         cmd, args = self.parse_command(cmd_line)
         if not cmd:
             return ""
+        
         if cmd in self.commands:
             try:
                 # Use run() instead of execute() to handle async commands properly
                 result = self.commands[cmd].run(args)
                 if cmd == "cd":
                     self.environ["PWD"] = self.fs.pwd()
+                
+                # Clear stdin buffer after command execution
+                if hasattr(self, '_stdin_buffer'):
+                    del self._stdin_buffer
+                
+                # Handle output redirection
+                if redirect_out_file:
+                    if append_mode:
+                        # Append to file
+                        existing = self.fs.read_file(redirect_out_file) or ""
+                        if existing and not existing.endswith('\n'):
+                            content = existing + '\n' + result
+                        elif existing:
+                            content = existing + result
+                        else:
+                            content = result
+                        self.fs.write_file(redirect_out_file, content)
+                    else:
+                        # Overwrite file
+                        self.fs.write_file(redirect_out_file, result)
+                    return ""  # No output to terminal when redirecting
+                
                 return result
             except Exception as e:
                 logger.error(f"Error executing command '{cmd}': {e}")
                 return f"Error executing command: {e}"
         else:
             return f"{cmd}: command not found"
+    
+    def _expand_command_substitution(self, cmd_line: str, depth: int = 0) -> str:
+        """
+        Expand command substitutions in the form $(command).
+        
+        Args:
+            cmd_line: Command line potentially containing substitutions
+            depth: Recursion depth to prevent infinite loops
+            
+        Returns:
+            Command line with substitutions expanded
+        """
+        # Prevent infinite recursion
+        if depth > 5:
+            return cmd_line
+            
+        import re
+        
+        # Find all $(command) patterns
+        pattern = r'\$\(([^)]+)\)'
+        
+        def substitute(match):
+            # Execute the command and return its output
+            command = match.group(1)
+            # Execute without substitution to avoid recursion
+            result = self._execute_without_substitution(command)
+            # Remove trailing newline for substitution
+            if result and result.endswith('\n'):
+                result = result[:-1]
+            return result
+        
+        # Replace all command substitutions
+        expanded = re.sub(pattern, substitute, cmd_line)
+        return expanded
+    
+    def _execute_without_substitution(self, cmd_line: str) -> str:
+        """Execute a command without expanding substitutions (to avoid recursion)."""
+        cmd_line = cmd_line.strip()
+        if not cmd_line:
+            return ""
+        
+        # Check for pipes (but not within quotes)
+        if '|' in cmd_line and not self._is_quoted(cmd_line, cmd_line.index('|')):
+            return self._execute_pipeline(cmd_line)
+        
+        # Check for input/output redirection (rest of execute logic)
+        # (Copy the rest of the execute method logic here but without the substitution call)
+        redirect_out_file = None
+        redirect_in_file = None
+        append_mode = False
+        original_cmd_line = cmd_line
+        
+        # Handle input redirection
+        if '<' in cmd_line:
+            pos = cmd_line.index('<')
+            if not self._is_quoted(cmd_line, pos):
+                cmd_part = cmd_line[:pos].strip()
+                input_part = cmd_line[pos+1:].strip()
+                
+                remaining = input_part
+                if '>>' in input_part:
+                    pos2 = input_part.index('>>')
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2+2:].strip()
+                        append_mode = True
+                        remaining = ""
+                elif '>' in input_part:
+                    pos2 = input_part.index('>')
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2+1:].strip()
+                        append_mode = False
+                        remaining = ""
+                else:
+                    redirect_in_file = input_part
+                
+                if redirect_in_file:
+                    import shlex
+                    try:
+                        parts = shlex.split(redirect_in_file)
+                        if parts:
+                            redirect_in_file = parts[0]
+                    except ValueError:
+                        pass
+                    
+                    content = self.fs.read_file(redirect_in_file)
+                    if content is None:
+                        return f"{redirect_in_file}: No such file or directory"
+                    self._stdin_buffer = content
+                
+                cmd_line = cmd_part
+        
+        # Handle output redirection  
+        if not redirect_out_file:
+            if '>>' in cmd_line:
+                pos = cmd_line.index('>>')
+                if not self._is_quoted(cmd_line, pos):
+                    cmd_line = cmd_line[:pos].strip()
+                    redirect_out_file = cmd_line[pos+2:].strip()
+                    append_mode = True
+            elif '>' in cmd_line:
+                pos = cmd_line.index('>')
+                if not self._is_quoted(cmd_line, pos):
+                    redirect_out_file = cmd_line[pos+1:].strip()
+                    cmd_line = cmd_line[:pos].strip()
+                    append_mode = False
+        
+        # Parse and execute command
+        cmd, args = self.parse_command(cmd_line)
+        if not cmd:
+            return ""
+        
+        if cmd in self.commands:
+            try:
+                result = self.commands[cmd].run(args)
+                if cmd == "cd":
+                    self.environ["PWD"] = self.fs.pwd()
+                
+                if hasattr(self, '_stdin_buffer'):
+                    del self._stdin_buffer
+                
+                if redirect_out_file:
+                    if append_mode:
+                        existing = self.fs.read_file(redirect_out_file) or ""
+                        if existing and not existing.endswith('\n'):
+                            content = existing + '\n' + result
+                        elif existing:
+                            content = existing + result
+                        else:
+                            content = result
+                        self.fs.write_file(redirect_out_file, content)
+                    else:
+                        self.fs.write_file(redirect_out_file, result)
+                    return ""
+                
+                return result
+            except Exception as e:
+                return f"Error executing command: {e}"
+        else:
+            return f"{cmd}: command not found"
+    
+    def _is_quoted(self, text: str, position: int) -> bool:
+        """Check if a position in text is within quotes."""
+        in_single = False
+        in_double = False
+        escaped = False
+        
+        for i, char in enumerate(text):
+            if i >= position:
+                return in_single or in_double
+            
+            if escaped:
+                escaped = False
+                continue
+            
+            if char == '\\':
+                escaped = True
+            elif char == '"' and not in_single:
+                in_double = not in_double
+            elif char == "'" and not in_double:
+                in_single = not in_single
+        
+        return False
+    
+    def _execute_pipeline(self, cmd_line: str) -> str:
+        """Execute a pipeline of commands connected by pipes."""
+        # Check if the last command has redirection
+        redirect_file = None
+        append_mode = False
+        input_file = None
+        
+        # First check for input redirection in the first command
+        if '<' in cmd_line:
+            # Find the first pipe
+            pipe_pos = cmd_line.index('|') if '|' in cmd_line else len(cmd_line)
+            first_cmd = cmd_line[:pipe_pos]
+            
+            if '<' in first_cmd:
+                pos = first_cmd.index('<')
+                if not self._is_quoted(first_cmd, pos):
+                    # Extract input file
+                    before_input = first_cmd[:pos].strip()
+                    after_input = first_cmd[pos+1:].strip()
+                    
+                    import shlex
+                    try:
+                        parts = shlex.split(after_input)
+                        if parts:
+                            input_file = parts[0]
+                            # Reconstruct command line without input redirection
+                            if pipe_pos < len(cmd_line):
+                                cmd_line = before_input + cmd_line[pipe_pos:]
+                            else:
+                                cmd_line = before_input
+                    except ValueError:
+                        pass
+        
+        # Look for output redirection in the whole pipeline
+        if '>>' in cmd_line:
+            pos = cmd_line.rfind('>>')  # Find last occurrence
+            if not self._is_quoted(cmd_line, pos):
+                # Split at the last >>
+                pipeline_part = cmd_line[:pos].strip()
+                redirect_part = cmd_line[pos+2:].strip()
+                if redirect_part:
+                    import shlex
+                    try:
+                        parts = shlex.split(redirect_part)
+                        if parts:
+                            redirect_file = parts[0]
+                            append_mode = True
+                            cmd_line = pipeline_part
+                    except ValueError:
+                        pass
+        elif '>' in cmd_line:
+            pos = cmd_line.rfind('>')  # Find last occurrence
+            if not self._is_quoted(cmd_line, pos):
+                # Split at the last >
+                pipeline_part = cmd_line[:pos].strip()
+                redirect_part = cmd_line[pos+1:].strip()
+                if redirect_part:
+                    import shlex
+                    try:
+                        parts = shlex.split(redirect_part)
+                        if parts:
+                            redirect_file = parts[0]
+                            append_mode = False
+                            cmd_line = pipeline_part
+                    except ValueError:
+                        pass
+        
+        # Now execute the pipeline
+        commands = cmd_line.split('|')
+        result = ""
+        
+        for i, cmd_str in enumerate(commands):
+            cmd_str = cmd_str.strip()
+            if not cmd_str:
+                continue
+            
+            # Parse the command
+            cmd, args = self.parse_command(cmd_str)
+            if not cmd:
+                continue
+            
+            if cmd not in self.commands:
+                return f"{cmd}: command not found"
+            
+            try:
+                # Set stdin buffer for commands that support it
+                if i == 0 and input_file:
+                    # Read input file for the first command
+                    content = self.fs.read_file(input_file)
+                    if content is None:
+                        return f"{input_file}: No such file or directory"
+                    self._stdin_buffer = content
+                elif i > 0 and result:
+                    # Store the previous command's output as stdin for this command
+                    self._stdin_buffer = result
+                
+                # Execute the command
+                result = self.commands[cmd].run(args)
+                
+                # Clear stdin buffer
+                if hasattr(self, '_stdin_buffer'):
+                    del self._stdin_buffer
+                    
+            except Exception as e:
+                logger.error(f"Error executing command '{cmd}' in pipeline: {e}")
+                return f"Error executing command in pipeline: {e}"
+        
+        # Handle output redirection if specified
+        if redirect_file:
+            if append_mode:
+                # Append to file
+                existing = self.fs.read_file(redirect_file) or ""
+                if existing and not existing.endswith('\n'):
+                    content = existing + '\n' + result
+                elif existing:
+                    content = existing + result
+                else:
+                    content = result
+                self.fs.write_file(redirect_file, content)
+            else:
+                # Overwrite file
+                self.fs.write_file(redirect_file, result)
+            return ""  # No output to terminal when redirecting
+        
+        return result
     
     async def execute_async(self, cmd_line: str) -> str:
         """

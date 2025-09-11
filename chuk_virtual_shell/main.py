@@ -24,7 +24,7 @@ load_dotenv()
 
 # logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.CRITICAL)
+logging.basicConfig(level=logging.WARNING)
 
 def parse_provider_args(provider_args_str):
     """Parse provider arguments from a string"""
@@ -149,17 +149,22 @@ def run_script(script_path, provider=None, provider_args=None, sandbox_yaml=None
     runner = ScriptRunner(shell)
     
     try:
-        with open(script_path, 'r') as f:
-            script_content = f.read()
-        
-        virtual_path = f"/tmp/{os.path.basename(script_path)}"
-        shell.fs.write_file(virtual_path, script_content)
-        
-        result = runner.run_script(virtual_path)
-        if result:
-            print(result)
-    except FileNotFoundError:
-        logger.error(f"script: cannot open '{script_path}': No such file or directory")
+        # Check if file exists in real filesystem
+        if os.path.exists(script_path):
+            with open(script_path, 'r') as f:
+                script_content = f.read()
+            
+            # Create /tmp directory in virtual filesystem if it doesn't exist
+            shell.execute("mkdir -p /tmp")
+            
+            virtual_path = f"/tmp/{os.path.basename(script_path)}"
+            shell.fs.write_file(virtual_path, script_content)
+            
+            result = runner.run_script(virtual_path)
+            if result:
+                print(result)
+        else:
+            print(f"script: cannot open '{script_path}': No such file or directory")
     except Exception as e:
         logger.exception(f"Error running script '{script_path}'")
 

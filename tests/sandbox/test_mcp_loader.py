@@ -113,8 +113,9 @@ def test_create_mcp_command_class():
     result = cmd_instance.execute(["arg1", "--option", "val"])
     assert "should be executed asynchronously" in result
 
-    # 5) Test the _format_input method with SQL query arguments
-    formatted = cmd_instance._format_input(["SELECT", "*", "FROM", "table"])
+    # 5) Test the input formatting with SQL query arguments
+    from chuk_virtual_shell.commands.mcp.mcp_input_formatter import format_mcp_input
+    formatted = format_mcp_input(["SELECT", "*", "FROM", "table"], tool["inputSchema"])
     assert "query" in formatted
     assert formatted["query"] == "SELECT * FROM table"
 

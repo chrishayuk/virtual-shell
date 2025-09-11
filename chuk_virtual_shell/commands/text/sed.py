@@ -55,7 +55,16 @@ Common commands:
                 else:
                     return "sed: option requires an argument -- 'e'"
             elif arg.startswith('-'):
-                return f"sed: invalid option -- '{arg[1:]}'"
+                # Check for combined flags like -in
+                for char in arg[1:]:
+                    if char == 'i':
+                        options['in_place'] = True
+                    elif char == 'n':
+                        options['quiet'] = True
+                    elif char == 'E':
+                        options['extended'] = True
+                    else:
+                        return f"sed: invalid option -- '{char}'"
             elif not scripts:
                 scripts.append(arg)
             else:

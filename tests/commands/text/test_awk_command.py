@@ -39,6 +39,15 @@ def test_awk_print_multiple_fields(awk_command):
     assert "Alice Engineer" in lines[0]
     assert "Bob Designer" in lines[1]
 
+def test_awk_field_separator_attached(awk_command):
+    """Test AWK with field separator attached to -F option"""
+    # awk_command is the command object, not a tuple
+    cmd = awk_command
+    
+    # Test with -F, (comma attached)
+    result = cmd.execute(["-F,", "{print $1}", "csv.txt"])
+    assert "name" in result or "Alice" in result
+
 def test_awk_field_separator(awk_command):
     output = awk_command.execute(["-F", ",", "{print $2}", "csv.txt"])
     lines = output.splitlines()
