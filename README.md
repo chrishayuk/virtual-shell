@@ -10,6 +10,67 @@ PyodideShell provides a complete virtual shell environment with flexible storage
 - A command-line interface with common Unix commands
 - Telnet server capabilities for remote access
 
+## Installation
+
+### Requirements
+
+- Python 3.9 or higher (tested through Python 3.12)
+- Works on Windows, macOS, and Linux
+- No platform-specific dependencies
+
+### Quick Start with uvx (Easiest)
+
+Run directly without installation using uvx:
+
+```bash
+# Install uv if you haven't already
+pip install uv
+
+# Run the virtual shell directly
+uvx chuk-virtual-shell
+
+# Or use the shorter alias
+uvx virtual-shell
+```
+
+### Install with uv (Recommended for Development)
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/pyodideshell.git
+cd pyodideshell
+
+# Install dependencies and run
+uv run virtual-shell
+```
+
+### Install with pip
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/pyodideshell.git
+cd pyodideshell
+
+# Install in development mode
+pip install -e .
+
+# Run the shell
+virtual-shell
+```
+
+### Install from PyPI (When Published)
+
+```bash
+# Using pip
+pip install chuk-virtual-shell
+
+# Using uv
+uv pip install chuk-virtual-shell
+
+# Then run
+virtual-shell
+```
+
 ## Project Structure
 
 The project is organized in a highly modular way with a clear separation of concerns:
@@ -94,6 +155,16 @@ pyodideshell/
 - Each component is isolated in its own module
 - Commands are organized by category
 - Filesystem components are separated by responsibility
+
+### Cross-Platform Compatibility
+
+PyodideShell is fully compatible across multiple operating systems:
+
+- **Windows** - Full support with native path handling
+- **macOS** - Complete functionality on Apple Silicon and Intel Macs  
+- **Linux** - Tested on Ubuntu, Debian, and other distributions
+
+The virtual filesystem uses forward slashes (`/`) for all path operations internally, ensuring consistent behavior across platforms. The CI/CD pipeline automatically tests on all three major operating systems with Python versions 3.9 through 3.12.
 
 ### Pluggable Storage Architecture
 
@@ -258,17 +329,27 @@ print(result)
 ### Interactive Mode with Default Provider
 
 ```bash
+# Using uvx (no installation required)
+uvx virtual-shell
+
+# Using uv (if cloned locally)
 uv run virtual-shell
+
+# Using pip install
+virtual-shell
 ```
 
 ### Interactive Mode with Specific Provider
 
 ```bash
 # Use SQLite storage
-uv run virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+uvx virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
 
-# Use S3 storage
-uv run virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket", "prefix": "shell1"}'
+# Use S3 storage  
+uvx virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket", "prefix": "shell1"}'
+
+# Or with uv run if cloned locally
+uv run virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
 ```
 
 ### List Available Providers
