@@ -2,8 +2,11 @@
 import os
 import importlib
 import inspect
+import logging
 from typing import Dict, Any
 from chuk_virtual_shell.commands.command_base import ShellCommand
+
+logger = logging.getLogger(__name__)
 
 
 class CommandLoader:
@@ -39,7 +42,11 @@ class CommandLoader:
                     try:
                         module = importlib.import_module(full_module_name)
                     except Exception as e:
-                        print(f"Error importing module {full_module_name}: {e}")
+                        # Only log MCP-related imports at debug level since MCP is optional
+                        if "mcp" in full_module_name.lower():
+                            logger.debug(f"Optional module not available: {full_module_name}")
+                        else:
+                            logger.warning(f"Error importing module {full_module_name}: {e}")
                         continue
 
                     # Inspect module for command classes.

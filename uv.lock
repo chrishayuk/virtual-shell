@@ -187,6 +187,18 @@ wheels = [
 ]
 
 [[package]]
+name = "chuk-sessions"
+version = "0.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/69/5b/95d17807944c922671ac8538c03b1f334c8ce7e473d62ccf3d3bf3833c01/chuk_sessions-0.4.2-py3-none-any.whl", hash = "sha256:aaa49cbd59ec0cb22c9fbfaed99fa28f9fbfeac3c9f54d15242f5ec17deed740", size = 11895, upload-time = "2025-06-23T08:46:46.603Z" },
+]
+
+[[package]]
 name = "chuk-virtual-fs"
 version = "0.1.11"
 source = { registry = "https://pypi.org/simple" }
@@ -207,6 +219,7 @@ source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "chuk-mcp" },
+    { name = "chuk-sessions" },
     { name = "chuk-virtual-fs" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -229,6 +242,7 @@ dev = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.40.28" },
     { name = "chuk-mcp", specifier = ">=0.5.2" },
+    { name = "chuk-sessions", specifier = ">=0.1.0" },
     { name = "chuk-virtual-fs", specifier = ">=0.1.11" },
     { name = "chuk-virtual-shell", marker = "extra == 'boto3'", editable = "." },
     { name = "pydantic", specifier = ">=2.11.7" },

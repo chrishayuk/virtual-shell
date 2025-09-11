@@ -9,6 +9,7 @@ Essential commands for navigating and exploring the virtual filesystem directory
 | [`cd`](cd.md) | Change the current working directory | [cd.md](cd.md) |
 | [`ls`](ls.md) | List directory contents | [ls.md](ls.md) |
 | [`pwd`](pwd.md) | Print the current working directory | [pwd.md](pwd.md) |
+| [`tree`](tree.md) | Display directory tree structure | [tree.md](tree.md) |
 
 ## Common Usage Patterns
 
@@ -35,6 +36,13 @@ cd                              # Home directory (default)
 pwd && ls -la                  # Show location and contents
 cd subdir && pwd && ls          # Move and explore
 cd .. && ls                     # Go up and list
+
+# Visualize directory tree
+tree                            # Show current directory tree
+tree /home                      # Show specific directory tree
+tree -L 2                       # Limit depth to 2 levels
+tree -d                         # Show directories only
+tree -a                         # Include hidden files
 
 # Navigate with verification
 cd /var/log || echo "Directory not found"
@@ -72,6 +80,13 @@ cd ..                           # Go back up
 - No options or arguments needed
 - Always returns full path from root
 - Essential for understanding current location
+
+### [`tree`](tree.md) - Display Directory Tree
+- Shows hierarchical directory structure
+- Supports depth limiting with `-L` option
+- Can show directories only with `-d`
+- Includes hidden files with `-a`
+- Visual representation helps understand structure
 
 ## Key Features
 

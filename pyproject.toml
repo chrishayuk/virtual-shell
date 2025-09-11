@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "boto3>=1.40.28",
     "chuk-mcp>=0.5.2",
+    "chuk-sessions>=0.1.0",
     "chuk-virtual-fs>=0.1.11",
     "pydantic>=2.11.7",
     "pyyaml>=6.0.1",

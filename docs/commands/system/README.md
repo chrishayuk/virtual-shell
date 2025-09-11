@@ -15,8 +15,11 @@ System operations, utilities, and shell control commands for managing the shell 
 | Command | Description | Documentation |
 |---------|-------------|---------------|
 | [`time`](time.md) | Measure command execution time or show current time | [time.md](time.md) |
+| [`timings`](timings.md) | Display command execution statistics | [timings.md](timings.md) |
 | [`uptime`](uptime.md) | Display shell session uptime | [uptime.md](uptime.md) |
 | [`whoami`](whoami.md) | Display the current user | [whoami.md](whoami.md) |
+| [`which`](which.md) | Locate commands in PATH or built-ins | [which.md](which.md) |
+| [`history`](history.md) | Display and search command history | [history.md](history.md) |
 
 ### Script Execution
 | Command | Description | Documentation |
@@ -38,6 +41,17 @@ help grep                       # Show grep usage and examples
 whoami                          # Show current user
 uptime                          # Show shell session uptime
 time                           # Show current system time
+
+# Command location
+which ls                        # Find ls command location
+which -a python                 # Find all python locations
+which cd pwd ls                 # Check multiple commands
+
+# Command history
+history                         # Show all command history
+history 20                      # Show last 20 commands
+history grep                    # Search for grep commands
+history -c                      # Clear command history
 ```
 
 ### Shell Session Management
@@ -70,14 +84,23 @@ script setup.sh configure.sh   # Run multiple scripts
 
 ### Performance Monitoring
 ```bash
-# Time complex operations
+# Time individual operations
 time find . -name "*.py" | wc -l              # Time file search and count
 time sort large_dataset.txt                   # Time sorting operation
 time python data_processor.py input.csv       # Time script execution
 
+# Command timing statistics
+timings -e                                     # Enable command timing
+timings                                        # Show timing statistics
+timings -s avg                                 # Sort by average time
+timings -s total                               # Sort by total time
+timings -c                                     # Clear timing statistics
+timings -d                                     # Disable command timing
+
 # Session monitoring
 uptime                                         # Check how long shell has been running
 time python -c "import time; time.sleep(2)"   # Time with known duration
+history | tail -20                             # Review recent commands
 ```
 
 ### Script Development and Testing
