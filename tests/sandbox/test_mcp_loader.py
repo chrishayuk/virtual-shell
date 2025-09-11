@@ -2,7 +2,6 @@
 
 import sys
 import pytest
-import anyio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Import the modules we'll be testing
@@ -11,19 +10,14 @@ from chuk_virtual_shell.commands.mcp.mcp_command_loader import (
     create_mcp_command_class,
     register_mcp_commands,
 )
-from chuk_virtual_shell.commands.command_base import ShellCommand
 
 # Import the actual functions we need to patch at their source
-from chuk_mcp.mcp_client.transport.stdio.stdio_client import stdio_client
-from chuk_mcp.mcp_client.messages.tools.send_messages import send_tools_list
-from chuk_mcp.mcp_client.messages.initialize.send_messages import send_initialize
-from chuk_mcp.mcp_client.messages.ping.send_messages import send_ping
 
 # Create module level patches
-stdio_client_patch = patch('chuk_mcp.mcp_client.transport.stdio.stdio_client.stdio_client', autospec=True)
-send_tools_list_patch = patch('chuk_mcp.mcp_client.messages.tools.send_messages.send_tools_list', autospec=True)
-send_initialize_patch = patch('chuk_mcp.mcp_client.messages.initialize.send_messages.send_initialize', autospec=True)
-send_ping_patch = patch('chuk_mcp.mcp_client.messages.ping.send_messages.send_ping', autospec=True)
+stdio_client_patch = patch('chuk_mcp.mcp_client.stdio_client', autospec=True)
+send_tools_list_patch = patch('chuk_mcp.mcp_client.send_tools_list', autospec=True)
+send_initialize_patch = patch('chuk_mcp.mcp_client.send_initialize', autospec=True)
+send_ping_patch = patch('chuk_mcp.mcp_client.send_ping', autospec=True)
 
 @pytest.mark.anyio
 async def test_load_mcp_tools_for_server():

@@ -175,8 +175,8 @@ def exception_handling():
     try:
         with open('does_not_exist.txt', 'r') as f:
             content = f.read()
-    except FileNotFoundError as e:
-        print(f"Caught FileNotFoundError: File not found")
+    except FileNotFoundError:
+        print("Caught FileNotFoundError: File not found")
     
     # Try to create file in non-existent directory
     try:

@@ -5,7 +5,6 @@ This updated base class adds support for asynchronous commands while
 maintaining backward compatibility with existing synchronous commands.
 """
 import logging
-import inspect
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -15,10 +14,10 @@ class ShellCommand:
     name = ""
     help_text = ""
     category = ""  # For better organization: 'navigation', 'file', 'environment', 'system'
-    
+
     def __init__(self, shell_context):
         self.shell = shell_context
-    
+
     def execute(self, args):
         """
         Execute the command with given arguments
@@ -28,7 +27,7 @@ class ShellCommand:
         # By default, this method raises NotImplementedError, which is what we want
         # for synchronous commands that don't implement this method
         raise NotImplementedError("Subclasses must implement execute()")
-    
+
     async def execute_async(self, args):
         """
         Asynchronous command implementation
@@ -38,7 +37,7 @@ class ShellCommand:
         """
         # Default implementation calls the sync version
         return self.execute(args)
-    
+
     def run(self, args):
         """
         Run the command with the appropriate execution mode (sync or async)
@@ -49,9 +48,9 @@ class ShellCommand:
         Shell interpreters should call this method instead of execute() directly.
         """
         # Check if this command has an async implementation that's different from the base class
-        has_custom_async = (hasattr(self, 'execute_async') and 
+        has_custom_async = (hasattr(self, 'execute_async') and
                            self.execute_async.__func__ is not ShellCommand.execute_async)
-                           
+
         if has_custom_async:
             # If this command has a custom async implementation, handle it appropriately
             try:
@@ -73,11 +72,11 @@ class ShellCommand:
         else:
             # For commands that only implement execute(), call it directly
             return self.execute(args)
-    
+
     def get_help(self):
         """Return help text for the command"""
         return self.help_text
-        
+
     def get_category(self):
         """Return the command category"""
         return self.category

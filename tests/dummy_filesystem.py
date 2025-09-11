@@ -10,9 +10,27 @@ class DummyFileSystem:
         """
         self.files = files
         self.current_directory = "/"  # Default current directory
+        
+    @property
+    def cwd(self):
+        """Alias for current_directory for compatibility"""
+        return self.current_directory
+    
+    @cwd.setter
+    def cwd(self, path):
+        """Set current working directory"""
+        self.current_directory = path
+    
+    def chdir(self, path):
+        """Alias for cd for compatibility"""
+        return self.cd(path)
 
     def read_file(self, path):
-        return self.files.get(path)
+        content = self.files.get(path)
+        # Don't return dict (directory) content as file content
+        if isinstance(content, dict):
+            return None
+        return content
 
     def write_file(self, path, content):
         self.files[path] = content
@@ -75,8 +93,9 @@ class DummyFileSystem:
     def is_dir(self, path):
         return self.exists(path) and isinstance(self.files[path], dict)
 
-    # Alias for is_dir
+    # Aliases for compatibility
     isdir = is_dir
+    is_directory = is_dir
 
     def get_size(self, path):
         """
@@ -153,3 +172,78 @@ class DummyFileSystem:
         
         # Create the NodeInfo with a reference to the filesystem
         return NodeInfo(self, path)
+    
+    def get_storage_stats(self):
+        """
+        Return storage statistics for the filesystem.
+        """
+        total_files = 0
+        total_size = 0
+        
+        def count_files(d):
+            nonlocal total_files, total_size
+            for key, value in d.items():
+                if isinstance(value, dict):
+                    total_files += 1  # Count directory
+                    count_files(value)
+                else:
+                    total_files += 1  # Count file
+                    total_size += len(value) if value else 0
+        
+        count_files(self.files)
+        
+        return {
+            'provider_name': 'DummyFS',
+            'max_total_size': 1000000000,  # 1GB dummy limit
+            'total_size_bytes': total_size,
+            'max_files': 10000,  # 10k files dummy limit
+            'file_count': total_files
+        }
+    
+    def copy_file(self, src, dst):
+        """Copy a file from src to dst"""
+        if self.is_file(src):
+            content = self.read_file(src)
+            self.write_file(dst, content)
+            return True
+        return False
+    
+    def copy_dir(self, src, dst):
+        """Recursively copy a directory from src to dst"""
+        if not self.is_dir(src):
+            return False
+        
+        # Create destination directory with proper structure
+        if not self.exists(dst):
+            self.files[dst] = {}
+        
+        # Get the source directory structure
+        src_dir = self.files[src]
+        
+        # If it's a nested dict structure, copy it properly
+        if isinstance(src_dir, dict):
+            # Copy nested structure
+            for key, value in src_dir.items():
+                if isinstance(value, dict):
+                    # It's a subdirectory in nested format - shouldn't happen in our test setup
+                    continue
+                else:
+                    # It's a file in nested format
+                    dst_file_path = f"{dst}/{key}" if dst != "/" else f"/{key}"
+                    self.files[dst_file_path] = value
+        
+        # Also handle flat file paths that start with src
+        for path in list(self.files.keys()):
+            if path.startswith(src + "/"):
+                # Get relative path from src
+                relative = path[len(src)+1:]
+                dst_path = f"{dst}/{relative}" if dst != "/" else f"/{relative}"
+                
+                if self.is_dir(path):
+                    if not self.exists(dst_path):
+                        self.files[dst_path] = {}
+                else:
+                    # Copy file content
+                    self.files[dst_path] = self.files[path]
+        
+        return True

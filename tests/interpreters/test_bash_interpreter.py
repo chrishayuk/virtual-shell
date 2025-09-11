@@ -2,7 +2,6 @@
 tests/interpreters/test_bash_interpreter.py - Tests for bash script interpreter
 """
 import pytest
-import asyncio
 from chuk_virtual_shell.interpreters.bash_interpreter import VirtualBashInterpreter
 from chuk_virtual_shell.commands.system.sh import ShCommand
 from tests.dummy_shell import DummyShell

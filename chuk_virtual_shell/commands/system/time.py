@@ -14,12 +14,12 @@ class TimeCommand(ShellCommand):
         "If no command is provided, it prints the current system time."
     )
     category = "system"
-    
+
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
         parser.add_argument('subcommand', nargs='*', help='Command to time')
         parsed_args, unknown = parser.parse_known_args(args)
-        
+
         if parsed_args.subcommand:
             command_line = " ".join(parsed_args.subcommand)
             start = time.perf_counter()

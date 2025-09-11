@@ -5,7 +5,6 @@ This module handles formatting of user input for MCP tools based on the tool sch
 It converts a list of arguments into a dictionary payload that matches the expected input format.
 """
 
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,20 +21,20 @@ def format_mcp_input(args, tool_schema):
         dict: A dictionary representing the formatted input data.
     """
     logger.debug(f"Formatting input with args: {args} and tool_schema: {tool_schema}")
-    
+
     # If no tool_schema is provided, simply return the arguments under 'args'
     if not tool_schema:
         logger.debug("No tool_schema provided, returning args as 'args'.")
         return {"args": args}
-    
+
     properties = tool_schema.get("properties", {})
     required = tool_schema.get("required", [])
-    
+
     # If there are no properties in the schema, assume no input is needed
     if not properties:
         logger.debug("No properties defined in tool_schema, returning empty dict.")
         return {}
-    
+
     # If there's exactly one required property and there are arguments,
     # use that property. Special-case for 'query': join all args into one string.
     if len(required) == 1 and len(args) > 0:
@@ -47,13 +46,13 @@ def format_mcp_input(args, tool_schema):
         formatted = {prop_name: args[0]}
         logger.debug(f"Single required property detected. Formatted input: {formatted}")
         return formatted
-    
+
     # If there's a property named 'query' in the schema, join all arguments into a query string.
     if "query" in properties and args:
         formatted = {"query": " ".join(args)}
         logger.debug(f"'query' property detected in schema. Formatted input: {formatted}")
         return formatted
-    
+
     # Otherwise, return the arguments as is, under the key 'args'.
     formatted = {"args": args}
     logger.debug(f"Default input formatting applied. Formatted input: {formatted}")

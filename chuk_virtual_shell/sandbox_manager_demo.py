@@ -10,7 +10,7 @@ def demo():
     print("Session ID:", session_id)
 
     # 2) Join the sandbox by session ID
-    session = mgr.join_sandbox(session_id)
+    mgr.join_sandbox(session_id)
 
     # 3) Write a file into the sandbox
     mgr.write_file(session_id, "/test.txt", "Hello from the sandbox!")

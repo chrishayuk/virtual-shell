@@ -3,7 +3,6 @@ tests/commands/mcp/test_mcp_input_formatter.py - Tests for MCP input formatter
 
 Tests the functionality of formatting user input for MCP tools based on their schemas.
 """
-import pytest
 from chuk_virtual_shell.commands.mcp.mcp_input_formatter import format_mcp_input
 
 

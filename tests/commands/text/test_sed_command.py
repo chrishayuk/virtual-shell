@@ -100,6 +100,6 @@ def test_sed_different_delimiter(sed_command):
 @pytest.mark.skip(reason="Backreference support not yet implemented")
 def test_sed_backreference(sed_command):
     sed_command.shell.fs.write_file("test.txt", "Hello World")
-    output = sed_command.execute([r"s/\(.*\) \(.*\)/\2 \1/", "test.txt"])
+    sed_command.execute([r"s/\(.*\) \(.*\)/\2 \1/", "test.txt"])
     # Note: Basic regex support for backreferences would need enhancement
     # This test documents expected behavior

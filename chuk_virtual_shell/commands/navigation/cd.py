@@ -13,12 +13,12 @@ class CdCommand(ShellCommand):
         "Access is restricted to directories within the sandbox."
     )
     category = "navigation"
-    
+
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
         parser.add_argument(
-            "directory", 
-            nargs="?", 
+            "directory",
+            nargs="?",
             default=self.shell.environ.get("HOME", "/"),
             help="Directory to change to (defaults to HOME)"
         )
@@ -26,9 +26,9 @@ class CdCommand(ShellCommand):
             parsed_args, _ = parser.parse_known_args(args)
         except SystemExit:
             return self.get_help()
-        
+
         target = parsed_args.directory
-        
+
         # Attempt to change directory via the filesystem. Security checks are handled by the fs.
         if self.shell.fs.cd(target):
             self.shell.environ["PWD"] = self.shell.fs.pwd()

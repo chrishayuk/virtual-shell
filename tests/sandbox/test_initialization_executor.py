@@ -1,7 +1,4 @@
 # tests/sandbox/test_initialization_executor.py
-import os
-import pytest
-from unittest.mock import MagicMock
 from chuk_virtual_shell.sandbox.loader.initialization_executor import execute_initialization, _ensure_directory
 
 # Dummy VirtualFileSystem to simulate mkdir and write_file.

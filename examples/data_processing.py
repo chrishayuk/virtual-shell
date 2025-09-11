@@ -2,7 +2,6 @@
 """Process data files using Python in virtual filesystem"""
 
 import os
-import sys
 import re
 from collections import Counter
 
@@ -93,7 +92,7 @@ def process_sales_data():
     print("=== Sales Data Processing ===")
     
     with open('sales.csv', 'r') as f:
-        header = f.readline().strip().split(',')
+        f.readline().strip().split(',')
         data = []
         for line in f:
             values = line.strip().split(',')
@@ -140,7 +139,7 @@ def process_sales_data():
     max_revenue = max(revenues)
     min_revenue = min(revenues)
     
-    print(f"\nStatistics:")
+    print("\nStatistics:")
     print(f"  Average transaction: ${avg_revenue:.2f}")
     print(f"  Highest transaction: ${max_revenue:.2f}")
     print(f"  Lowest transaction: ${min_revenue:.2f}")
@@ -178,7 +177,7 @@ def word_frequency_analysis():
     
     # Find long words
     long_words = [word for word in word_count if len(word) > 7]
-    print(f"\nWords longer than 7 characters:")
+    print("\nWords longer than 7 characters:")
     for word in long_words:
         print(f"  - {word}")
     

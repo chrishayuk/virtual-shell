@@ -2,7 +2,6 @@
 """Demonstrate file operations in virtual filesystem using Python"""
 
 import os
-import sys
 
 def create_directory_structure():
     """Create a directory structure"""

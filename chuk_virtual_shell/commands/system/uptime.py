@@ -11,7 +11,7 @@ class UptimeCommand(ShellCommand):
         "Usage: uptime"
     )
     category = "system"
-    
+
     def execute(self, args):
         if args:
             return self.get_help()

@@ -7,6 +7,6 @@ class PwdCommand(ShellCommand):
     name = "pwd"
     help_text = "pwd - Print working directory\nUsage: pwd"
     category = "navigation"
-    
+
     def execute(self, args):
         return self.shell.fs.pwd()

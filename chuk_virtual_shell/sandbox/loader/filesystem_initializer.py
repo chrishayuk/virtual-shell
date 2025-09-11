@@ -5,8 +5,8 @@ import logging
 import re
 from typing import Dict, Any
 
-from chuk_virtual_fs import VirtualFileSystem
-from chuk_virtual_fs.template_loader import TemplateLoader
+from chuk_virtual_fs import VirtualFileSystem  # type: ignore
+from chuk_virtual_fs.template_loader import TemplateLoader  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -24,31 +24,31 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
     Create a VirtualFileSystem instance based on the sandbox config.
     """
     logger.debug("Creating filesystem from config")
-    
+
     security_config = config.get('security', {})
     if 'denied_patterns' in security_config:
         security_config['denied_patterns'] = compile_denied_patterns(security_config['denied_patterns'])
-    
+
     fs_config = config.get('filesystem', {})
     provider_name = fs_config.get('provider', 'memory')
     provider_args = fs_config.get('provider_args', {})
-    
+
     security_profile = security_config.get('profile')
-    
+
     logger.debug(f"Creating filesystem with provider {provider_name}")
     fs = VirtualFileSystem(
         provider_name=provider_name,
         security_profile=security_profile,
         **provider_args
     )
-    
+
     # Apply additional security settings
     if security_config and hasattr(fs, 'provider') and hasattr(fs.provider, '_in_setup'):
         fs.provider._in_setup = True
         for key, value in security_config.items():
             if key != 'profile' and hasattr(fs.provider, key):
                 setattr(fs.provider, key, value)
-    
+
     # Handle filesystem template if specified
     if 'filesystem-template' in config:
         template_config = config['filesystem-template']
@@ -67,10 +67,10 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
             except Exception as e:
                 logger.error(f"Error applying filesystem template '{template_name}': {e}")
                 traceback.print_exc()
-    
+
     if hasattr(fs, 'provider') and hasattr(fs.provider, '_in_setup'):
         fs.provider._in_setup = False
-    
+
     return fs
 
 def _find_template(name: str) -> str:
@@ -83,10 +83,10 @@ def _find_template(name: str) -> str:
         os.path.expanduser("~/.chuk_virtual_shell/templates"),
         "/usr/share/virtual-shell/templates",
     ]
-    
+
     if 'CHUK_VIRTUAL_SHELL_TEMPLATE_DIR' in os.environ:
         search_paths.insert(0, os.environ['CHUK_VIRTUAL_SHELL_TEMPLATE_DIR'])
-    
+
     file_patterns = [
         f"{name}.yaml",
         f"{name}.yml",
@@ -94,7 +94,7 @@ def _find_template(name: str) -> str:
         f"{name}_template.yml",
         f"{name}.json"
     ]
-    
+
     for path in search_paths:
         if not os.path.exists(path):
             continue

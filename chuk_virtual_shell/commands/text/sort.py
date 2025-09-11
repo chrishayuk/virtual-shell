@@ -16,7 +16,7 @@ Options:
   -f        Ignore case (fold)
   -b        Ignore leading blanks"""
     category = "text"
-    
+
     def execute(self, args):
         # Parse options
         options = {
@@ -28,10 +28,10 @@ Options:
             'ignore_case': False,
             'ignore_blanks': False
         }
-        
+
         files = []
         i = 0
-        
+
         # Parse arguments
         while i < len(args):
             arg = args[i]
@@ -76,10 +76,10 @@ Options:
             else:
                 files.append(arg)
             i += 1
-        
+
         # Collect all lines from input
         all_lines = []
-        
+
         if not files:
             # Use stdin if available
             if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
@@ -93,33 +93,33 @@ Options:
                 if content is None:
                     return f"sort: {filepath}: No such file or directory"
                 all_lines.extend(content.splitlines())
-        
+
         # Sort the lines
         sorted_lines = self._sort_lines(all_lines, options)
-        
+
         return '\n'.join(sorted_lines)
-    
+
     def _sort_lines(self, lines, options):
         """Sort lines according to options"""
         if not lines:
             return []
-        
+
         # Prepare key function for sorting
         def sort_key(line):
             # Handle blank line trimming
             if options['ignore_blanks']:
                 line = line.lstrip()
-            
+
             # Handle field-based sorting
             if options['field'] is not None:
                 separator = options['separator'] or r'[ \t]+'
-                
+
                 # Split line into fields
                 if options['separator']:
                     fields = line.split(separator)
                 else:
                     fields = line.split()
-                
+
                 # Get the specified field (or empty if not enough fields)
                 if options['field'] < len(fields):
                     value = fields[options['field']]
@@ -127,11 +127,11 @@ Options:
                     value = ""
             else:
                 value = line
-            
+
             # Handle case-insensitive sorting
             if options['ignore_case']:
                 value = value.lower()
-            
+
             # Handle numeric sorting
             if options['numeric']:
                 # Extract numeric part
@@ -143,12 +143,12 @@ Options:
                     except ValueError:
                         return 0
                 return 0
-            
+
             return value
-        
+
         # Sort the lines
         sorted_lines = sorted(lines, key=sort_key, reverse=options['reverse'])
-        
+
         # Remove duplicates if requested
         if options['unique']:
             seen = set()
@@ -158,5 +158,5 @@ Options:
                     seen.add(line)
                     unique_lines.append(line)
             sorted_lines = unique_lines
-        
+
         return sorted_lines

@@ -14,7 +14,7 @@ Options:
   -q        Never print headers with file names
   -v        Always print headers with file names"""
     category = "text"
-    
+
     def execute(self, args):
         # Parse options
         options = {
@@ -24,10 +24,10 @@ Options:
             'quiet': False,
             'verbose': False
         }
-        
+
         files = []
         i = 0
-        
+
         # Parse arguments
         while i < len(args):
             arg = args[i]
@@ -80,7 +80,7 @@ Options:
             elif not arg.startswith('-'):
                 files.append(arg)
             i += 1
-        
+
         # If no files specified, use stdin
         if not files:
             if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
@@ -88,33 +88,33 @@ Options:
                 return self._process_content(content, options)
             else:
                 return ""
-        
+
         # Process files
         results = []
         show_headers = options['verbose'] or (len(files) > 1 and not options['quiet'])
-        
+
         for i, filepath in enumerate(files):
             content = self.shell.fs.read_file(filepath)
             if content is None:
                 results.append(f"tail: {filepath}: No such file or directory")
                 continue
-            
+
             # Add header if needed
             if show_headers:
                 if i > 0:
                     results.append("")  # Empty line between files
                 results.append(f"==> {filepath} <==")
-            
+
             processed = self._process_content(content, options)
             if processed:
                 results.append(processed)
-            
+
             # Note: -f (follow) mode not fully implemented for virtual FS
             if options['follow']:
                 results.append("tail: follow mode not fully supported in virtual filesystem")
-        
+
         return '\n'.join(results)
-    
+
     def _process_content(self, content, options):
         """Process content according to options"""
         if options['bytes'] is not None:

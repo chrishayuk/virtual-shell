@@ -1,12 +1,11 @@
 """
 tests/test_telnet_server.py
 """
-import asyncio
 import pytest
 from unittest.mock import Mock, patch
 
 # virtual shell imports
-from chuk_virtual_shell.telnet_server import TelnetServer, TelnetConnection
+from chuk_virtual_shell.telnet_server import TelnetConnection
 
 # Fake stream reader that returns preset lines.
 class FakeStreamReader:

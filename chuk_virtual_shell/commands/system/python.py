@@ -20,16 +20,16 @@ Examples:
   python -c "print('hi')"   Execute command string
   python -m module          Run module as script"""
     category = "system"
-    
+
     def __init__(self, shell_context=None):
         super().__init__(shell_context)
         self.interpreter = None
-    
+
     async def execute_async(self, args):
         """Execute Python script or command asynchronously"""
         if not self.interpreter:
             self.interpreter = VirtualPythonInterpreter(self.shell)
-        
+
         # Parse options
         command_string = None
         module_name = None
@@ -37,7 +37,7 @@ Examples:
         script_args = []
         show_version = False
         interactive = False
-        
+
         i = 0
         while i < len(args):
             arg = args[i]
@@ -64,37 +64,37 @@ Examples:
             else:
                 script_args.append(arg)
             i += 1
-        
+
         # Handle version flag
         if show_version:
             return "Python 3.x.x (virtual environment)"
-        
+
         # Execute command string if -c was provided
         if command_string:
             return await self.interpreter.execute_code(command_string)
-        
+
         # Handle module execution
         if module_name:
             # Simplified module execution
             return f"python: module execution not fully implemented: {module_name}"
-        
+
         # Execute script file
         if script_path:
             # Check if file exists
             if not self.shell.fs.exists(script_path):
                 return f"python: can't open file '{script_path}': No such file or directory"
-            
+
             # Check if it's a file
             if not self.shell.fs.is_file(script_path):
                 return f"python: '{script_path}' is a directory, not a Python file"
-            
+
             # Execute the script
             return await self.interpreter.run_script(script_path, script_args)
-        
+
         # Interactive mode
         if interactive or not args:
             return "Python interactive mode not fully supported\nUse 'python -c \"code\"' or 'python script.py' instead"
-    
+
     def execute(self, args):
         """Synchronous wrapper for execution"""
         # Try to run async if possible
@@ -107,19 +107,19 @@ Examples:
             else:
                 # Create new event loop
                 return asyncio.run(self.execute_async(args))
-        except:
+        except Exception:
             # Fallback to sync execution
             return self._execute_sync(args)
-    
+
     def _execute_sync(self, args):
         """Synchronous execution"""
         if not self.interpreter:
             self.interpreter = VirtualPythonInterpreter(self.shell)
-        
+
         # Parse for common cases
         if not args:
             return "Python interactive mode not fully supported"
-        
+
         # Handle -c option
         if '-c' in args:
             idx = args.index('-c')
@@ -127,18 +127,18 @@ Examples:
                 command = args[idx + 1]
                 return self.interpreter.execute_code_sync(command)
             return "python: -c requires an argument"
-        
+
         # Handle version
         if '-V' in args or '--version' in args:
             return "Python 3.x.x (virtual environment)"
-        
+
         # Try to execute as script
         script_path = args[0]
         script_args = args[1:] if len(args) > 1 else []
-        
+
         if not self.shell.fs.exists(script_path):
             return f"python: can't open file '{script_path}': No such file or directory"
-        
+
         return self.interpreter.run_script_sync(script_path, script_args)
 
 

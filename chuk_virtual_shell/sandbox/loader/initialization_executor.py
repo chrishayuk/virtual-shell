@@ -2,7 +2,7 @@
 import os
 import logging
 
-from chuk_virtual_fs import VirtualFileSystem
+from chuk_virtual_fs import VirtualFileSystem  # type: ignore
 
 logger = logging.getLogger(__name__)
 

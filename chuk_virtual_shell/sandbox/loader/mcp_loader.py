@@ -22,32 +22,32 @@ def load_mcp_servers(config: Dict[str, Any]) -> List[Dict[str, Any]]:
         Each config should contain at least keys like "config_path" and "server_name".
     """
     logger.debug(f"Loading MCP servers from config: {type(config)}")
-    
+
     if 'mcp_servers' not in config:
         logger.warning("No 'mcp_servers' section found in config")
         return []
-    
+
     mcp_servers = config.get("mcp_servers", [])
     logger.debug(f"Raw MCP server configurations: {mcp_servers}")
-    
+
     if not isinstance(mcp_servers, list):
         logger.error(f"'mcp_servers' section is not a list: {type(mcp_servers)}")
         return []
-    
+
     validated_servers = []
-    
+
     for i, server in enumerate(mcp_servers):
         logger.debug(f"Processing MCP server {i}: {server}")
-        
+
         if not isinstance(server, dict):
             logger.warning(f"MCP server config is not a dictionary: {type(server)}")
             continue
-        
+
         # Filter out servers missing required keys instead of applying defaults
         if "config_path" not in server or "server_name" not in server:
             logger.warning(f"MCP server missing required keys, skipping: {server}")
             continue
-            
+
         validated_servers.append(server)
 
     logger.info(f"Loaded {len(validated_servers)} MCP server configurations")
@@ -71,15 +71,15 @@ async def register_mcp_commands_with_shell(shell) -> Optional[str]:
     if not hasattr(shell, 'mcp_servers'):
         logger.warning("Shell instance does not have 'mcp_servers' attribute")
         return "Shell instance does not have 'mcp_servers' attribute"
-        
+
     if not shell.mcp_servers:
         logger.info("No MCP servers configured, skipping MCP command registration")
         return None
-    
+
     # Enhanced debugging
     logger.debug(f"MCP servers type: {type(shell.mcp_servers)}")
     logger.debug(f"MCP servers content: {shell.mcp_servers}")
-        
+
     try:
         # Import the MCP command loader with updated import path
         try:
@@ -88,7 +88,7 @@ async def register_mcp_commands_with_shell(shell) -> Optional[str]:
             logger.error(f"Error importing MCP command loader: {e}")
             traceback.print_exc()
             return f"Error importing MCP command loader: {e}"
-            
+
         await register_mcp_commands(shell)
         logger.info(f"MCP commands registered successfully for {len(shell.mcp_servers)} servers")
         return None

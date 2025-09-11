@@ -3,7 +3,6 @@ tests/commands/mcp/test_mcp_output_formatter.py - Tests for MCP output formatter
 
 Tests the functionality of parsing and formatting MCP tool responses.
 """
-import pytest
 import json
 from chuk_virtual_shell.commands.mcp.mcp_output_formatter import (
     parse_mcp_response,

@@ -3,7 +3,7 @@ chuk_virtual_shell/script_runner.py - Execute shell scripts in PyodideShell
 """
 class ScriptRunner:
     """Utility class for running shell scripts"""
-    
+
     def __init__(self, shell):
         """
         Initialize the script runner
@@ -12,7 +12,7 @@ class ScriptRunner:
             shell: The shell interpreter instance
         """
         self.shell = shell
-    
+
     def run_script(self, script_path):
         """
         Run a shell script from a file path
@@ -25,12 +25,12 @@ class ScriptRunner:
         """
         # Read script content
         script_content = self.shell.fs.read_file(script_path)
-        
+
         if script_content is None:
             return f"script: cannot open '{script_path}': No such file"
-        
+
         return self.run_script_content(script_content)
-    
+
     def run_script_content(self, script_content):
         """
         Run a shell script from a string, supporting heredocs
@@ -43,18 +43,18 @@ class ScriptRunner:
         """
         # Split the script into lines
         lines = script_content.splitlines()
-        
+
         # Process each line, handling heredocs
         results = []
         i = 0
         while i < len(lines):
             line = lines[i].strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 i += 1
                 continue
-            
+
             # Check for if statement
             if line.startswith('if '):
                 # Process if/else/fi block
@@ -85,14 +85,14 @@ class ScriptRunner:
                 if result:
                     results.append(result)
                 i += 1
-            
+
             # Stop execution if the shell is no longer running
             if not self.shell.running:
                 break
-        
+
         # Return the combined results
         return "\n".join(results)
-    
+
     def _process_heredoc(self, lines, start_line):
         """
         Process a heredoc starting at the given line
@@ -105,20 +105,20 @@ class ScriptRunner:
             Tuple of (command, content, end_line) or None if not a valid heredoc
         """
         line = lines[start_line]
-        
+
         # Parse the heredoc syntax: command << DELIMITER
         import re
         match = re.match(r'^(.*?)<<\s*(\S+)\s*$', line)
         if not match:
             return None
-        
+
         command = match.group(1).strip()
         delimiter = match.group(2)
-        
+
         # Collect lines until we find the delimiter
         content_lines = []
         current_line = start_line + 1
-        
+
         while current_line < len(lines):
             if lines[current_line].strip() == delimiter:
                 # Found the end delimiter
@@ -127,10 +127,10 @@ class ScriptRunner:
             else:
                 content_lines.append(lines[current_line])
             current_line += 1
-        
+
         # Delimiter not found
         return None
-    
+
     def _process_if_block(self, lines, start_line):
         """
         Process if/then/else/fi block
@@ -144,20 +144,20 @@ class ScriptRunner:
         """
         # Parse if condition
         if_line = lines[start_line].strip()
-        
+
         # Extract condition (simple support for [ ] test conditions)
         condition = if_line[3:].strip()  # Remove 'if '
-        
+
         # Find then, else, and fi
         then_line = -1
         else_line = -1
         fi_line = -1
         current = start_line + 1
         nesting_level = 0
-        
+
         while current < len(lines):
             line = lines[current].strip()
-            
+
             # Track nested if statements
             if line.startswith('if '):
                 nesting_level += 1
@@ -172,16 +172,16 @@ class ScriptRunner:
                     then_line = current
                 elif line == 'else':
                     else_line = current
-            
+
             current += 1
-        
+
         if fi_line == -1:
             # Missing fi, treat as single line if
             return "", start_line
-        
+
         # Evaluate condition
         condition_result = self._evaluate_condition(condition)
-        
+
         # Execute appropriate block
         result_lines = []
         if condition_result:
@@ -206,9 +206,9 @@ class ScriptRunner:
                         res = self.shell.execute(line)
                         if res:
                             result_lines.append(res)
-        
+
         return '\n'.join(result_lines), fi_line
-    
+
     def _evaluate_condition(self, condition):
         """
         Evaluate a shell condition
@@ -231,11 +231,11 @@ class ScriptRunner:
         # Remove 'then' if it's at the end
         if condition.endswith('then'):
             condition = condition[:-4].strip()
-        
+
         # Simple implementation for [ ] test conditions
         if condition.startswith('[') and condition.endswith(']'):
             condition = condition[1:-1].strip()
-            
+
             # File tests
             if condition.startswith('-f '):
                 filepath = condition[3:].strip()
@@ -253,7 +253,7 @@ class ScriptRunner:
             elif condition.startswith('-n '):
                 string = condition[3:].strip().strip('"')
                 return len(string) > 0
-            
+
             # String comparisons
             if ' = ' in condition:
                 left, right = condition.split(' = ', 1)
@@ -261,7 +261,7 @@ class ScriptRunner:
             elif ' != ' in condition:
                 left, right = condition.split(' != ', 1)
                 return left.strip().strip('"') != right.strip().strip('"')
-            
+
             # Numeric comparisons
             numeric_ops = {
                 ' -eq ': '==',
@@ -271,7 +271,7 @@ class ScriptRunner:
                 ' -ge ': '>=',
                 ' -le ': '<='
             }
-            
+
             for op, py_op in numeric_ops.items():
                 if op in condition:
                     left, right = condition.split(op, 1)
@@ -281,12 +281,12 @@ class ScriptRunner:
                         return eval(f'{left_val} {py_op} {right_val}')
                     except ValueError:
                         return False
-        
+
         # For other conditions, treat as command and check exit status
         # For simplicity, we'll return True if command executes successfully
         result = self.shell.execute(condition)
         return result is not None and "error" not in result.lower() and "not found" not in result.lower()
-    
+
     def _execute_with_heredoc(self, command, content):
         """
         Execute a command with heredoc content
@@ -318,7 +318,7 @@ class ScriptRunner:
             else:
                 # Just cat, output the content
                 return content
-        
+
         # For other commands, we could pipe the content as stdin
         # For now, just execute the command
         return self.shell.execute(command)

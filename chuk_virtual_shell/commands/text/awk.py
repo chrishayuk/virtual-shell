@@ -24,18 +24,18 @@ Common patterns:
   'END{...}'          Execute after processing
   '{sum+=$1} END{print sum}'  Sum column"""
     category = "text"
-    
+
     def execute(self, args):
         if not args:
             return "awk: missing program"
-        
+
         # Parse options
         field_separator = None
         variables = {}
         program = None
         files = []
         i = 0
-        
+
         # Parse arguments
         while i < len(args):
             arg = args[i]
@@ -65,14 +65,14 @@ Common patterns:
                 # All remaining arguments are files
                 files.append(arg)
             i += 1
-        
+
         if not program:
             return "awk: missing program"
-        
+
         # Default field separator
         if field_separator is None:
             field_separator = r'[ \t]+'
-        
+
         # If no files specified, use stdin
         if not files:
             if hasattr(self.shell, '_stdin_buffer') and self.shell._stdin_buffer:
@@ -83,7 +83,7 @@ Common patterns:
                 return self._process_content("", program, field_separator, variables)
             else:
                 return "awk: no input files"
-        
+
         # Process files
         all_lines = []
         for filepath in files:
@@ -91,20 +91,20 @@ Common patterns:
             if content is None:
                 return f"awk: {filepath}: No such file or directory"
             all_lines.extend(content.splitlines())
-        
+
         return self._process_content('\n'.join(all_lines), program, field_separator, variables)
-    
+
     def _process_content(self, content, program, field_separator, variables):
         """Process content with awk program"""
         lines = content.splitlines() if content else []
         output = []
-        
+
         # Parse program into BEGIN, main, and END sections
         begin_code = ""
         end_code = ""
         main_pattern = ""
         main_action = ""
-        
+
         # Extract BEGIN block with proper brace matching
         begin_match = re.search(r'BEGIN\s*{', program)
         if begin_match:
@@ -122,7 +122,7 @@ Common patterns:
             begin_code = program[start+1:end]
             program = program[:begin_match.start()] + program[end+1:]
             program = program.strip()
-        
+
         # Extract END block with proper brace matching
         end_match = re.search(r'END\s*{', program)
         if end_match:
@@ -140,7 +140,7 @@ Common patterns:
             end_code = program[start+1:end]
             program = program[:end_match.start()] + program[end+1:]
             program = program.strip()
-        
+
         # Parse main program
         if program:
             # Check for pattern{action} format
@@ -156,7 +156,7 @@ Common patterns:
             else:
                 # Assume it's just an action
                 main_action = program
-        
+
         # Initialize AWK variables
         awk_vars = {
             'NF': 0,  # Number of fields
@@ -167,7 +167,7 @@ Common patterns:
             'count': 0,  # Common variable for counting
         }
         awk_vars.update(variables)
-        
+
         # Execute BEGIN block
         if begin_code:
             # Check if BEGIN block contains for-in loop
@@ -175,29 +175,33 @@ Common patterns:
                 self._execute_for_in_loop(begin_code, {}, awk_vars, output)
             else:
                 self._execute_action(begin_code, {}, awk_vars, output)
-        
+
         # Process each line
         for line_num, line in enumerate(lines, 1):
             awk_vars['NR'] = line_num
-            
+
             # Split line into fields
-            if field_separator == ' ':
+            if field_separator == r'[ \t]+' or field_separator == ' ':
                 fields = line.split()
             else:
-                fields = re.split(field_separator, line)
-            
+                try:
+                    fields = re.split(field_separator, line)
+                except re.error:
+                    # If regex fails, fall back to string split
+                    fields = line.split(field_separator)
+
             # AWK fields are 1-indexed, $0 is the whole line
             field_vars = {'0': line}
             for i, field in enumerate(fields, 1):
                 field_vars[str(i)] = field
-            
+
             awk_vars['NF'] = len(fields)
-            
+
             # Check if pattern matches
-            if self._match_pattern(main_pattern, line, field_vars, awk_vars):
+            if not main_pattern or self._match_pattern(main_pattern, line, field_vars, awk_vars):
                 if main_action:
                     self._execute_action(main_action, field_vars, awk_vars, output)
-        
+
         # Execute END block
         if end_code:
             # Handle for-in loops in END block
@@ -205,33 +209,33 @@ Common patterns:
                 self._execute_for_in_loop(end_code, {}, awk_vars, output)
             else:
                 self._execute_action(end_code, {}, awk_vars, output)
-        
+
         return '\n'.join(output)
-    
+
     def _execute_for_in_loop(self, code, fields, variables, output):
         """Execute for-in loop for associative arrays"""
         import re
-        
+
         # First, we need to execute any statements before the for loop
         # This includes array assignments
         statements = code.split(';')
-        
+
         for statement in statements:
             statement = statement.strip()
             if not statement:
                 continue
-                
+
             # Check if this is a for-in loop
             if 'for(' in statement or 'for (' in statement:
                 # Parse for(var in array) { actions }
                 for_pattern = r'for\s*\(\s*(\w+)\s+in\s+(\w+)\s*\)\s*(.+)'
                 match = re.search(for_pattern, statement)
-                
+
                 if match:
                     loop_var = match.group(1)
                     array_name = match.group(2)
                     rest = match.group(3).strip()
-                    
+
                     # Extract loop body
                     if rest.startswith('{'):
                         # Find matching closing brace
@@ -248,36 +252,36 @@ Common patterns:
                     else:
                         # Single statement without braces
                         loop_body = rest
-                    
+
                     # Check if the array exists in variables
                     if array_name in variables and isinstance(variables[array_name], dict):
                         # Iterate over the associative array
                         for key in variables[array_name]:
                             # Set the loop variable
                             variables[loop_var] = key
-                            
+
                             # Execute the loop body
                             self._execute_action(loop_body, fields, variables, output)
             else:
                 # Execute non-loop statement (like array assignments)
                 self._execute_action(statement, fields, variables, output)
-    
+
     def _match_pattern(self, pattern, line, fields, variables):
         """Check if pattern matches the current line"""
         if not pattern:
             return True
-        
+
         # Regular expression pattern
         if pattern.startswith('/') and pattern.endswith('/'):
             regex = pattern[1:-1]
             return bool(re.search(regex, line))
-        
+
         # Field comparison: $1=="value"
         field_match = re.match(r'\$(\d+)\s*([=!<>]+)\s*["\']?([^"\']*)["\']?', pattern)
         if field_match:
             field_num, operator, value = field_match.groups()
             field_value = fields.get(field_num, '')
-            
+
             if operator == '==':
                 return field_value == value
             elif operator == '!=':
@@ -292,14 +296,14 @@ Common patterns:
                     return float(field_value) < float(value)
                 except ValueError:
                     return field_value < value
-        
+
         # Line number comparison: NR==1
         nr_match = re.match(r'NR\s*([=!<>]+)\s*(\d+)', pattern)
         if nr_match:
             operator, value = nr_match.groups()
             nr = variables['NR']
             value = int(value)
-            
+
             if operator == '==':
                 return nr == value
             elif operator == '!=':
@@ -308,34 +312,34 @@ Common patterns:
                 return nr > value
             elif operator == '<':
                 return nr < value
-        
+
         return False
-    
+
     def _execute_action(self, action, fields, variables, output):
         """Execute an AWK action"""
         action = action.strip()
-        
+
         # Handle multiple statements separated by semicolon
         if ';' in action:
             statements = action.split(';')
             for statement in statements:
                 self._execute_action(statement.strip(), fields, variables, output)
             return
-        
+
         # Handle printf statements
         if action.startswith('printf'):
             printf_args = action[6:].strip()
-            
+
             # Parse printf arguments
             import re
-            
+
             # Find the format string and arguments
             if printf_args.startswith('"'):
                 # Extract format string
                 end_quote = printf_args.index('"', 1)
                 format_str = printf_args[1:end_quote]
                 remaining = printf_args[end_quote+1:].strip()
-                
+
                 # Parse arguments after format string
                 args = []
                 if remaining.startswith(','):
@@ -360,18 +364,18 @@ Common patterns:
                             # Try to evaluate as number or expression
                             try:
                                 args.append(eval(part, {"__builtins__": {}}, variables))
-                            except:
+                            except Exception:
                                 args.append(part)
-                
+
                 # Format the output
                 try:
                     # Handle different format specifiers
                     formatted = format_str
-                    
+
                     # Simple replacement for common formats
                     import re
                     format_specs = re.findall(r'%[-+0 #]*\*?(?:\d+|\*)?(?:\.(?:\d+|\*))?[hlL]?[diouxXeEfFgGcrsa%]', format_str)
-                    
+
                     for i, spec in enumerate(format_specs):
                         if i < len(args):
                             arg = args[i]
@@ -399,38 +403,40 @@ Common patterns:
                                     formatted = formatted.replace(spec, str(int(float(str(arg)))).rjust(width), 1)
                             else:
                                 formatted = formatted.replace(spec, str(arg), 1)
-                    
+
                     # Don't add newline for printf (unlike print)
                     output.append(formatted)
-                except Exception as e:
+                except Exception:
                     output.append(format_str % tuple(args) if args else format_str)
             return
-        
+
         # Handle print statements
         elif action.startswith('print'):
             print_args = action[5:].strip()
-            
+
             if not print_args:
                 # Print whole line
                 if '0' in fields:
                     output.append(fields['0'])
+                else:
+                    output.append("")
             else:
                 # Parse print arguments
                 result = []
-                
+
                 # Handle string literals and expressions
                 import re
-                
+
                 # Parse print arguments more intelligently
                 # Handle space-separated items with string literals properly
                 parts = []
                 current = ""
                 in_quotes = False
                 i = 0
-                
+
                 while i < len(print_args):
                     char = print_args[i]
-                    
+
                     if char == '"':
                         # Start or end of string literal
                         if not in_quotes:
@@ -459,18 +465,18 @@ Common patterns:
                             current = ""
                     else:
                         current += char
-                    
+
                     i += 1
-                
+
                 # Add any remaining content
                 if current.strip():
                     parts.append(current.strip())
-                
-                strings_copy = list(re.findall(r'"([^"]*)"', print_args)) if '"' in print_args else []
-                
+
+                list(re.findall(r'"([^"]*)"', print_args)) if '"' in print_args else []
+
                 for part in parts:
                     part = part.strip()
-                    
+
                     # String literal
                     if part.startswith('"') and part.endswith('"'):
                         result.append(part[1:-1])
@@ -497,7 +503,7 @@ Common patterns:
                             else:
                                 value = eval(expr, {"__builtins__": {}}, {})
                             result.append(str(value))
-                        except Exception as e:
+                        except Exception:
                             # If evaluation fails, try to output the expression literally
                             result.append(part)
                     # Array element reference: array[key]
@@ -507,13 +513,13 @@ Common patterns:
                         if array_match:
                             array_name = array_match.group(1)
                             key = array_match.group(2).strip()
-                            
+
                             # Process key
                             if key.startswith('"') and key.endswith('"'):
                                 key = key[1:-1]
                             elif key in variables:
                                 key = str(variables[key])
-                            
+
                             # Get value from array
                             if array_name in variables and isinstance(variables[array_name], dict):
                                 if key in variables[array_name]:
@@ -530,9 +536,9 @@ Common patterns:
                             pass
                         else:
                             result.append(str(val))
-                
+
                 output.append(variables.get('OFS', ' ').join(result))
-        
+
         # Handle variable operations
         elif '++' in action:
             # Variable increment: count++
@@ -547,7 +553,7 @@ Common patterns:
                     array_name = array_match.group(1)
                     key = array_match.group(2).strip()
                     expr = array_match.group(3).strip()
-                    
+
                     # Process key
                     if key.startswith('"') and key.endswith('"'):
                         key = key[1:-1]
@@ -555,13 +561,13 @@ Common patterns:
                         field_num = key[1:]
                         if field_num.isdigit():
                             key = fields.get(field_num, '')
-                    
+
                     # Initialize array if needed
                     if array_name not in variables:
                         variables[array_name] = {}
                     if not isinstance(variables[array_name], dict):
                         variables[array_name] = {}
-                    
+
                     # Evaluate expression
                     value = 0
                     if expr.startswith('$'):
@@ -576,18 +582,18 @@ Common patterns:
                             value = float(expr)
                         except ValueError:
                             value = 0
-                    
+
                     # Increment the array element
                     if key not in variables[array_name]:
                         variables[array_name][key] = 0
                     variables[array_name][key] = variables[array_name].get(key, 0) + value
                     return
-            
+
             # Regular variable increment: sum+=$1
             var_name, expr = action.split('+=', 1)
             var_name = var_name.strip()
             expr = expr.strip()
-            
+
             # Evaluate expression
             if expr.startswith('$'):
                 field_num = expr[1:]
@@ -597,7 +603,7 @@ Common patterns:
                         variables[var_name] = variables.get(var_name, 0) + float(value)
                     except ValueError:
                         pass
-        
+
         # Handle simple variable assignment
         elif '=' in action and not any(op in action for op in ['==', '!=', '>=', '<=']):
             # Check for array assignment like array[key]=value
@@ -608,7 +614,7 @@ Common patterns:
                     array_name = array_match.group(1)
                     key = array_match.group(2).strip()
                     value = array_match.group(3).strip()
-                    
+
                     # Remove quotes from key if present
                     if key.startswith('"') and key.endswith('"'):
                         key = key[1:-1]
@@ -617,13 +623,13 @@ Common patterns:
                         field_num = key[1:]
                         if field_num.isdigit():
                             key = fields.get(field_num, '')
-                    
+
                     # Initialize array if it doesn't exist
                     if array_name not in variables:
                         variables[array_name] = {}
                     if not isinstance(variables[array_name], dict):
                         variables[array_name] = {}
-                    
+
                     # Process value
                     if value.startswith('"') and value.endswith('"'):
                         value = value[1:-1]
@@ -639,18 +645,18 @@ Common patterns:
                                 if not isinstance(val, dict):
                                     expr = expr.replace(var, str(val))
                             value = eval(expr, {"__builtins__": {}}, {})
-                        except:
+                        except Exception:
                             pass
-                    
+
                     # Store in associative array
                     variables[array_name][key] = value
                     return
-            
+
             # Regular variable assignment
             var_name, value = action.split('=', 1)
             var_name = var_name.strip()
             value = value.strip()
-            
+
             # Remove quotes if present
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
@@ -668,7 +674,7 @@ Common patterns:
                         expr = expr.replace(var, str(val))
                     # Evaluate the expression
                     value = eval(expr, {"__builtins__": {}}, {})
-                except:
+                except Exception:
                     pass  # Keep original value if evaluation fails
-            
+
             variables[var_name] = value

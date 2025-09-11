@@ -12,7 +12,7 @@ class ClearCommand(ShellCommand):
         "Clears the terminal display using ANSI escape codes."
     )
     category = "system"
-    
+
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
         # Ignore any extra arguments.

@@ -7,11 +7,11 @@ class MkdirCommand(ShellCommand):
     name = "mkdir"
     help_text = "mkdir - Create directory\nUsage: mkdir [-p] [directory]..."
     category = "file"
-    
+
     def execute(self, args):
         if not args:
             return "mkdir: missing operand"
-        
+
         # Check for -p flag
         create_parents = False
         dirs = []
@@ -20,10 +20,10 @@ class MkdirCommand(ShellCommand):
                 create_parents = True
             elif not arg.startswith('-'):
                 dirs.append(arg)
-            
+
         if not dirs:
             return "mkdir: missing operand"
-            
+
         for path in dirs:
             if create_parents:
                 # Create parent directories as needed
@@ -37,5 +37,5 @@ class MkdirCommand(ShellCommand):
             else:
                 if not self.shell.fs.mkdir(path):
                     return f"mkdir: cannot create directory '{path}'"
-                
+
         return ""

@@ -8,23 +8,23 @@ class MvCommand(ShellCommand):
     name = "mv"
     help_text = "mv - Move or rename files and directories\nUsage: mv [source...] destination"
     category = "file"
-    
+
     def execute(self, args):
         if len(args) < 2:
             return "mv: missing operand"
-        
+
         *sources, destination = args
-        
+
         # Check if destination is a directory if multiple sources are provided
         if len(sources) > 1:
             if not self._is_directory(destination):
                 return f"mv: target '{destination}' is not a directory"
-        
+
         for src in sources:
             # Check if source exists
             if not self._file_exists(src):
                 return f"mv: cannot stat '{src}': No such file or directory"
-            
+
             # Determine destination path
             if self._is_directory(destination):
                 # If destination is a directory, put the file inside the directory
@@ -32,22 +32,22 @@ class MvCommand(ShellCommand):
                 dest_path = os.path.join(destination, src_basename)
             else:
                 dest_path = destination
-            
+
             # Read content of source file
             content = self.shell.fs.read_file(src)
             if content is None:
                 return f"mv: cannot read '{src}': Permission denied or file not found"
-            
+
             # Write content to destination file
             if not self.shell.fs.write_file(dest_path, content):
                 return f"mv: failed to write to '{dest_path}'"
-            
+
             # Remove source file
             if not self._remove_file(src):
                 return f"mv: file copied, but failed to remove original at '{src}'"
-                
+
         return ""
-    
+
     def _is_directory(self, path):
         """Check if a path is a directory using various possible filesystem APIs."""
         try:
@@ -70,7 +70,7 @@ class MvCommand(ShellCommand):
         except Exception:
             # If any error occurs, assume it's not a directory
             return False
-    
+
     def _file_exists(self, path):
         """Check if a file exists using various possible filesystem APIs."""
         try:
@@ -87,7 +87,7 @@ class MvCommand(ShellCommand):
         except Exception:
             # If any error occurs, assume the file doesn't exist
             return False
-    
+
     def _remove_file(self, path):
         """Remove a file using various possible filesystem APIs."""
         try:

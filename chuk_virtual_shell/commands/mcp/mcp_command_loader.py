@@ -8,17 +8,13 @@ It delegates both input and output formatting to separate modules:
   - mcp_output_formatter.py
 """
 import logging
-import asyncio
-import json
-import uuid
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 # Virtual Shell import
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 # MCP client imports
-from chuk_mcp.mcp_client.messages.json_rpc_message import JSONRPCMessage
-from chuk_mcp.mcp_client.messages.tools.send_messages import send_tools_call
+from chuk_mcp.mcp_client import send_tools_call  # type: ignore
 
 # Import separate formatters
 from chuk_virtual_shell.commands.mcp.mcp_output_formatter import (
@@ -49,18 +45,18 @@ def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
         name = tool_name
         help_text = description
         category = "mcp"  # Categorize all MCP commands under "mcp"
-        
+
         def __init__(self, shell_context):
             super().__init__(shell_context)
             self.mcp_config = mcp_config
             self.tool_schema = input_schema
-        
+
         def execute(self, args):
             """
             Synchronous fallback indicating that async execution is preferred.
             """
             return f"MCP command '{tool_name}' should be executed asynchronously for best results."
-        
+
         async def execute_async(self, args):
             """
             Asynchronously connect to the MCP server, execute the tool, and return formatted output.
@@ -78,9 +74,9 @@ def create_mcp_command_class(tool: Dict[str, Any], mcp_config: Any) -> type:
 
             try:
                 # Import here to avoid circular references.
-                from chuk_mcp.mcp_client.transport.stdio.stdio_client import stdio_client
-                from chuk_mcp.mcp_client.messages.initialize.send_messages import send_initialize
-                from chuk_mcp.mcp_client.messages.ping.send_messages import send_ping
+                from chuk_mcp.mcp_client.transport.stdio.stdio_client import stdio_client  # type: ignore
+                from chuk_mcp.mcp_client.messages.initialize.send_messages import send_initialize  # type: ignore
+                from chuk_mcp.mcp_client.messages.ping.send_messages import send_ping  # type: ignore
 
                 # Connect to the MCP server.
                 async with stdio_client(self.mcp_config) as (read_stream, write_stream):
@@ -132,10 +128,7 @@ async def load_mcp_tools_for_server(mcp_config: Any) -> List[Dict[str, Any]]:
     logger.info(f"Loading tools from MCP server: {server_name}")
 
     try:
-        from chuk_mcp.mcp_client.transport.stdio.stdio_client import stdio_client
-        from chuk_mcp.mcp_client.messages.initialize.send_messages import send_initialize
-        from chuk_mcp.mcp_client.messages.ping.send_messages import send_ping
-        from chuk_mcp.mcp_client.messages.tools.send_messages import send_tools_list
+        from chuk_mcp.mcp_client import stdio_client, send_initialize, send_ping, send_tools_list  # type: ignore
 
         async with stdio_client(mcp_config) as (read_stream, write_stream):
             # Initialize connection with a 15-second timeout.
@@ -161,7 +154,7 @@ async def load_mcp_tools_for_server(mcp_config: Any) -> List[Dict[str, Any]]:
 
             return tools
 
-    except Exception as e:
+    except Exception:
         logger.exception(f"Error loading tools from MCP server: {server_name}")
         return []
 
@@ -204,5 +197,5 @@ async def register_mcp_commands(shell) -> None:
                 except Exception as exc:
                     logger.exception(f"Error registering MCP command for tool '{tool_name}': {exc}")
 
-        except Exception as e:
+        except Exception:
             logger.exception(f"Error processing MCP server: {server_name}")

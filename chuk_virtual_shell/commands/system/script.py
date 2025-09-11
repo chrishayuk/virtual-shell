@@ -13,14 +13,14 @@ class ScriptCommand(ShellCommand):
         "Runs the specified shell script(s) using the virtual shell environment."
     )
     category = "system"
-    
+
     def execute(self, args):
         if not args:
             return "script: missing operand"
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
         parser.add_argument('filenames', nargs='+', help='One or more script file paths to run')
         parsed_args, unknown = parser.parse_known_args(args)
-        
+
         results = []
         runner = ScriptRunner(self.shell)
         for script_path in parsed_args.filenames:

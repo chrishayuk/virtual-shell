@@ -10,7 +10,7 @@ class WhoamiCommand(ShellCommand):
         "Usage: whoami"
     )
     category = "system"
-    
+
     def execute(self, args):
         if args:
             return self.get_help()

@@ -414,7 +414,7 @@ def test_uniq_non_consecutive(shell):
 
 def test_wc_all_counts(shell):
     """Test wc showing all counts"""
-    shell.fs.write_file("/tmp/test.txt", "hello world\ntest line")
+    shell.fs.write_file("/tmp/test.txt", "hello world\ntest line\n")
     
     result = shell.execute('wc /tmp/test.txt')
     # Should show lines, words, bytes

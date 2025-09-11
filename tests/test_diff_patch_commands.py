@@ -141,7 +141,7 @@ def test_patch_reverse(shell):
     shell.fs.write_file("/tmp/forward.patch", patch_content)
     
     # Apply reverse patch (should change NEW to OLD)
-    result = shell.execute('patch -R /tmp/file.txt < /tmp/forward.patch')
+    shell.execute('patch -R /tmp/file.txt < /tmp/forward.patch')
     
     content = shell.fs.read_file("/tmp/file.txt")
     assert content == "OLD"
@@ -206,7 +206,7 @@ def test_patch_input_file_option(shell):
     shell.fs.write_file("/tmp/changes.patch", patch_content)
     
     # Apply patch with -i
-    result = shell.execute('patch -i /tmp/changes.patch /tmp/target.txt')
+    shell.execute('patch -i /tmp/changes.patch /tmp/target.txt')
     
     content = shell.fs.read_file("/tmp/target.txt")
     assert content == "bar"

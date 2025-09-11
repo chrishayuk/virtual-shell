@@ -2,6 +2,7 @@
 import os
 import importlib
 import inspect
+from typing import Dict, Any
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 class CommandLoader:
@@ -18,7 +19,7 @@ class CommandLoader:
         Returns:
             dict: Dictionary of command instances (name -> command)
         """
-        commands = {}
+        commands: Dict[str, Any] = {}
         # Determine the root directory for the commands package.
         # __file__ refers to this file: chuk_virtual_shell/commands/command_loader.py
         base_dir = os.path.dirname(__file__)
@@ -66,7 +67,7 @@ class CommandLoader:
         Returns:
             dict: Dictionary of command instances (name -> command)
         """
-        commands = {}
+        commands: Dict[str, Any] = {}
         if not os.path.exists(path):
             return commands
 

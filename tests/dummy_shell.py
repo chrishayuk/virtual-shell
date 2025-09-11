@@ -70,9 +70,18 @@ class DummyShell:
             return text
         elif command == "pwd":
             return self.fs.pwd()
-        elif command.startswith("cat "):
-            filename = command[4:].strip()
-            return self.fs.read_file(filename) or f"cat: {filename}: No such file"
+        elif command.startswith("cat"):
+            # Handle cat with arguments
+            if len(command) > 3 and command[3:4] in [' ', '\t']:
+                filename = command[4:].strip()
+                return self.fs.read_file(filename) or f"cat: {filename}: No such file"
+            # Handle cat without arguments (reads from stdin)
+            elif command == "cat":
+                if hasattr(self, '_stdin_buffer') and self._stdin_buffer:
+                    result = self._stdin_buffer
+                    self._stdin_buffer = None
+                    return result
+                return "cat: missing operand"
         elif command == "whoami":
             return self.current_user
         else:

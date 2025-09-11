@@ -6,7 +6,6 @@ from tests.dummy_shell import DummyShell
 
 @pytest.fixture
 def time_command():
-    from chuk_virtual_shell.commands.system.time import TimeCommand
     dummy_shell = DummyShell({})
     dummy_shell.start_time = time.time()
     # Simulate a slight delay (e.g., 0.001 sec) in command execution.

@@ -23,7 +23,7 @@ Hello World
 This is a test
 EOF
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     # Verify file was created with correct content
     content = shell.fs.read_file("/tmp/test.txt")
@@ -41,7 +41,7 @@ Bob,25,Designer
 Charlie,35,Manager
 DATA
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content = shell.fs.read_file("/tmp/data.csv")
     assert "Alice,30,Engineer" in content
@@ -62,7 +62,7 @@ Additional line 1
 Additional line 2
 END
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content = shell.fs.read_file("/tmp/append.txt")
     assert "Initial content" in content
@@ -82,7 +82,7 @@ Line with 'single quotes'
 Line with special chars: !@#$%^&*()
 DELIMITER
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content = shell.fs.read_file("/tmp/special.txt")
     assert "$variable" in content
@@ -104,7 +104,7 @@ cat > /tmp/file2.txt << EOF2
 Content for file 2
 EOF2
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content1 = shell.fs.read_file("/tmp/file1.txt")
     content2 = shell.fs.read_file("/tmp/file2.txt")
@@ -123,7 +123,7 @@ cat > /tmp/indented.txt << EOF
     Back to first level
 EOF
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content = shell.fs.read_file("/tmp/indented.txt")
     lines = content.split('\n')
@@ -140,7 +140,7 @@ def test_heredoc_empty_content(shell_with_runner):
 cat > /tmp/empty.txt << EOF
 EOF
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content = shell.fs.read_file("/tmp/empty.txt")
     assert content == ""
@@ -156,7 +156,7 @@ Test content
 EOF
 echo "Command after heredoc" > /tmp/after.txt
 """
-    result = runner.run_script_content(script)
+    runner.run_script_content(script)
     
     content1 = shell.fs.read_file("/tmp/test.txt")
     content2 = shell.fs.read_file("/tmp/after.txt")

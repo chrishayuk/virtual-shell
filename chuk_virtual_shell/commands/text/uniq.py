@@ -16,7 +16,7 @@ Options:
   -s NUM    Skip NUM characters
   -w NUM    Compare at most NUM characters"""
     category = "text"
-    
+
     def execute(self, args):
         # Parse options
         options = {
@@ -28,10 +28,10 @@ Options:
             'skip_chars': 0,
             'max_chars': None
         }
-        
+
         files = []
         i = 0
-        
+
         # Parse arguments
         while i < len(args):
             arg = args[i]
@@ -84,7 +84,7 @@ Options:
             else:
                 files.append(arg)
             i += 1
-        
+
         # Get input content
         if not files:
             # Use stdin if available
@@ -98,36 +98,36 @@ Options:
             content = self.shell.fs.read_file(input_file)
             if content is None:
                 return f"uniq: {input_file}: No such file or directory"
-        
+
         # Process the content
         result = self._process_uniq(content, options)
-        
+
         # Handle output file if specified
         if len(files) > 1:
             output_file = files[1]
             self.shell.fs.write_file(output_file, result)
             return ""
-        
+
         return result
-    
+
     def _process_uniq(self, content, options):
         """Process content for unique/duplicate lines"""
         if not content:
             return ""
-        
+
         lines = content.splitlines()
         if not lines:
             return ""
-        
+
         result = []
         prev_line = None
         prev_compare = None
         count = 0
-        
+
         for line in lines:
             # Prepare line for comparison
             compare_line = self._prepare_for_comparison(line, options)
-            
+
             if prev_compare is None:
                 # First line
                 prev_line = line
@@ -142,13 +142,13 @@ Options:
                 prev_line = line
                 prev_compare = compare_line
                 count = 1
-        
+
         # Output the last line
         if prev_line is not None:
             self._output_line(result, prev_line, count, options)
-        
+
         return '\n'.join(result)
-    
+
     def _prepare_for_comparison(self, line, options):
         """Prepare a line for comparison based on options"""
         # Skip fields if requested
@@ -158,24 +158,24 @@ Options:
                 line = ' '.join(fields[options['skip_fields']:])
             else:
                 line = ""
-        
+
         # Skip characters if requested
         if options['skip_chars'] > 0:
             if options['skip_chars'] < len(line):
                 line = line[options['skip_chars']:]
             else:
                 line = ""
-        
+
         # Limit comparison to max_chars
         if options['max_chars'] is not None:
             line = line[:options['max_chars']]
-        
+
         # Handle case-insensitive comparison
         if options['ignore_case']:
             line = line.lower()
-        
+
         return line
-    
+
     def _output_line(self, result, line, count, options):
         """Output a line based on options and count"""
         # Check if we should output this line
@@ -183,7 +183,7 @@ Options:
             return
         if options['unique_only'] and count > 1:
             return
-        
+
         # Format output
         if options['count']:
             result.append(f"   {count:4d} {line}")

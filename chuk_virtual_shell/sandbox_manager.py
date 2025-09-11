@@ -1,11 +1,10 @@
-import os
 import sys
 import uuid
 import logging
 import asyncio
 
 try:
-    import micropip
+    import micropip  # type: ignore
     HAS_MICROPIP = True
 except ImportError:
     HAS_MICROPIP = False
@@ -53,7 +52,7 @@ class SandboxSession:
             logger.info(f"Installing {package_name} via micropip...")
             return asyncio.ensure_future(micropip.install(package_name))
         else:
-            # If not in Pyodide, or micropip is unavailable, 
+            # If not in Pyodide, or micropip is unavailable,
             # fallback to shell-based `pip install <pkg>`
             # (Assumes that `pip` is available in the environment.)
             logger.info(f"Installing {package_name} via pip in shell...")

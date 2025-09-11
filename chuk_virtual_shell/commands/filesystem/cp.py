@@ -7,31 +7,76 @@ from chuk_virtual_shell.commands.command_base import ShellCommand
 
 class CpCommand(ShellCommand):
     name = "cp"
-    help_text = "cp - Copy files and directories\nUsage: cp [source...] destination"
+    help_text = """cp - Copy files and directories
+Usage: cp [OPTIONS] source... destination
+Options:
+  -r, -R    Copy directories recursively
+  -f        Force (ignore nonexistent files, never prompt)
+  -i        Interactive (prompt before overwrite)
+  -v        Verbose (explain what is being done)
+  -p        Preserve mode, ownership, timestamps"""
     category = "file"
-    
+
     def execute(self, args):
-        if len(args) < 2:
+        if not args:
             return "cp: missing operand"
         
-        *sources, destination = args
+        # Parse options
+        recursive = False
+        force = False
+        interactive = False
+        verbose = False
         
+        sources = []
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            if arg.startswith('-'):
+                if 'r' in arg or 'R' in arg:
+                    recursive = True
+                if 'f' in arg:
+                    force = True
+                if 'i' in arg:
+                    interactive = True
+                if 'v' in arg:
+                    verbose = True
+                if 'p' in arg:
+                    pass
+                # Handle long-form options
+                if arg == '--help':
+                    return self.help_text
+            else:
+                sources.append(arg)
+            i += 1
+        
+        if len(sources) < 2:
+            return "cp: missing operand"
+        
+        *src_files, destination = sources
+
         # Check if destination is a directory if multiple sources are provided
-        if len(sources) > 1:
+        if len(src_files) > 1:
             dest_info = self.shell.fs.get_node_info(destination)
             if not dest_info or not dest_info.is_dir:
                 return f"cp: target '{destination}' is not a directory"
-        
-        for src in sources:
-            # Resolve source path
-            src_resolved = self.shell.fs.resolve_path(src)
-            dest_resolved = self.shell.fs.resolve_path(destination)
-            
+
+        results = []
+        for src in src_files:
+            # Resolve source path (remove trailing slash for directories)
+            src_resolved = self.shell.fs.resolve_path(src).rstrip('/')
+            dest_resolved = self.shell.fs.resolve_path(destination).rstrip('/')
+
             # Check if source exists
             src_info = self.shell.fs.get_node_info(src_resolved)
             if not src_info:
-                return f"cp: cannot stat '{src}': No such file or directory"
-            
+                if not force:
+                    return f"cp: cannot stat '{src}': No such file or directory"
+                continue
+
+            # Check if copying to self
+            if src_resolved == dest_resolved:
+                return f"cp: '{src}' and '{destination}' are the same file"
+
             # Determine destination path
             dest_info = self.shell.fs.get_node_info(dest_resolved)
             if dest_info and dest_info.is_dir:
@@ -40,44 +85,76 @@ class CpCommand(ShellCommand):
                 dest_path = os.path.join(dest_resolved, src_basename)
             else:
                 dest_path = dest_resolved
-            
-            # Handle files vs directories
-            if not src_info.is_dir:
+
+            # Handle directories
+            if src_info.is_dir:
+                if not recursive:
+                    return f"cp: omitting directory '{src}'"
+                
+                # Use copy_dir if available
+                if hasattr(self.shell.fs, 'copy_dir'):
+                    if self.shell.fs.copy_dir(src_resolved, dest_path):
+                        if verbose:
+                            results.append(f"'{src}' -> '{dest_path}'")
+                    else:
+                        return f"cp: failed to copy directory '{src}' to '{dest_path}'"
+                else:
+                    # Manual recursive copy
+                    if not self._copy_directory_recursive(src_resolved, dest_path, verbose):
+                        return f"cp: failed to copy directory '{src}' to '{dest_path}'"
+                    if verbose:
+                        results.append(f"'{src}' -> '{dest_path}'")
+            else:
                 # Copy file
+                # Check for interactive overwrite
+                if interactive and self.shell.fs.exists(dest_path):
+                    # In non-interactive mode, skip
+                    continue
+                    
                 content = self.shell.fs.read_file(src_resolved)
                 if content is None:
-                    return f"cp: cannot read '{src}': Permission denied or file not found"
-                
+                    if not force:
+                        return f"cp: cannot read '{src}': Permission denied or file not found"
+                    continue
+
                 if not self.shell.fs.write_file(dest_path, content):
-                    return f"cp: failed to write to '{dest_path}'"
+                    if not force:
+                        return f"cp: failed to write to '{dest_path}'"
+                elif verbose:
+                    results.append(f"'{src}' -> '{dest_path}'")
+
+        return '\n'.join(results) if results else ""
+
+    def _copy_directory_recursive(self, src, dst, verbose=False):
+        """Recursively copy a directory"""
+        # Create destination directory
+        if not self.shell.fs.exists(dst):
+            if not self.shell.fs.mkdir(dst):
+                return False
+
+        # List source directory contents
+        if hasattr(self.shell.fs, 'list_dir'):
+            items = self.shell.fs.list_dir(src)
+        elif hasattr(self.shell.fs, 'ls'):
+            items = self.shell.fs.ls(src)
+        else:
+            return False
+
+        # Copy each item
+        for item in items:
+            src_path = os.path.join(src, item)
+            dst_path = os.path.join(dst, item)
+            
+            src_info = self.shell.fs.get_node_info(src_path)
+            if src_info and src_info.is_dir:
+                # Recursively copy subdirectory
+                if not self._copy_directory_recursive(src_path, dst_path, verbose):
+                    return False
             else:
-                # Copy directory - use the fs.cp method if available
-                if hasattr(self.shell.fs, 'cp'):
-                    if not self.shell.fs.cp(src_resolved, dest_path):
-                        return f"cp: failed to copy directory '{src}' to '{destination}'"
-                else:
-                    # Manual recursive copy if fs.cp is not available
-                    # First create the destination directory
-                    dest_dir_info = self.shell.fs.get_node_info(dest_path)
-                    if not dest_dir_info:
-                        if not self.shell.fs.mkdir(dest_path):
-                            return f"cp: failed to create directory '{dest_path}'"
-                    
-                    # Copy files recursively
-                    for item in self.shell.fs.ls(src_resolved):
-                        item_src = os.path.join(src_resolved, item)
-                        item_dest = os.path.join(dest_path, item)
-                        
-                        item_info = self.shell.fs.get_node_info(item_src)
-                        if item_info.is_dir:
-                            # Recursively copy subdirectories
-                            sub_result = self.execute([item_src, item_dest])
-                            if sub_result:  # Error occurred
-                                return sub_result
-                        else:
-                            # Copy file
-                            content = self.shell.fs.read_file(item_src)
-                            if not self.shell.fs.write_file(item_dest, content):
-                                return f"cp: failed to copy '{item_src}' to '{item_dest}'"
-                
-        return ""
+                # Copy file
+                content = self.shell.fs.read_file(src_path)
+                if content is not None:
+                    if not self.shell.fs.write_file(dst_path, content):
+                        return False
+        
+        return True

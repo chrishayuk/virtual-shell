@@ -12,7 +12,7 @@ class ExitCommand(ShellCommand):
         "Exits the shell session gracefully."
     )
     category = "system"
-    
+
     def execute(self, args):
         parser = argparse.ArgumentParser(prog=self.name, add_help=False)
         # Accept an optional --force flag but ignore any unknown extra arguments.

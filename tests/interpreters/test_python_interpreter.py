@@ -2,7 +2,6 @@
 tests/interpreters/test_python_interpreter.py - Tests for Python script interpreter
 """
 import pytest
-import asyncio
 from chuk_virtual_shell.interpreters.python_interpreter import VirtualPythonInterpreter
 from chuk_virtual_shell.commands.system.python import PythonCommand
 from tests.dummy_shell import DummyShell
@@ -11,8 +10,8 @@ from tests.dummy_shell import DummyShell
 def python_setup():
     # Create shell with some test files
     files = {
-        "data.txt": "Hello World",
-        "numbers.txt": "1\n2\n3\n4\n5",
+        "/data.txt": "Hello World",
+        "/numbers.txt": "1\n2\n3\n4\n5",
     }
     shell = DummyShell(files)
     interpreter = VirtualPythonInterpreter(shell)
@@ -64,7 +63,7 @@ print('File written')
     assert "File written" in result
     
     # Check file was created
-    content = shell.fs.read_file('output.txt')
+    content = shell.fs.read_file('/output.txt')
     assert content == "Test Output"
 
 @pytest.mark.asyncio
@@ -72,7 +71,7 @@ async def test_file_operations_append(python_setup):
     interpreter, _, shell = python_setup
     
     # Create initial file
-    shell.fs.write_file('append.txt', 'Initial\n')
+    shell.fs.write_file('/append.txt', 'Initial\n')
     
     code = """
 with open('append.txt', 'a') as f:
@@ -80,7 +79,7 @@ with open('append.txt', 'a') as f:
 """
     await interpreter.execute_code(code)
     
-    content = shell.fs.read_file('append.txt')
+    content = shell.fs.read_file('/append.txt')
     assert content == "Initial\nAppended"
 
 @pytest.mark.asyncio
@@ -173,14 +172,14 @@ def main():
 if __name__ == '__main__':
     main()
 """
-    shell.fs.write_file('test_script.py', script)
+    shell.fs.write_file('/test_script.py', script)
     
-    result = await interpreter.run_script('test_script.py')
+    result = await interpreter.run_script('/test_script.py')
     assert "Script running" in result
     assert "Found" in result
     
     # Check output file
-    content = shell.fs.read_file('script_output.txt')
+    content = shell.fs.read_file('/script_output.txt')
     assert content == "Script was here"
 
 @pytest.mark.asyncio
@@ -192,10 +191,10 @@ import sys
 print('Script name:', sys.argv[0])
 print('Arguments:', sys.argv[1:])
 """
-    shell.fs.write_file('args_script.py', script)
+    shell.fs.write_file('/args_script.py', script)
     
-    result = await interpreter.run_script('args_script.py', ['arg1', 'arg2'])
-    assert "Script name: args_script.py" in result
+    result = await interpreter.run_script('/args_script.py', ['arg1', 'arg2'])
+    assert "Script name: /args_script.py" in result
     assert "['arg1', 'arg2']" in result
 
 def test_python_command_basic(python_setup):
@@ -209,9 +208,9 @@ def test_python_command_script(python_setup):
     _, python_command, shell = python_setup
     
     # Create a test script
-    shell.fs.write_file('hello.py', "print('Hello')\nprint('World')")
+    shell.fs.write_file('/hello.py', "print('Hello')\nprint('World')")
     
-    result = python_command.execute(['hello.py'])
+    result = python_command.execute(['/hello.py'])
     assert "Hello" in result
     assert "World" in result
 
@@ -237,7 +236,7 @@ async def test_file_iteration(python_setup):
     interpreter, _, shell = python_setup
     
     # Create file with multiple lines
-    shell.fs.write_file('lines.txt', 'Line 1\nLine 2\nLine 3')
+    shell.fs.write_file('/lines.txt', 'Line 1\nLine 2\nLine 3')
     
     code = """
 with open('lines.txt', 'r') as f:
@@ -262,7 +261,7 @@ print('Directory created')
     assert "Directory created" in result
     
     # Check directory was created
-    assert shell.fs.is_directory('new/nested/dir')
+    assert shell.fs.is_directory('/new/nested/dir')
 
 def test_python_sync_execution(python_setup):
     interpreter, _, shell = python_setup

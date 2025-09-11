@@ -19,16 +19,16 @@ Examples:
   sh script.sh          Execute script file
   sh -c "echo hello"    Execute command string"""
     category = "system"
-    
+
     def __init__(self, shell_context=None):
         super().__init__(shell_context)
         self.interpreter = None
-    
+
     async def execute_async(self, args):
         """Execute shell script or command asynchronously"""
         if not self.interpreter:
             self.interpreter = VirtualBashInterpreter(self.shell)
-        
+
         # Parse options
         options = {
             'command': False,
@@ -36,11 +36,11 @@ Examples:
             'debug': False,
             'verbose': False
         }
-        
+
         script_path = None
         command_string = None
         script_args = []
-        
+
         i = 0
         while i < len(args):
             arg = args[i]
@@ -64,30 +64,30 @@ Examples:
             else:
                 script_args.append(arg)
             i += 1
-        
+
         # Execute command string if -c was provided
         if options['command']:
             if command_string:
                 return await self.interpreter.execute_line(command_string)
             else:
                 return "sh: -c requires an argument"
-        
+
         # Execute script file
         if script_path:
             # Check if file exists
             if not self.shell.fs.exists(script_path):
                 return f"sh: {script_path}: No such file or directory"
-            
+
             # Check if it's a file
             if not self.shell.fs.is_file(script_path):
                 return f"sh: {script_path}: Is a directory"
-            
+
             # Execute the script
             return await self.interpreter.run_script(script_path)
-        
+
         # Interactive mode not supported
         return "sh: interactive mode not supported"
-    
+
     def execute(self, args):
         """Synchronous wrapper for async execution"""
         # Try to run async if possible
@@ -100,15 +100,15 @@ Examples:
             else:
                 # Create new event loop
                 return asyncio.run(self.execute_async(args))
-        except:
+        except Exception:
             # Fallback to sync execution with limited features
             return self._execute_sync(args)
-    
+
     def _execute_sync(self, args):
         """Simplified synchronous execution"""
         if not args:
             return "sh: interactive mode not supported"
-        
+
         # Handle -c option
         if '-c' in args:
             idx = args.index('-c')
@@ -116,17 +116,17 @@ Examples:
                 command = args[idx + 1]
                 return self.shell.execute(command)
             return "sh: -c requires an argument"
-        
+
         # Try to execute as script
         script_path = args[0]
         if not self.shell.fs.exists(script_path):
             return f"sh: {script_path}: No such file or directory"
-        
+
         # Read and execute script line by line (simplified)
         content = self.shell.fs.read_file(script_path)
         if content is None:
             return f"sh: {script_path}: Cannot read file"
-        
+
         results = []
         for line in content.splitlines():
             line = line.strip()
@@ -134,5 +134,5 @@ Examples:
                 result = self.shell.execute(line)
                 if result:
                     results.append(result)
-        
+
         return '\n'.join(results)

@@ -9,6 +9,33 @@ list available commands, and retrieve command executors.
 import logging
 from typing import Dict, Optional, Type
 
+# Navigation commands
+from chuk_virtual_shell.commands.navigation.ls import LsCommand
+from chuk_virtual_shell.commands.navigation.cd import CdCommand
+from chuk_virtual_shell.commands.navigation.pwd import PwdCommand
+
+# Filesystem commands
+from chuk_virtual_shell.commands.filesystem.mkdir import MkdirCommand
+from chuk_virtual_shell.commands.filesystem.touch import TouchCommand
+from chuk_virtual_shell.commands.filesystem.cat import CatCommand
+from chuk_virtual_shell.commands.filesystem.echo import EchoCommand
+from chuk_virtual_shell.commands.filesystem.rm import RmCommand
+from chuk_virtual_shell.commands.filesystem.rmdir import RmdirCommand
+
+# Environment commands
+from chuk_virtual_shell.commands.environment.env import EnvCommand
+from chuk_virtual_shell.commands.environment.export import ExportCommand
+
+# System commands (existing)
+from chuk_virtual_shell.commands.system.clear import ClearCommand
+from chuk_virtual_shell.commands.system.exit import ExitCommand
+from chuk_virtual_shell.commands.system.help import HelpCommand
+
+# System commands (new)
+from chuk_virtual_shell.commands.system.time import TimeCommand
+from chuk_virtual_shell.commands.system.uptime import UptimeCommand
+from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
+
 # Command registry dictionaries
 _COMMAND_EXECUTORS: Dict[str, object] = {}
 _COMMAND_CLASSES: Dict[str, Type] = {}
@@ -46,35 +73,6 @@ def list_commands() -> Dict[str, str]:
         name: (cmd.help_text.split('\n')[0] if cmd.help_text else name)
         for name, cmd in _COMMAND_CLASSES.items()
     }
-
-# Import command classes
-
-# Navigation commands
-from chuk_virtual_shell.commands.navigation.ls import LsCommand
-from chuk_virtual_shell.commands.navigation.cd import CdCommand
-from chuk_virtual_shell.commands.navigation.pwd import PwdCommand
-
-# Filesystem commands
-from chuk_virtual_shell.commands.filesystem.mkdir import MkdirCommand
-from chuk_virtual_shell.commands.filesystem.touch import TouchCommand
-from chuk_virtual_shell.commands.filesystem.cat import CatCommand
-from chuk_virtual_shell.commands.filesystem.echo import EchoCommand
-from chuk_virtual_shell.commands.filesystem.rm import RmCommand
-from chuk_virtual_shell.commands.filesystem.rmdir import RmdirCommand
-
-# Environment commands
-from chuk_virtual_shell.commands.environment.env import EnvCommand
-from chuk_virtual_shell.commands.environment.export import ExportCommand
-
-# System commands (existing)
-from chuk_virtual_shell.commands.system.clear import ClearCommand
-from chuk_virtual_shell.commands.system.exit import ExitCommand
-from chuk_virtual_shell.commands.system.help import HelpCommand
-
-# System commands (new)
-from chuk_virtual_shell.commands.system.time import TimeCommand
-from chuk_virtual_shell.commands.system.uptime import UptimeCommand
-from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
 
 # Register all command classes using a compact loop.
 for command in (
