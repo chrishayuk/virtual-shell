@@ -32,7 +32,23 @@ class DummyFileSystem:
         return content
 
     def write_file(self, path, content):
+        # Store the file with the exact path as key
         self.files[path] = content
+        
+        # Also update the parent directory's structure if it exists
+        # This ensures the file appears in directory listings
+        if '/' in path:
+            parent_path = '/'.join(path.split('/')[:-1])
+            filename = path.split('/')[-1]
+            
+            # If parent is root, handle specially
+            if parent_path == '':
+                parent_path = '/'
+            
+            # If parent directory exists and is a dict, add the file reference
+            if parent_path in self.files and isinstance(self.files[parent_path], dict):
+                self.files[parent_path][filename] = content
+        
         return True
 
     def mkdir(self, path):
@@ -45,6 +61,21 @@ class DummyFileSystem:
         # Remove file (not directory)
         if self.exists(path) and self.is_file(path):
             del self.files[path]
+            
+            # Also remove from parent directory's structure if it exists
+            if '/' in path:
+                parent_path = '/'.join(path.split('/')[:-1])
+                filename = path.split('/')[-1]
+                
+                # If parent is root, handle specially
+                if parent_path == '':
+                    parent_path = '/'
+                
+                # If parent directory exists and is a dict, remove the file reference
+                if parent_path in self.files and isinstance(self.files[parent_path], dict):
+                    if filename in self.files[parent_path]:
+                        del self.files[parent_path][filename]
+            
             return True
         return False
 
