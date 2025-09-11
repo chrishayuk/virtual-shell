@@ -118,12 +118,14 @@ All commands are implemented as separate classes that extend the `ShellCommand` 
 
 ### Available Commands
 
-- **Navigation**: ls, cd, pwd
-- **File Management**: cat, cp, echo, find, mkdir, more, mv, rm, rmdir, touch, df, du, quota
-- **Text Processing**: awk, diff, grep, head, patch, sed, sort, tail, uniq, wc
-- **Environment**: env, export
-- **System**: clear, exit, help, python, script, sh, time, uptime, whoami
-- **MCP**: Dynamically loaded MCP server commands
+The shell includes 47+ commands organized into logical categories. For complete documentation with usage examples, options, and integration guides, see the [Command Documentation](docs/README.md).
+
+- **[Navigation](docs/commands/navigation/README.md)**: ls, cd, pwd
+- **[File Management](docs/commands/filesystem/README.md)**: cat, cp, echo, find, mkdir, more, mv, rm, rmdir, touch, df, du, quota  
+- **[Text Processing](docs/commands/text/README.md)**: awk, diff, grep, head, patch, sed, sort, tail, uniq, wc
+- **[Environment](docs/commands/environment/README.md)**: env, export
+- **[System](docs/commands/system/README.md)**: clear, exit, help, python, script, sh, time, uptime, whoami
+- **[MCP Integration](docs/commands/mcp/README.md)**: Dynamically loaded MCP server commands
 
 ### Shell Redirection and Pipelines
 
@@ -174,6 +176,39 @@ grep ERROR < app.log | sort | uniq > unique_errors.txt
 
 # Complex pipeline with multiple stages
 cat access.log | awk '{print $1}' | sort | uniq -c | sort -rn > ip_stats.txt
+```
+
+## Documentation
+
+### Command Reference
+
+Complete documentation for all shell commands is available in the [`docs/`](docs/) directory:
+
+- **[Command Documentation Overview](docs/README.md)** - Summary of all command categories
+- **[Command Taxonomy Analysis](docs/COMMAND_TAXONOMY.md)** - Detailed analysis of command organization
+- **Individual Command Categories:**
+  - **[Filesystem Commands](docs/commands/filesystem/README.md)** - File and directory operations
+  - **[Navigation Commands](docs/commands/navigation/README.md)** - Directory navigation and listing
+  - **[Text Processing Commands](docs/commands/text/README.md)** - Text manipulation and analysis
+  - **[System Commands](docs/commands/system/README.md)** - Shell control and system utilities
+  - **[Environment Commands](docs/commands/environment/README.md)** - Environment variable management
+  - **[MCP Commands](docs/commands/mcp/README.md)** - Dynamic Model Context Protocol integration
+
+Each command includes detailed documentation with:
+- **Synopsis and description** - What the command does
+- **Options and arguments** - All available flags and parameters
+- **Usage examples** - Practical examples from basic to advanced
+- **Error handling** - Common error conditions and solutions
+- **Integration guides** - How commands work together
+- **Implementation notes** - Technical details for advanced users
+
+### Quick Command Reference
+
+For a quick overview of available commands by category:
+
+```bash
+help                    # Show all available commands
+help <command>          # Show detailed help for specific command
 ```
 
 ## Running Examples
