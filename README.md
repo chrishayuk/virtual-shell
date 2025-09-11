@@ -590,6 +590,89 @@ register_provider("custom", CustomStorageProvider)
 - Provider access can be controlled through appropriate credentials
 - Telnet server can be configured with access controls
 
+## Development
+
+### Setting Up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/chuk-virtual-shell.git
+cd chuk-virtual-shell
+
+# Install development dependencies
+make install
+
+# Run tests
+make test
+
+# Run with coverage
+make coverage
+
+# Run linting and formatting
+make lint
+make format
+```
+
+### Building and Publishing
+
+#### Prerequisites
+
+1. Create a PyPI account at https://pypi.org
+2. Generate an API token at https://pypi.org/manage/account/token/
+3. Configure twine with your PyPI credentials:
+
+```bash
+# Option 1: Use keyring (recommended)
+pip install keyring
+keyring set https://upload.pypi.org/legacy/ __token__
+# Enter your PyPI token when prompted
+
+# Option 2: Create ~/.pypirc file
+cat > ~/.pypirc << EOF
+[pypi]
+username = __token__
+password = pypi-your-token-here
+EOF
+chmod 600 ~/.pypirc
+```
+
+#### Publishing Process
+
+```bash
+# Check current version
+make version
+
+# Bump version as needed
+make bump-patch  # 0.1.1 -> 0.1.2
+make bump-minor  # 0.1.1 -> 0.2.0
+make bump-major  # 0.1.1 -> 1.0.0
+
+# Build the package
+make build
+
+# Test on TestPyPI first (optional)
+make publish-test
+
+# Publish to PyPI
+make publish
+
+# Or use the release shortcuts
+make release-patch  # Bump, test, and build
+make release-minor  # Bump, test, and build
+make release-major  # Bump, test, and build
+```
+
+### Makefile Targets
+
+Run `make help` to see all available targets:
+
+- **Testing**: `test`, `coverage`, `coverage-html`
+- **Code Quality**: `lint`, `format`, `typecheck`
+- **Building**: `build`, `check-build`, `clean`
+- **Publishing**: `publish`, `publish-test`
+- **Version Management**: `version`, `bump-patch`, `bump-minor`, `bump-major`
+- **Release Workflow**: `release-patch`, `release-minor`, `release-major`
+
 ## Future Enhancements
 
 - User authentication and permissions system
