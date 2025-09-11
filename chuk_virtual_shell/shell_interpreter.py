@@ -168,11 +168,11 @@ class ShellInterpreter:
             existing_node = self.fs.get_node_info(resolved_home_dir)
             if not existing_node:
                 if not self.fs.mkdir(resolved_home_dir):
-                    logger.warning(
+                    logger.debug(
                         f"Could not create home directory {resolved_home_dir}"
                     )
             elif not existing_node.is_dir:
-                logger.warning(
+                logger.debug(
                     f"Home path {resolved_home_dir} exists but is not a directory"
                 )
         except Exception as mkdir_error:
@@ -795,7 +795,10 @@ class ShellInterpreter:
                             if line and not line.startswith('#'):
                                 try:
                                     # Execute the command silently
-                                    self.execute(line)
+                                    result = self.execute(line)
+                                    # Check if command was not found
+                                    if result and "command not found" in result.lower():
+                                        logger.warning(f"Error executing .shellrc line '{line}': {result}")
                                 except Exception as e:
                                     logger.warning(f"Error executing .shellrc line '{line}': {e}")
                         break  # Only load the first found .shellrc

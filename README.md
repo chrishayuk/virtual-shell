@@ -1,14 +1,79 @@
-# PyodideShell
+# Chuk Virtual Shell
 
-A modular virtual shell with a pluggable storage architecture that can be exposed as a telnet server using Pyodide.
+A powerful virtual shell with session management, perfect for AI agents and sandboxed execution environments.
 
 ## Overview
 
-PyodideShell provides a complete virtual shell environment with flexible storage options, making it secure, sandboxed, and adaptable to various use cases. It includes:
+Chuk Virtual Shell provides a complete virtual shell environment with enterprise-grade features:
 
-- A fully functional virtual filesystem with pluggable storage providers
-- A command-line interface with common Unix commands
-- Telnet server capabilities for remote access
+- **Session Management**: Stateful sessions with persistent working directory, environment, and command history
+- **Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
+- **Rich Command Set**: 50+ Unix-like commands including text processing, file operations, and system utilities
+- **AI Agent Ready**: Built for multi-step workflows with context preservation
+- **Extensible Architecture**: Easy to add new commands and storage providers
+- **Telnet Server**: Remote access capabilities for distributed systems
+
+## Key Features
+
+### 🔄 Session Management
+
+Chuk Virtual Shell provides stateful sessions that maintain context across multiple commands - essential for AI agents and complex workflows:
+
+```python
+from chuk_virtual_shell.session import ShellSessionManager
+from chuk_virtual_shell.shell_interpreter import ShellInterpreter
+
+# Create session manager
+manager = ShellSessionManager(shell_factory=lambda: ShellInterpreter())
+
+# Create a persistent session
+session_id = await manager.create_session()
+
+# Commands share state
+await manager.run_command(session_id, "cd /project")
+await manager.run_command(session_id, "export API_KEY=secret")
+await manager.run_command(session_id, "echo 'test' > file.txt")
+
+# State persists: working dir, env vars, files
+await manager.run_command(session_id, "pwd")  # Returns: /project
+```
+
+**Session Features:**
+- **Persistent State**: Working directory, environment variables, and command history maintained across commands
+- **Streaming Output**: Real-time output streaming with sequence IDs for proper ordering
+- **Process Control**: Cancellation support and configurable timeouts (up to 10 minutes)
+- **Multi-Session Isolation**: Run multiple isolated sessions concurrently
+- **Backend Persistence**: Optional persistence with `chuk-sessions` library
+- **PTY Support**: Full pseudo-terminal support for interactive applications
+
+### 🎯 Built for AI Agents
+
+Perfect for agentic coding workflows where context matters:
+
+```python
+# See examples/agentic_coding_demo.py for full example
+agent = CodingAgent(session_manager)
+await agent.start_project("api-service", "FastAPI")
+await agent.execute_task(create_structure_task)
+await agent.execute_task(implement_endpoints_task)
+await agent.execute_task(add_tests_task)
+# Context maintained throughout!
+```
+
+### 📁 Virtual Filesystem
+
+Complete filesystem abstraction with multiple storage backends:
+- **Memory**: Fast in-memory storage (default)
+- **SQLite**: Persistent local storage
+- **S3**: Cloud storage for distributed systems
+
+### 🛠️ Rich Command Set
+
+Over 50 Unix-like commands with full implementations:
+- **File Operations**: cp, mv, rm, mkdir, touch, find
+- **Text Processing**: grep, sed, awk, sort, uniq
+- **System Utilities**: which, history, tree, timings
+- **Environment**: export, alias, source (.shellrc support)
 
 ## Installation
 
@@ -459,6 +524,86 @@ When running in a browser environment with Pyodide, the shell operates in intera
 ```python
 import main
 main.run_interactive_shell("sqlite", {"db_path": ":memory:"})  # With provider selection
+```
+
+## Examples
+
+### Session Management Demo
+
+Run the session demo to see all session features in action:
+
+```bash
+uv run python examples/session_demo.py
+```
+
+This demonstrates:
+- ✅ Stateful command execution with persistent context
+- ✅ Working directory and environment persistence  
+- ✅ Command history tracking
+- ✅ Streaming output with sequence IDs for proper ordering
+- ✅ Process cancellation and timeout support (configurable up to 10 minutes)
+- ✅ Multi-session isolation with concurrent execution
+
+#### Streaming Output Example
+
+The shell provides real-time streaming output with sequence IDs to ensure proper ordering:
+
+```python
+# Stream output from long-running commands
+async for chunk in manager.run_command(session_id, "ls -la /large_directory"):
+    print(f"[Seq {chunk.sequence_id}] {chunk.data}")
+    # Output arrives in real-time with sequence IDs
+```
+
+#### Cancellation and Timeout Support
+
+Control long-running processes with cancellation and timeouts:
+
+```python
+# Set timeout for command execution (in milliseconds)
+try:
+    async for chunk in manager.run_command(
+        session_id, 
+        "python long_script.py",
+        timeout_ms=5000  # 5 second timeout
+    ):
+        print(chunk.data)
+except asyncio.TimeoutError:
+    print("Command timed out")
+
+# Cancel a running command
+task = asyncio.create_task(
+    manager.run_command(session_id, "sleep 100")
+)
+# ... later ...
+task.cancel()  # Cancel the running command
+```
+
+### Agentic Coding Demo
+
+See how AI agents can use sessions for complex development tasks:
+
+```bash
+uv run python examples/agentic_coding_demo.py
+```
+
+This shows:
+- Building a complete FastAPI project step-by-step
+- Maintaining context across 50+ commands
+- Creating interdependent files and configurations
+- Simulating real developer workflows
+
+### Other Examples
+
+```bash
+# Basic shell operations
+uv run python examples/hello_world.sh
+
+# File operations with new commands
+uv run python examples/file_operations.sh  
+
+# All new features (aliases, history, tree, etc.)
+uv run python examples/new_features_demo.sh
 ```
 
 ## Command Examples

@@ -8,6 +8,8 @@ Environment variable management commands for configuring and inspecting the shel
 |---------|-------------|---------------|
 | [`env`](env.md) | Display environment variables | [env.md](env.md) |
 | [`export`](export.md) | Set environment variables | [export.md](export.md) |
+| [`alias`](alias.md) | Create command aliases | [alias.md](alias.md) |
+| [`unalias`](unalias.md) | Remove command aliases | [unalias.md](unalias.md) |
 
 ## Common Usage Patterns
 
@@ -40,6 +42,23 @@ export DB_HOST=localhost DB_PORT=5432 DB_NAME=myapp
 # Set path variables
 export PATH=/usr/local/bin:/usr/bin:/bin
 export PYTHONPATH=/path/to/modules
+```
+
+### Managing Command Aliases
+```bash
+# Create aliases
+alias ll="ls -la"               # Long listing
+alias la="ls -a"                # Show hidden files
+alias ..="cd .."                # Go up one directory
+alias grep="grep -i"            # Case-insensitive grep by default
+
+# View aliases
+alias                           # Show all aliases
+alias ll                        # Show specific alias
+
+# Remove aliases
+unalias ll                      # Remove single alias
+unalias la ..                   # Remove multiple aliases
 ```
 
 ### Configuration Management
@@ -129,6 +148,30 @@ env | grep PROJECT
 echo "Source directory: $SOURCE_DIR"
 ```
 
+### Advanced Alias Usage
+```bash
+# Nested aliases
+alias ll="ls -la"
+alias myls="ll"                # Alias referring to another alias
+
+# Complex command aliases
+alias backup="cp -r /important /backup/$(date +%Y%m%d)"
+alias clean="rm -f *.tmp *.log"
+alias reload="export PATH=$PATH && source ~/.shellrc"
+
+# Development shortcuts
+alias gst="git status"
+alias gc="git commit"
+alias gp="git push"
+alias py="python"
+alias pip="python -m pip"
+
+# Safety aliases
+alias rm="rm -i"                # Interactive removal
+alias cp="cp -i"                # Interactive copy
+alias mv="mv -i"                # Interactive move
+```
+
 ### Batch Configuration
 ```bash
 # Set related variables together
@@ -188,11 +231,14 @@ ls $BACKUP_DIR                 # List backup directory
 
 ## Key Features
 
-- **Session Persistence:** Variables persist for entire shell session
+- **Session Persistence:** Variables and aliases persist for entire shell session
 - **Inheritance:** Child processes inherit environment variables
 - **Variable Expansion:** Support for referencing existing variables
 - **Flexible Assignment:** Multiple variables can be set in single command
 - **Filtering:** View specific variables with pattern matching
+- **Command Aliases:** Create shortcuts and custom commands
+- **Alias Expansion:** Aliases can reference other aliases
+- **.shellrc Support:** Load environment and aliases from configuration file
 
 ## Best Practices
 
