@@ -1,0 +1,52 @@
+# Include all Python files
+recursive-include chuk_virtual_shell *.py
+
+# Include package data files
+include README.md
+include LICENSE
+include pyproject.toml
+
+# Include documentation
+recursive-include docs *.md
+
+# Include example scripts
+recursive-include examples *.sh *.py
+
+# Include test files (optional, but useful for development)
+recursive-include tests *.py
+
+# Include configuration files
+include .gitignore
+include MANIFEST.in
+
+# Exclude compiled Python files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude *.so
+
+# Exclude version control
+global-exclude .git
+global-exclude .gitignore
+
+# Exclude test coverage files
+global-exclude .coverage
+global-exclude htmlcov
+global-exclude coverage.xml
+global-exclude *.cover
+
+# Exclude IDE files
+global-exclude .vscode
+global-exclude .idea
+global-exclude *.swp
+global-exclude *.swo
+global-exclude *~
+
+# Exclude build artifacts
+global-exclude build
+global-exclude dist
+global-exclude *.egg-info
+global-exclude .pytest_cache
+global-exclude .tox
+global-exclude .mypy_cache
+global-exclude .ruff_cache

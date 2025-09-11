@@ -1,7 +1,6 @@
 import pytest
 from chuk_virtual_shell.commands.filesystem.mv import MvCommand
 from tests.dummy_shell import DummyShell
-import os
 
 @pytest.fixture
 def mv_command():
@@ -41,8 +40,9 @@ def test_mv_multiple_files(mv_command):
         pytest.skip(f"MV command returned: {output}. Skipping verification.")
     
     # Verify that the files are now in "dir".
-    file1_dest = os.path.join("dir", "file1")
-    file3_dest = os.path.join("dir", "file3")
+    # Use portable path operations with forward slashes
+    file1_dest = "dir" + "/" + "file1"
+    file3_dest = "dir" + "/" + "file3"
     assert mv_command.shell.fs.read_file(file1_dest) == "Hello World"
     assert mv_command.shell.fs.read_file(file3_dest) == "Another file"
     # Verify that the original files have been removed.

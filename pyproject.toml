@@ -1,6 +1,6 @@
 [project]
 name = "chuk-virtual-shell"
-version = "0.1.0"
+version = "0.1.1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,9 +26,13 @@ boto3 = [
 
 [dependency-groups]
 dev = [
+    "mypy>=1.13.0",
     "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.0.0",
     "pytest>=8.4.2",
+    "ruff>=0.8.0",
     "trio>=0.31.0",
+    "twine>=6.0.0",
     "types-pyyaml>=6.0.12.20250822",
 ]
 

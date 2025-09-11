@@ -2,7 +2,6 @@
 chuk_virtual_shell/commands/filesystem/mv.py - Move or rename files and directories
 """
 
-import os
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 
@@ -32,8 +31,9 @@ class MvCommand(ShellCommand):
             # Determine destination path
             if self._is_directory(destination):
                 # If destination is a directory, put the file inside the directory
-                src_basename = os.path.basename(src)
-                dest_path = os.path.join(destination, src_basename)
+                # Use portable path operations
+                src_basename = src.split('/')[-1] if '/' in src else src
+                dest_path = destination.rstrip('/') + '/' + src_basename
             else:
                 dest_path = destination
 

@@ -10,6 +10,67 @@ PyodideShell provides a complete virtual shell environment with flexible storage
 - A command-line interface with common Unix commands
 - Telnet server capabilities for remote access
 
+## Installation
+
+### Requirements
+
+- Python 3.9 or higher (tested through Python 3.12)
+- Works on Windows, macOS, and Linux
+- No platform-specific dependencies
+
+### Quick Start with uvx (Easiest)
+
+Run directly without installation using uvx:
+
+```bash
+# Install uv if you haven't already
+pip install uv
+
+# Run the virtual shell directly
+uvx chuk-virtual-shell
+
+# Or use the shorter alias
+uvx virtual-shell
+```
+
+### Install with uv (Recommended for Development)
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/pyodideshell.git
+cd pyodideshell
+
+# Install dependencies and run
+uv run virtual-shell
+```
+
+### Install with pip
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/pyodideshell.git
+cd pyodideshell
+
+# Install in development mode
+pip install -e .
+
+# Run the shell
+virtual-shell
+```
+
+### Install from PyPI (When Published)
+
+```bash
+# Using pip
+pip install chuk-virtual-shell
+
+# Using uv
+uv pip install chuk-virtual-shell
+
+# Then run
+virtual-shell
+```
+
 ## Project Structure
 
 The project is organized in a highly modular way with a clear separation of concerns:
@@ -94,6 +155,16 @@ pyodideshell/
 - Each component is isolated in its own module
 - Commands are organized by category
 - Filesystem components are separated by responsibility
+
+### Cross-Platform Compatibility
+
+PyodideShell is fully compatible across multiple operating systems:
+
+- **Windows** - Full support with native path handling
+- **macOS** - Complete functionality on Apple Silicon and Intel Macs  
+- **Linux** - Tested on Ubuntu, Debian, and other distributions
+
+The virtual filesystem uses forward slashes (`/`) for all path operations internally, ensuring consistent behavior across platforms. The CI/CD pipeline automatically tests on all three major operating systems with Python versions 3.9 through 3.12.
 
 ### Pluggable Storage Architecture
 
@@ -258,17 +329,27 @@ print(result)
 ### Interactive Mode with Default Provider
 
 ```bash
+# Using uvx (no installation required)
+uvx virtual-shell
+
+# Using uv (if cloned locally)
 uv run virtual-shell
+
+# Using pip install
+virtual-shell
 ```
 
 ### Interactive Mode with Specific Provider
 
 ```bash
 # Use SQLite storage
-uv run virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+uvx virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
 
-# Use S3 storage
-uv run virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket", "prefix": "shell1"}'
+# Use S3 storage  
+uvx virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket", "prefix": "shell1"}'
+
+# Or with uv run if cloned locally
+uv run virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
 ```
 
 ### List Available Providers
@@ -508,6 +589,89 @@ register_provider("custom", CustomStorageProvider)
 - Commands are limited to predefined functionality
 - Provider access can be controlled through appropriate credentials
 - Telnet server can be configured with access controls
+
+## Development
+
+### Setting Up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/chuk-virtual-shell.git
+cd chuk-virtual-shell
+
+# Install development dependencies
+make install
+
+# Run tests
+make test
+
+# Run with coverage
+make coverage
+
+# Run linting and formatting
+make lint
+make format
+```
+
+### Building and Publishing
+
+#### Prerequisites
+
+1. Create a PyPI account at https://pypi.org
+2. Generate an API token at https://pypi.org/manage/account/token/
+3. Configure twine with your PyPI credentials:
+
+```bash
+# Option 1: Use keyring (recommended)
+pip install keyring
+keyring set https://upload.pypi.org/legacy/ __token__
+# Enter your PyPI token when prompted
+
+# Option 2: Create ~/.pypirc file
+cat > ~/.pypirc << EOF
+[pypi]
+username = __token__
+password = pypi-your-token-here
+EOF
+chmod 600 ~/.pypirc
+```
+
+#### Publishing Process
+
+```bash
+# Check current version
+make version
+
+# Bump version as needed
+make bump-patch  # 0.1.1 -> 0.1.2
+make bump-minor  # 0.1.1 -> 0.2.0
+make bump-major  # 0.1.1 -> 1.0.0
+
+# Build the package
+make build
+
+# Test on TestPyPI first (optional)
+make publish-test
+
+# Publish to PyPI
+make publish
+
+# Or use the release shortcuts
+make release-patch  # Bump, test, and build
+make release-minor  # Bump, test, and build
+make release-major  # Bump, test, and build
+```
+
+### Makefile Targets
+
+Run `make help` to see all available targets:
+
+- **Testing**: `test`, `coverage`, `coverage-html`
+- **Code Quality**: `lint`, `format`, `typecheck`
+- **Building**: `build`, `check-build`, `clean`
+- **Publishing**: `publish`, `publish-test`
+- **Version Management**: `version`, `bump-patch`, `bump-minor`, `bump-major`
+- **Release Workflow**: `release-patch`, `release-minor`, `release-major`
 
 ## Future Enhancements
 

@@ -4,7 +4,6 @@ chuk_virtual_shell/commands/filesystem/find.py - Find files and directories
 
 import argparse
 import fnmatch
-import os
 import re
 from typing import List, Optional
 from chuk_virtual_shell.commands.command_base import ShellCommand
@@ -80,7 +79,8 @@ class FindCommand(ShellCommand):
             # If -name filter is provided, show only the matching file’s basename.
             for found_path in found_paths:
                 if parsed_args.name:
-                    display_path = os.path.basename(found_path)
+                    # Use portable path operations
+                    display_path = found_path.split('/')[-1] if '/' in found_path else found_path
                 else:
                     display_path = found_path
 
@@ -116,7 +116,8 @@ class FindCommand(ShellCommand):
         elif type_filter == "f" and node_info.is_dir:
             include_this = False
 
-        base_name = os.path.basename(path) or path
+        # Use portable path operations
+        base_name = path.split('/')[-1] if '/' in path else path or path
 
         if name_pattern and include_this:
             if not fnmatch.fnmatch(base_name, name_pattern):
@@ -133,7 +134,8 @@ class FindCommand(ShellCommand):
             try:
                 contents = self.shell.fs.ls(path)
                 for item in contents:
-                    item_path = os.path.join(path, item)
+                    # Use portable path operations
+                    item_path = path.rstrip('/') + '/' + item
                     results.extend(
                         self._find_recursive(
                             item_path,
