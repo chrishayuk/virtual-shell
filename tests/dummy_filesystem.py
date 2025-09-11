@@ -1,4 +1,3 @@
-import os
 
 class DummyFileSystem:
     def __init__(self, files):
@@ -81,7 +80,9 @@ class DummyFileSystem:
         if self.exists(path) and self.is_dir(path):
             return list(self.files[path].keys())
         elif self.exists(path):
-            return [os.path.basename(path)]
+            # Use portable path operations
+            basename = path.split('/')[-1] if '/' in path else path
+            return [basename]
         return []
 
     def exists(self, path):
@@ -162,7 +163,8 @@ class DummyFileSystem:
         class NodeInfo:
             def __init__(self, fs, path):
                 self.path = path  # Keep the full path
-                self.name = os.path.basename(path) or path  # Handle root directory
+                # Use portable path operations
+                self.name = path.split('/')[-1] if '/' in path else path or path  # Handle root directory
                 self.is_dir = fs.is_dir(path)
                 self.is_file = not self.is_dir
                 # Include children for directories to support recursion

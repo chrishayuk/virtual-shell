@@ -3,7 +3,6 @@
 chuk_virtual_shell/commands/filesystem/cp.py - Copy files command
 """
 
-import os
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 
@@ -83,8 +82,9 @@ Options:
             dest_info = self.shell.fs.get_node_info(dest_resolved)
             if dest_info and dest_info.is_dir:
                 # If destination is a directory, put the file inside the directory
-                src_basename = os.path.basename(src_resolved)
-                dest_path = os.path.join(dest_resolved, src_basename)
+                # Use portable path operations with forward slashes
+                src_basename = src_resolved.split('/')[-1] if '/' in src_resolved else src_resolved
+                dest_path = dest_resolved.rstrip('/') + '/' + src_basename
             else:
                 dest_path = dest_resolved
 
@@ -146,8 +146,9 @@ Options:
 
         # Copy each item
         for item in items:
-            src_path = os.path.join(src, item)
-            dst_path = os.path.join(dst, item)
+            # Use portable path operations with forward slashes
+            src_path = src.rstrip('/') + '/' + item
+            dst_path = dst.rstrip('/') + '/' + item
 
             src_info = self.shell.fs.get_node_info(src_path)
             if src_info and src_info.is_dir:
