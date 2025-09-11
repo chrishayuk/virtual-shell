@@ -1,12 +1,9 @@
 # tests/sandbox/test_filesystem_initializer.py
 import os
-import tempfile
-import yaml
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # imports
-from chuk_virtual_shell.sandbox.loader.filesystem_initializer import create_filesystem, _find_template
+from chuk_virtual_shell.sandbox.loader.filesystem_initializer import create_filesystem
 
 # Create a sample config with security and filesystem-template sections.
 SAMPLE_FS_CONFIG = {

@@ -1,5 +1,6 @@
 from chuk_virtual_shell.sandbox_manager import SandboxManager
 
+
 def demo():
     # Create a SandboxManager
     mgr = SandboxManager()
@@ -10,7 +11,7 @@ def demo():
     print("Session ID:", session_id)
 
     # 2) Join the sandbox by session ID
-    session = mgr.join_sandbox(session_id)
+    mgr.join_sandbox(session_id)
 
     # 3) Write a file into the sandbox
     mgr.write_file(session_id, "/test.txt", "Hello from the sandbox!")
@@ -24,6 +25,7 @@ def demo():
 
     # 6) Stop the sandbox
     mgr.stop_sandbox(session_id)
+
 
 if __name__ == "__main__":
     demo()

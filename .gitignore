@@ -1,6 +1,8 @@
 # cache
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # virtual environment
 .venv/
@@ -16,3 +18,10 @@ snapshots/
 
 # environment
 .env
+
+# coverage
+.coverage
+coverage.xml
+htmlcov/
+*.cover
+.hypothesis/

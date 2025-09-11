@@ -5,11 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "boto3>=1.37.31",
-    "chuk-mcp>=0.1.12",
-    "chuk-virtual-fs>=0.1.10",
-    "pydantic>=2.11.1",
+    "boto3>=1.40.28",
+    "chuk-mcp>=0.5.2",
+    "chuk-virtual-fs>=0.1.11",
+    "pydantic>=2.11.7",
     "pyyaml>=6.0.1",
+    "trio>=0.31.0",
 ]
 
 # Console script to start the shell
@@ -25,9 +26,10 @@ boto3 = [
 
 [dependency-groups]
 dev = [
-    "pytest-asyncio>=0.26.0",
-    "pytest>=8.3.5",
-    "trio>=0.29.0",
+    "pytest-asyncio>=1.1.0",
+    "pytest>=8.4.2",
+    "trio>=0.31.0",
+    "types-pyyaml>=6.0.12.20250822",
 ]
 
 [build-system]
@@ -39,3 +41,38 @@ packages = ["chuk_virtual_shell"]
 
 [tool.uv.sources]
 chuk-virtual-shell = { workspace = true }
+
+[tool.ruff.lint]
+ignore = ["E402"]  # Module level import not at top of file
+
+[tool.coverage.run]
+source = ["chuk_virtual_shell"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/main.py",  # CLI entry points
+    "*/pyodide_main.py",  # Pyodide-specific
+    "*/sandbox_manager.py",  # Demo/unused
+    "*/sandbox_manager_demo.py",  # Demo
+    "*/telnet_server.py",  # Server code
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "except ImportError:",
+    "@abstractmethod",
+]
+precision = 2
+skip_covered = false
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"

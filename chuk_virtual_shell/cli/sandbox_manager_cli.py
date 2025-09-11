@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys
-import os
 import argparse
 import pickle
 import logging
@@ -25,7 +24,9 @@ def load_manager() -> SandboxManager:
         with open(STORAGE_FILE, "rb") as f:
             mgr = pickle.load(f)
             if not isinstance(mgr, SandboxManager):
-                logger.warning("Invalid data in .sandbox_sessions.pkl; creating a new manager.")
+                logger.warning(
+                    "Invalid data in .sandbox_sessions.pkl; creating a new manager."
+                )
                 return SandboxManager()
             return mgr
     else:
@@ -90,6 +91,7 @@ def cmd_install(args):
     future = mgr.install_package(args.session_id, args.package)
     if future and hasattr(future, "result"):
         import asyncio
+
         loop = asyncio.get_event_loop()
         loop.run_until_complete(future)
 
@@ -117,6 +119,7 @@ def _parse_provider_args(raw_str: Optional[str]) -> dict:
     if "=" not in raw_str and "{" in raw_str:
         # Possibly JSON
         import json
+
         return json.loads(raw_str)
     else:
         parts = raw_str.split(",")
@@ -129,44 +132,76 @@ def _parse_provider_args(raw_str: Optional[str]) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="CLI for managing sandbox sessions."
-    )
+    parser = argparse.ArgumentParser(description="CLI for managing sandbox sessions.")
 
     subparsers = parser.add_subparsers(help="Sub-commands")
 
     # start command
     parser_start = subparsers.add_parser("start", help="Start a new sandbox")
-    parser_start.add_argument("--sandbox-yaml", type=str, default=None,
-                             help="Path/name of sandbox YAML config")
-    parser_start.add_argument("--fs-provider", type=str, default=None,
-                             help="Filesystem provider (e.g. memory, sqlite, etc.)")
-    parser_start.add_argument("--fs-provider-args", type=str, default=None,
-                             help='Extra arguments for the filesystem provider; JSON or key=value pairs.')
+    parser_start.add_argument(
+        "--sandbox-yaml",
+        type=str,
+        default=None,
+        help="Path/name of sandbox YAML config",
+    )
+    parser_start.add_argument(
+        "--fs-provider",
+        type=str,
+        default=None,
+        help="Filesystem provider (e.g. memory, sqlite, etc.)",
+    )
+    parser_start.add_argument(
+        "--fs-provider-args",
+        type=str,
+        default=None,
+        help="Extra arguments for the filesystem provider; JSON or key=value pairs.",
+    )
     parser_start.set_defaults(func=cmd_start)
 
     # write-file command
-    parser_write = subparsers.add_parser("write-file", help="Write a file into the sandbox")
-    parser_write.add_argument("--session-id", required=True, help="Sandbox session to join")
-    parser_write.add_argument("--path", required=True, help="Path in sandbox, e.g. /test.txt")
+    parser_write = subparsers.add_parser(
+        "write-file", help="Write a file into the sandbox"
+    )
+    parser_write.add_argument(
+        "--session-id", required=True, help="Sandbox session to join"
+    )
+    parser_write.add_argument(
+        "--path", required=True, help="Path in sandbox, e.g. /test.txt"
+    )
     parser_write.add_argument("--content", required=True, help="Content to write")
     parser_write.set_defaults(func=cmd_write_file)
 
     # download-file command
-    parser_dl = subparsers.add_parser("download-file", help="Download (read) a file from the sandbox")
-    parser_dl.add_argument("--session-id", required=True, help="Sandbox session to join")
-    parser_dl.add_argument("--path", required=True, help="Path in sandbox, e.g. /test.txt")
+    parser_dl = subparsers.add_parser(
+        "download-file", help="Download (read) a file from the sandbox"
+    )
+    parser_dl.add_argument(
+        "--session-id", required=True, help="Sandbox session to join"
+    )
+    parser_dl.add_argument(
+        "--path", required=True, help="Path in sandbox, e.g. /test.txt"
+    )
     parser_dl.set_defaults(func=cmd_download_file)
 
     # install command
-    parser_install = subparsers.add_parser("install", help="Install a Python package in the sandbox")
-    parser_install.add_argument("--session-id", required=True, help="Sandbox session to join")
-    parser_install.add_argument("--package", required=True, help="Package name (e.g. requests)")
+    parser_install = subparsers.add_parser(
+        "install", help="Install a Python package in the sandbox"
+    )
+    parser_install.add_argument(
+        "--session-id", required=True, help="Sandbox session to join"
+    )
+    parser_install.add_argument(
+        "--package", required=True, help="Package name (e.g. requests)"
+    )
     parser_install.set_defaults(func=cmd_install)
 
     # stop command
-    parser_stop = subparsers.add_parser("stop", help="Stop (destroy) a sandbox session by ID")
-    parser_stop.add_argument("--session-id", required=True, help="Sandbox session to stop")
+    parser_stop = subparsers.add_parser(
+        "stop", help="Stop (destroy) a sandbox session by ID"
+    )
+    parser_stop.add_argument(
+        "--session-id", required=True, help="Sandbox session to stop"
+    )
     parser_stop.set_defaults(func=cmd_stop)
 
     if len(sys.argv) == 1:

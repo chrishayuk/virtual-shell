@@ -23,6 +23,10 @@ class DummyShell:
     def read_file(self, path):
         return self.fs.read_file(path)
     
+    def create_file(self, path, content):
+        """Create a file with the given content."""
+        return self.fs.write_file(path, content)
+    
     def resolve_path(self, path):
         return self.fs.resolve_path(path)
     
@@ -53,3 +57,33 @@ class DummyShell:
         if user == self.current_user:
             return self.environ.get("HOME", f"/home/{user}")
         return None
+    
+    def execute(self, command):
+        """Execute a command (simplified for testing)."""
+        # Simple command execution for testing
+        if command.startswith("echo "):
+            # Return the text after echo, handling quotes properly
+            text = command[5:].strip()
+            # Remove outer quotes if present
+            if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+                text = text[1:-1]
+            return text
+        elif command == "pwd":
+            return self.fs.pwd()
+        elif command.startswith("cat"):
+            # Handle cat with arguments
+            if len(command) > 3 and command[3:4] in [' ', '\t']:
+                filename = command[4:].strip()
+                return self.fs.read_file(filename) or f"cat: {filename}: No such file"
+            # Handle cat without arguments (reads from stdin)
+            elif command == "cat":
+                if hasattr(self, '_stdin_buffer') and self._stdin_buffer:
+                    result = self._stdin_buffer
+                    self._stdin_buffer = None
+                    return result
+                return "cat: missing operand"
+        elif command == "whoami":
+            return self.current_user
+        else:
+            # Return a simple response for unknown commands
+            return f"Command executed: {command}"

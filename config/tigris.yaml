@@ -13,10 +13,6 @@ security:
   max_path_depth: 10      # Maximum path depth (optional override)
   allowed_paths:          # Optional override for allowed paths
     - "/"
-    - "/home"
-    - "/home/user"
-    - "/home/user/project"
-    - "/tmp"
   denied_paths:           # Optional override for denied paths
     - "/etc/passwd"
     - "/etc/shadow"
@@ -32,7 +28,8 @@ security:
 filesystem:
   provider: "s3"      # Provider to use (memory, sqlite, pyodide, s3)
   provider_args: {
-    bucket_name: "chuk-sandbox-2"
+    bucket_name: "chuk-sandbox-2",
+    prefix: "/home/user"
   }       # Arguments for the provider
 
 # Filesystem template for project initialization
@@ -63,7 +60,5 @@ environment:
 
 # Initialization commands (executed during setup)
 initialization:
-  - "mkdir -p /home/user"
-  - "mkdir -p /home/user/documents"
-  - "mkdir -p /tmp"
-  - "echo 'Welcome to the chukshell ai sandbox environment.' > /home/user/README.txt"
+  - "mkdir -p /documents"
+  - "echo 'Welcome to the chukshell ai sandbox environment.' > /README.txt"

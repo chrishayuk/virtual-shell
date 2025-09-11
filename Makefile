@@ -1,62 +1,75 @@
-# Makefile for chuk_virtual_shell and Pyodide shell
+.PHONY: help install test lint typecheck ci clean coverage coverage-html coverage-report
 
-# Use system's python3 for the interactive shell targets.
-PYTHON = $(shell which python3)
-# Use npm for Node-related commands.
-NODE = npm
+help:
+	@echo "Available commands:"
+	@echo "  make install       - Install dependencies using uv"
+	@echo "  make test          - Run all tests"
+	@echo "  make lint          - Run ruff linting"
+	@echo "  make typecheck     - Run mypy type checking"
+	@echo "  make coverage      - Run tests with coverage report"
+	@echo "  make coverage-html - Generate HTML coverage report"
+	@echo "  make coverage-report - Show coverage report in terminal"
+	@echo "  make ci            - Run all CI checks (lint, typecheck, test)"
+	@echo "  make clean         - Clean up cache and temporary files"
 
-# Prepend the local chuk_virtual_fs directory to PYTHONPATH (if you’re developing locally)
-LOCAL_PYTHONPATH = ./chuk_virtual_fs
-
-.PHONY: run telnet script list-sandboxes list-providers test install pyodide clean
-
-# Run interactive shell (normal Python mode)
-run:
-	@echo "Starting interactive shell..."
-	PYTHONPATH=$(LOCAL_PYTHONPATH):$$PYTHONPATH $(PYTHON) chuk_virtual_shell/main.py
-
-# Run telnet server mode
-telnet:
-	@echo "Starting telnet server..."
-	PYTHONPATH=$(LOCAL_PYTHONPATH):$$PYTHONPATH $(PYTHON) chuk_virtual_shell/main.py --telnet
-
-# Run a script through the shell interpreter.
-# Provide the script file via the SCRIPT variable:
-#   make script SCRIPT=path/to/script
-script:
-	@if [ -z "$(SCRIPT)" ]; then \
-		echo "Usage: make script SCRIPT=path/to/script"; \
-		exit 1; \
-	fi
-	@echo "Running script $(SCRIPT)..."
-	PYTHONPATH=$(LOCAL_PYTHONPATH):$$PYTHONPATH $(PYTHON) chuk_virtual_shell/main.py --script $(SCRIPT)
-
-# List available sandbox configurations
-list-sandboxes:
-	@echo "Listing available sandbox configurations..."
-	PYTHONPATH=$(LOCAL_PYTHONPATH):$$PYTHONPATH $(PYTHON) chuk_virtual_shell/main.py --list-sandboxes
-
-# List available filesystem providers
-list-providers:
-	@echo "Listing available filesystem providers..."
-	PYTHONPATH=$(LOCAL_PYTHONPATH):$$PYTHONPATH $(PYTHON) chuk_virtual_shell/main.py --fs-provider list
-
-# Run tests (using uv-run pytest)
-test:
-	@echo "Running tests..."
-	PYTHONPATH=$(LOCAL_PYTHONPATH):$$PYTHONPATH uv run pytest
-
-# Install npm dependencies in the pyodide-container folder
 install:
-	@echo "Installing npm dependencies..."
-	cd pyodide-container && $(NODE) install
+	uv sync --all-extras --dev
 
-# Run the Pyodide shell (via your Node entry script)
-pyodide:
-	@echo "Starting Pyodide shell..."
-	cd pyodide-container && PYODIDE_SANDBOX=ai_sandbox CHUK_VIRTUAL_SHELL_CONFIG_DIR=./config $(NODE) start
+test:
+	uv run pytest
 
-# Clean up generated files, node_modules, __pycache__, and Pyodide main file
+test-verbose:
+	uv run pytest -v
+
+test-coverage:
+	uv run pytest --cov=chuk_virtual_shell --cov-report=term-missing
+
+coverage:
+	uv run pytest --cov=chuk_virtual_shell --cov-report=term-missing --cov-report=html --cov-report=term:skip-covered
+
+coverage-html:
+	uv run pytest --cov=chuk_virtual_shell --cov-report=html
+	@echo "Coverage report generated in htmlcov/index.html"
+	@echo "Opening coverage report..."
+	@python -c "import webbrowser; webbrowser.open('htmlcov/index.html')" 2>/dev/null || open htmlcov/index.html 2>/dev/null || echo "Please open htmlcov/index.html manually"
+
+coverage-report:
+	uv run pytest --cov=chuk_virtual_shell --cov-report=term-missing --cov-report=term:skip-covered --cov-fail-under=80
+	@echo ""
+	@echo "Coverage summary:"
+	@uv run coverage report --precision=2
+
+lint:
+	uv run ruff check chuk_virtual_shell
+
+lint-fix:
+	uv run ruff check chuk_virtual_shell --fix --unsafe-fixes
+
+typecheck:
+	uv run mypy chuk_virtual_shell
+
+ci: lint typecheck test-quick coverage-check
+	@echo "✅ All CI checks passed!"
+
+ci-full: lint typecheck coverage-report
+	@echo "✅ All CI checks with coverage passed!"
+
+test-quick:
+	uv run pytest -q --tb=short
+
+coverage-check:
+	@echo "Running coverage check (minimum 65%)..."
+	@uv run pytest --cov=chuk_virtual_shell --cov-fail-under=65 --cov-report= -q
+	@echo "✅ Coverage check passed (>65%)"
+
 clean:
-	@echo "Cleaning up..."
-	rm -rf node_modules __pycache__ pyodide_main.py
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
+	find . -type f -name "*.pyo" -delete
+	find . -type f -name "*~" -delete
+	find . -type f -name ".coverage" -delete 2>/dev/null || true
+	find . -type f -name "coverage.xml" -delete 2>/dev/null || true

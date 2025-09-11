@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+      
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+        
+    - name: Run linting
+      run: |
+        uv run ruff check chuk_virtual_shell
+        
+    - name: Run type checking
+      run: |
+        uv run mypy chuk_virtual_shell
+        
+    - name: Run tests with coverage
+      run: |
+        uv run pytest --cov=chuk_virtual_shell --cov-report=term-missing --cov-report=xml
+        
+    - name: Check coverage threshold
+      run: |
+        uv run pytest --cov=chuk_virtual_shell --cov-fail-under=65 --cov-report=
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

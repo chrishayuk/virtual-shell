@@ -10,7 +10,6 @@ This example shows how to:
 import asyncio
 import logging
 import sys
-import os
 
 # Configure logging
 logging.basicConfig(

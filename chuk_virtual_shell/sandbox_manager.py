@@ -1,11 +1,11 @@
-import os
 import sys
 import uuid
 import logging
 import asyncio
 
 try:
-    import micropip
+    import micropip  # type: ignore
+
     HAS_MICROPIP = True
 except ImportError:
     HAS_MICROPIP = False
@@ -14,10 +14,12 @@ from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 logger = logging.getLogger(__name__)
 
+
 class SandboxSession:
     """
     Represents a single sandbox session, holding a reference to the ShellInterpreter.
     """
+
     def __init__(self, sandbox_yaml=None, fs_provider=None, fs_provider_args=None):
         # Either create from sandbox config or from provider
         if sandbox_yaml:
@@ -25,7 +27,7 @@ class SandboxSession:
         else:
             self.shell = ShellInterpreter(
                 fs_provider=fs_provider or "memory",
-                fs_provider_args=fs_provider_args or {}
+                fs_provider_args=fs_provider_args or {},
             )
 
     def write_file(self, path: str, content: str):
@@ -48,12 +50,12 @@ class SandboxSession:
         Install a Python package into this sandbox environment.
         If in Pyodide, use micropip; otherwise attempt pip via the shell.
         """
-        if 'pyodide' in sys.modules and HAS_MICROPIP:
+        if "pyodide" in sys.modules and HAS_MICROPIP:
             # Use micropip (asynchronously in Pyodide)
             logger.info(f"Installing {package_name} via micropip...")
             return asyncio.ensure_future(micropip.install(package_name))
         else:
-            # If not in Pyodide, or micropip is unavailable, 
+            # If not in Pyodide, or micropip is unavailable,
             # fallback to shell-based `pip install <pkg>`
             # (Assumes that `pip` is available in the environment.)
             logger.info(f"Installing {package_name} via pip in shell...")
@@ -62,7 +64,7 @@ class SandboxSession:
 
     def stop(self):
         """
-        Perform any cleanup for the session. For memory-based sessions, 
+        Perform any cleanup for the session. For memory-based sessions,
         this might be minimal. If you had external resources, close them here.
         """
         logger.info("Stopping sandbox session")
@@ -73,10 +75,13 @@ class SandboxManager:
     """
     High-level API to manage multiple sandbox sessions.
     """
+
     def __init__(self):
         self._sessions = {}  # Maps session_id -> SandboxSession
 
-    def start_sandbox(self, sandbox_yaml=None, fs_provider=None, fs_provider_args=None) -> str:
+    def start_sandbox(
+        self, sandbox_yaml=None, fs_provider=None, fs_provider_args=None
+    ) -> str:
         """
         Start (create) a new sandbox session. Optionally specify:
           - sandbox_yaml: path or name of YAML sandbox config
@@ -87,7 +92,7 @@ class SandboxManager:
         session = SandboxSession(
             sandbox_yaml=sandbox_yaml,
             fs_provider=fs_provider,
-            fs_provider_args=fs_provider_args
+            fs_provider_args=fs_provider_args,
         )
         session_id = str(uuid.uuid4())
         self._sessions[session_id] = session
@@ -131,7 +136,7 @@ class SandboxManager:
 
     def install_package(self, session_id: str, package_name: str):
         """
-        Install a Python package into the sandbox. 
+        Install a Python package into the sandbox.
         In Pyodide, uses micropip (if present); otherwise attempts `pip install`.
         """
         if session_id not in self._sessions:

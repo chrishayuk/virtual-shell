@@ -1,117 +1,45 @@
 """
-chuk_virtual_shell/commands/__init__.py - Command module package initialization
-
-This module manages the registration and initialization of command classes.
-It provides functions to register commands, initialize them with a given shell context,
-list available commands, and retrieve command executors.
+Sandbox loader module for chuk_virtual_shell
 """
 
-import logging
-from typing import Dict, Optional, Type
+from .sandbox_config_loader import (
+    load_config_file as load_sandbox_config,
+    find_config_file as find_sandbox_config,
+)
 
-# Command registry dictionaries
-_COMMAND_EXECUTORS: Dict[str, object] = {}
-_COMMAND_CLASSES: Dict[str, Type] = {}
+from .filesystem_initializer import (
+    create_filesystem as create_filesystem_from_config,
+)
 
-def register_command_class(command_class: Type) -> None:
-    """Register a command class (not an instance)."""
-    _COMMAND_CLASSES[command_class.name] = command_class
+from .environment_loader import (
+    load_environment as get_environment_from_config,
+)
 
-def get_command_executor(name: str) -> Optional[object]:
-    """Retrieve a command executor instance by name, if available."""
-    return _COMMAND_EXECUTORS.get(name)
+# For list_available_configs, we need to implement it
+import os
+from typing import List
 
-def initialize_commands(shell_context) -> None:
-    """
-    Initialize all command instances with the provided shell context.
-    
-    This clears any previously initialized command executors and instantiates
-    all registered command classes with the given shell context.
-    """
-    _COMMAND_EXECUTORS.clear()
-    for name, command_class in _COMMAND_CLASSES.items():
-        try:
-            _COMMAND_EXECUTORS[name] = command_class(shell_context)
-        except Exception as e:
-            logging.warning(f"Failed to initialize command '{name}': {e}")
 
-def list_commands() -> Dict[str, str]:
-    """
-    List all available commands with a brief description.
-    
-    Returns:
-        A dictionary mapping command names to the first line of their help text.
-    """
-    return {
-        name: (cmd.help_text.split('\n')[0] if cmd.help_text else name)
-        for name, cmd in _COMMAND_CLASSES.items()
-    }
+def list_available_configs() -> List[str]:
+    """List all available sandbox configurations"""
+    configs = []
 
-# Import command classes
+    # Check user config directory
+    home_dir = os.path.expanduser("~")
+    user_config_dir = os.path.join(home_dir, ".chuk_virtual_shell", "sandboxes")
 
-# Navigation commands
-from chuk_virtual_shell.commands.navigation.ls import LsCommand
-from chuk_virtual_shell.commands.navigation.cd import CdCommand
-from chuk_virtual_shell.commands.navigation.pwd import PwdCommand
+    if os.path.exists(user_config_dir):
+        for file in os.listdir(user_config_dir):
+            if file.endswith((".yaml", ".yml", ".json")):
+                configs.append(file)
 
-# Filesystem commands
-from chuk_virtual_shell.commands.filesystem.mkdir import MkdirCommand
-from chuk_virtual_shell.commands.filesystem.touch import TouchCommand
-from chuk_virtual_shell.commands.filesystem.cat import CatCommand
-from chuk_virtual_shell.commands.filesystem.echo import EchoCommand
-from chuk_virtual_shell.commands.filesystem.rm import RmCommand
-from chuk_virtual_shell.commands.filesystem.rmdir import RmdirCommand
+    return configs
 
-# Environment commands
-from chuk_virtual_shell.commands.environment.env import EnvCommand
-from chuk_virtual_shell.commands.environment.export import ExportCommand
-
-# System commands (existing)
-from chuk_virtual_shell.commands.system.clear import ClearCommand
-from chuk_virtual_shell.commands.system.exit import ExitCommand
-from chuk_virtual_shell.commands.system.help import HelpCommand
-
-# System commands (new)
-from chuk_virtual_shell.commands.system.time import TimeCommand
-from chuk_virtual_shell.commands.system.uptime import UptimeCommand
-from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
-
-# Register all command classes using a compact loop.
-for command in (
-    LsCommand, CdCommand, PwdCommand,
-    MkdirCommand, TouchCommand, CatCommand, EchoCommand, RmCommand, RmdirCommand,
-    EnvCommand, ExportCommand,
-    ClearCommand, ExitCommand, HelpCommand,
-    TimeCommand, UptimeCommand, WhoamiCommand,
-):
-    register_command_class(command)
 
 __all__ = [
-    # Navigation
-    'LsCommand',
-    'CdCommand',
-    'PwdCommand',
-    # Filesystem
-    'MkdirCommand',
-    'TouchCommand',
-    'CatCommand',
-    'EchoCommand',
-    'RmCommand',
-    'RmdirCommand',
-    # Environment
-    'EnvCommand',
-    'ExportCommand',
-    # System (existing)
-    'ClearCommand',
-    'ExitCommand',
-    'HelpCommand',
-    # System (new)
-    'TimeCommand',
-    'UptimeCommand',
-    'WhoamiCommand',
-    # Registry functions
-    'get_command_executor',
-    'register_command_class',
-    'initialize_commands',
-    'list_commands',
+    "load_sandbox_config",
+    "find_sandbox_config",
+    "list_available_configs",
+    "create_filesystem_from_config",
+    "get_environment_from_config",
 ]

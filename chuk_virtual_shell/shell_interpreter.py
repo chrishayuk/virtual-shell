@@ -8,24 +8,27 @@ for parsing, executing commands, and managing the shell state.
 
 This enhanced version adds support for asynchronous command execution.
 """
+
 import logging
 import traceback
 import time
-import asyncio
 import inspect
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple
 
 # virtual file system imports
-from chuk_virtual_fs import VirtualFileSystem
+from chuk_virtual_fs import VirtualFileSystem  # type: ignore
 from chuk_virtual_shell.commands.command_loader import CommandLoader
+from chuk_virtual_shell.filesystem_compat import FileSystemCompat
 
 # Configure module-level logger.
 logger = logging.getLogger(__name__)
+
+
 class ShellInterpreter:
     def __init__(self, fs_provider=None, fs_provider_args=None, sandbox_yaml=None):
         """
         Initialize the shell interpreter.
-        
+
         Args:
             fs_provider (str, optional): Filesystem provider name.
             fs_provider_args (dict, optional): Arguments for the filesystem provider.
@@ -37,7 +40,8 @@ class ShellInterpreter:
         elif fs_provider:
             self._initialize_with_provider(fs_provider, fs_provider_args)
         else:
-            self.fs = VirtualFileSystem()
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
 
         # Initialize history, running flag, and return code.
@@ -57,26 +61,37 @@ class ShellInterpreter:
         # Dynamically load commands.
         self.commands = {}
         self._load_commands()
-        
+
         # Initialize MCP servers list if not already set
-        if not hasattr(self, 'mcp_servers'):
+        if not hasattr(self, "mcp_servers"):
             self.mcp_servers = []
 
     def _initialize_from_sandbox(self, sandbox_yaml: str) -> None:
         """Initialize filesystem and environment using a YAML sandbox configuration."""
         # Import the modularized loader functions.
-        from chuk_virtual_shell.sandbox.loader.sandbox_config_loader import load_config_file, find_config_file
-        from chuk_virtual_shell.sandbox.loader.filesystem_initializer import create_filesystem
-        from chuk_virtual_shell.sandbox.loader.environment_loader import load_environment
-        from chuk_virtual_shell.sandbox.loader.initialization_executor import execute_initialization
+        from chuk_virtual_shell.sandbox.loader.sandbox_config_loader import (
+            load_config_file,
+            find_config_file,
+        )
+        from chuk_virtual_shell.sandbox.loader.filesystem_initializer import (
+            create_filesystem,
+        )
+        from chuk_virtual_shell.sandbox.loader.environment_loader import (
+            load_environment,
+        )
+        from chuk_virtual_shell.sandbox.loader.initialization_executor import (
+            execute_initialization,
+        )
         from chuk_virtual_shell.sandbox.loader.mcp_loader import load_mcp_servers
 
         try:
             # Resolve configuration file path.
-            if not sandbox_yaml.endswith(('.yaml', '.yml')) and '/' not in sandbox_yaml:
+            if not sandbox_yaml.endswith((".yaml", ".yml")) and "/" not in sandbox_yaml:
                 config_path = find_config_file(sandbox_yaml)
                 if not config_path:
-                    raise ValueError(f"Sandbox configuration '{sandbox_yaml}' not found")
+                    raise ValueError(
+                        f"Sandbox configuration '{sandbox_yaml}' not found"
+                    )
             else:
                 config_path = sandbox_yaml
 
@@ -84,13 +99,14 @@ class ShellInterpreter:
             config = load_config_file(config_path)
 
             # Create and configure the filesystem.
-            self.fs = create_filesystem(config)
+            raw_fs = create_filesystem(config)
+            self.fs = FileSystemCompat(raw_fs)
 
             # Set up the environment.
             self.environ = load_environment(config)
 
             # Ensure the home directory exists.
-            self._ensure_home_directory(self.environ['HOME'])
+            self._ensure_home_directory(self.environ["HOME"])
 
             # Execute initialization commands.
             init_commands = config.get("initialization", [])
@@ -106,24 +122,31 @@ class ShellInterpreter:
             # Load MCP server configurations.
             self.mcp_servers = load_mcp_servers(config)
             if self.mcp_servers:
-                print(f"MCP servers loaded: {[s.get('server_name') for s in self.mcp_servers]}")
+                print(
+                    f"MCP servers loaded: {[s.get('server_name') for s in self.mcp_servers]}"
+                )
 
         except Exception as e:
             logger.error(f"Error loading sandbox configuration '{sandbox_yaml}': {e}")
             traceback.print_exc()
             logger.info("Falling back to default configuration.")
-            self.fs = VirtualFileSystem()
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
 
-    def _initialize_with_provider(self, fs_provider: str, fs_provider_args: dict) -> None:
+    def _initialize_with_provider(
+        self, fs_provider: str, fs_provider_args: dict
+    ) -> None:
         """Initialize filesystem using the specified provider and arguments."""
         try:
-            self.fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
+            raw_fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
         except Exception as e:
             logger.error(f"Error initializing filesystem provider '{fs_provider}': {e}")
             logger.info("Falling back to memory provider.")
-            self.fs = VirtualFileSystem()
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
             self._setup_default_environment()
 
     def _setup_default_environment(self) -> None:
@@ -134,11 +157,17 @@ class ShellInterpreter:
             existing_node = self.fs.get_node_info(resolved_home_dir)
             if not existing_node:
                 if not self.fs.mkdir(resolved_home_dir):
-                    logger.warning(f"Could not create home directory {resolved_home_dir}")
+                    logger.warning(
+                        f"Could not create home directory {resolved_home_dir}"
+                    )
             elif not existing_node.is_dir:
-                logger.warning(f"Home path {resolved_home_dir} exists but is not a directory")
+                logger.warning(
+                    f"Home path {resolved_home_dir} exists but is not a directory"
+                )
         except Exception as mkdir_error:
-            logger.error(f"Error processing home directory {default_home}: {mkdir_error}")
+            logger.error(
+                f"Error processing home directory {default_home}: {mkdir_error}"
+            )
 
         self.environ = {
             "HOME": default_home,
@@ -156,9 +185,13 @@ class ShellInterpreter:
             existing_node = self.fs.get_node_info(resolved_home_dir)
             if not existing_node:
                 if not self.fs.mkdir(resolved_home_dir):
-                    logger.warning(f"Could not create home directory {resolved_home_dir}")
+                    logger.warning(
+                        f"Could not create home directory {resolved_home_dir}"
+                    )
             elif not existing_node.is_dir:
-                logger.warning(f"Home path {resolved_home_dir} exists but is not a directory")
+                logger.warning(
+                    f"Home path {resolved_home_dir} exists but is not a directory"
+                )
         except Exception as e:
             logger.error(f"Error processing home directory {home_dir}: {e}")
 
@@ -174,52 +207,495 @@ class ShellInterpreter:
         self.commands.update(discovered_commands)
 
     def parse_command(self, cmd_line: str) -> Tuple[Optional[str], list]:
-        """Parse a command line into the command name and arguments."""
+        """Parse a command line into the command name and arguments, respecting quotes."""
         if not cmd_line or not cmd_line.strip():
             return None, []
-        parts = cmd_line.strip().split()
+
+        # Use shlex to properly handle quoted strings
+        import shlex
+
+        try:
+            parts = shlex.split(cmd_line.strip())
+        except ValueError:
+            # Fallback to simple split if shlex fails (e.g., unclosed quotes)
+            parts = cmd_line.strip().split()
+
+        if not parts:
+            return None, []
+
         return parts[0], parts[1:]
 
     def execute(self, cmd_line: str) -> str:
         """
-        Execute a command line synchronously.
-        
+        Execute a command line synchronously, supporting pipes and redirection.
+
         Args:
             cmd_line (str): The full command line string.
-        
+
         Returns:
             str: The output from the command execution.
         """
         cmd_line = cmd_line.strip()
         if not cmd_line:
             return ""
+
+        # Handle command substitution $(command)
+        cmd_line = self._expand_command_substitution(cmd_line)
+
         self.history.append(cmd_line)
         if cmd_line == "exit":
             self.running = False
             return "Goodbye!"
+
+        # Check for pipes (but not within quotes)
+        if "|" in cmd_line and not self._is_quoted(cmd_line, cmd_line.index("|")):
+            return self._execute_pipeline(cmd_line)
+
+        # Check for input/output redirection
+        redirect_out_file = None
+        redirect_in_file = None
+        append_mode = False
+
+        # First, handle input redirection (<)
+        if "<" in cmd_line:
+            pos = cmd_line.index("<")
+            if not self._is_quoted(cmd_line, pos):
+                # Split command and input file
+                cmd_part = cmd_line[:pos].strip()
+                input_part = cmd_line[pos + 1 :].strip()
+
+                # Check if there's also output redirection after input
+                if ">>" in input_part:
+                    pos2 = input_part.index(">>")
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2 + 2 :].strip()
+                        append_mode = True
+                elif ">" in input_part:
+                    pos2 = input_part.index(">")
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2 + 1 :].strip()
+                        append_mode = False
+                else:
+                    redirect_in_file = input_part
+
+                # Parse the input file (might be quoted)
+                if redirect_in_file:
+                    import shlex
+
+                    try:
+                        parts = shlex.split(redirect_in_file)
+                        if parts:
+                            redirect_in_file = parts[0]
+                            cmd_line = cmd_part
+                    except ValueError:
+                        redirect_in_file = None
+
+                # Parse output file if present
+                if redirect_out_file:
+                    try:
+                        parts = shlex.split(redirect_out_file)
+                        if parts:
+                            redirect_out_file = parts[0]
+                    except ValueError:
+                        redirect_out_file = None
+
+        # If no input redirection, check for output redirection only
+        if not redirect_in_file:
+            # Look for >> first (append mode)
+            if ">>" in cmd_line:
+                pos = cmd_line.index(">>")
+                if not self._is_quoted(cmd_line, pos):
+                    # Split command and redirect file
+                    cmd_part = cmd_line[:pos].strip()
+                    redirect_part = cmd_line[pos + 2 :].strip()
+                    if redirect_part:
+                        # Parse the redirect file (might be quoted)
+                        import shlex
+
+                        try:
+                            parts = shlex.split(redirect_part)
+                            if parts:
+                                redirect_out_file = parts[0]
+                                append_mode = True
+                                cmd_line = cmd_part
+                        except ValueError:
+                            pass
+            # Look for > (overwrite mode)
+            elif ">" in cmd_line:
+                pos = cmd_line.index(">")
+                if not self._is_quoted(cmd_line, pos):
+                    # Split command and redirect file
+                    cmd_part = cmd_line[:pos].strip()
+                    redirect_part = cmd_line[pos + 1 :].strip()
+                    if redirect_part:
+                        # Parse the redirect file (might be quoted)
+                        import shlex
+
+                        try:
+                            parts = shlex.split(redirect_part)
+                            if parts:
+                                redirect_out_file = parts[0]
+                                append_mode = False
+                                cmd_line = cmd_part
+                        except ValueError:
+                            pass
+
+        # Handle input redirection
+        if redirect_in_file:
+            # Read the input file content
+            input_content = self.fs.read_file(redirect_in_file)
+            if input_content is None:
+                return f"bash: {redirect_in_file}: No such file or directory"
+            # Set stdin buffer for the command
+            self._stdin_buffer = input_content
+
+        # Execute the command
         cmd, args = self.parse_command(cmd_line)
         if not cmd:
             return ""
+
         if cmd in self.commands:
             try:
                 # Use run() instead of execute() to handle async commands properly
                 result = self.commands[cmd].run(args)
                 if cmd == "cd":
                     self.environ["PWD"] = self.fs.pwd()
+
+                # Clear stdin buffer after command execution
+                if hasattr(self, "_stdin_buffer"):
+                    del self._stdin_buffer
+
+                # Handle output redirection
+                if redirect_out_file:
+                    if append_mode:
+                        # Append to file
+                        existing = self.fs.read_file(redirect_out_file) or ""
+                        if existing and not existing.endswith("\n"):
+                            content = existing + "\n" + result
+                        elif existing:
+                            content = existing + result
+                        else:
+                            content = result
+                        self.fs.write_file(redirect_out_file, content)
+                    else:
+                        # Overwrite file
+                        self.fs.write_file(redirect_out_file, result)
+                    return ""  # No output to terminal when redirecting
+
                 return result
             except Exception as e:
                 logger.error(f"Error executing command '{cmd}': {e}")
                 return f"Error executing command: {e}"
         else:
             return f"{cmd}: command not found"
-    
+
+    def _expand_command_substitution(self, cmd_line: str, depth: int = 0) -> str:
+        """
+        Expand command substitutions in the form $(command).
+
+        Args:
+            cmd_line: Command line potentially containing substitutions
+            depth: Recursion depth to prevent infinite loops
+
+        Returns:
+            Command line with substitutions expanded
+        """
+        # Prevent infinite recursion
+        if depth > 5:
+            return cmd_line
+
+        import re
+
+        # Find all $(command) patterns
+        pattern = r"\$\(([^)]+)\)"
+
+        def substitute(match):
+            # Execute the command and return its output
+            command = match.group(1)
+            # Execute without substitution to avoid recursion
+            result = self._execute_without_substitution(command)
+            # Remove trailing newline for substitution
+            if result and result.endswith("\n"):
+                result = result[:-1]
+            return result
+
+        # Replace all command substitutions
+        expanded = re.sub(pattern, substitute, cmd_line)
+        return expanded
+
+    def _execute_without_substitution(self, cmd_line: str) -> str:
+        """Execute a command without expanding substitutions (to avoid recursion)."""
+        cmd_line = cmd_line.strip()
+        if not cmd_line:
+            return ""
+
+        # Check for pipes (but not within quotes)
+        if "|" in cmd_line and not self._is_quoted(cmd_line, cmd_line.index("|")):
+            return self._execute_pipeline(cmd_line)
+
+        # Check for input/output redirection (rest of execute logic)
+        # (Copy the rest of the execute method logic here but without the substitution call)
+        redirect_out_file = None
+        redirect_in_file = None
+        append_mode = False
+
+        # Handle input redirection
+        if "<" in cmd_line:
+            pos = cmd_line.index("<")
+            if not self._is_quoted(cmd_line, pos):
+                cmd_part = cmd_line[:pos].strip()
+                input_part = cmd_line[pos + 1 :].strip()
+
+                if ">>" in input_part:
+                    pos2 = input_part.index(">>")
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2 + 2 :].strip()
+                        append_mode = True
+                elif ">" in input_part:
+                    pos2 = input_part.index(">")
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2 + 1 :].strip()
+                        append_mode = False
+                else:
+                    redirect_in_file = input_part
+
+                if redirect_in_file:
+                    import shlex
+
+                    try:
+                        parts = shlex.split(redirect_in_file)
+                        if parts:
+                            redirect_in_file = parts[0]
+                    except ValueError:
+                        pass
+
+                    content = self.fs.read_file(redirect_in_file)
+                    if content is None:
+                        return f"{redirect_in_file}: No such file or directory"
+                    self._stdin_buffer = content
+
+                cmd_line = cmd_part
+
+        # Handle output redirection
+        if not redirect_out_file:
+            if ">>" in cmd_line:
+                pos = cmd_line.index(">>")
+                if not self._is_quoted(cmd_line, pos):
+                    cmd_line = cmd_line[:pos].strip()
+                    redirect_out_file = cmd_line[pos + 2 :].strip()
+                    append_mode = True
+            elif ">" in cmd_line:
+                pos = cmd_line.index(">")
+                if not self._is_quoted(cmd_line, pos):
+                    redirect_out_file = cmd_line[pos + 1 :].strip()
+                    cmd_line = cmd_line[:pos].strip()
+                    append_mode = False
+
+        # Parse and execute command
+        cmd, args = self.parse_command(cmd_line)
+        if not cmd:
+            return ""
+
+        if cmd in self.commands:
+            try:
+                result = self.commands[cmd].run(args)
+                if cmd == "cd":
+                    self.environ["PWD"] = self.fs.pwd()
+
+                if hasattr(self, "_stdin_buffer"):
+                    del self._stdin_buffer
+
+                if redirect_out_file:
+                    if append_mode:
+                        existing = self.fs.read_file(redirect_out_file) or ""
+                        if existing and not existing.endswith("\n"):
+                            content = existing + "\n" + result
+                        elif existing:
+                            content = existing + result
+                        else:
+                            content = result
+                        self.fs.write_file(redirect_out_file, content)
+                    else:
+                        self.fs.write_file(redirect_out_file, result)
+                    return ""
+
+                return result
+            except Exception as e:
+                return f"Error executing command: {e}"
+        else:
+            return f"{cmd}: command not found"
+
+    def _is_quoted(self, text: str, position: int) -> bool:
+        """Check if a position in text is within quotes."""
+        in_single = False
+        in_double = False
+        escaped = False
+
+        for i, char in enumerate(text):
+            if i >= position:
+                return in_single or in_double
+
+            if escaped:
+                escaped = False
+                continue
+
+            if char == "\\":
+                escaped = True
+            elif char == '"' and not in_single:
+                in_double = not in_double
+            elif char == "'" and not in_double:
+                in_single = not in_single
+
+        return False
+
+    def _execute_pipeline(self, cmd_line: str) -> str:
+        """Execute a pipeline of commands connected by pipes."""
+        # Check if the last command has redirection
+        redirect_file = None
+        append_mode = False
+        input_file = None
+
+        # First check for input redirection in the first command
+        if "<" in cmd_line:
+            # Find the first pipe
+            pipe_pos = cmd_line.index("|") if "|" in cmd_line else len(cmd_line)
+            first_cmd = cmd_line[:pipe_pos]
+
+            if "<" in first_cmd:
+                pos = first_cmd.index("<")
+                if not self._is_quoted(first_cmd, pos):
+                    # Extract input file
+                    before_input = first_cmd[:pos].strip()
+                    after_input = first_cmd[pos + 1 :].strip()
+
+                    import shlex
+
+                    try:
+                        parts = shlex.split(after_input)
+                        if parts:
+                            input_file = parts[0]
+                            # Reconstruct command line without input redirection
+                            if pipe_pos < len(cmd_line):
+                                cmd_line = before_input + cmd_line[pipe_pos:]
+                            else:
+                                cmd_line = before_input
+                    except ValueError:
+                        pass
+
+        # Look for output redirection in the whole pipeline
+        if ">>" in cmd_line:
+            pos = cmd_line.rfind(">>")  # Find last occurrence
+            if not self._is_quoted(cmd_line, pos):
+                # Split at the last >>
+                pipeline_part = cmd_line[:pos].strip()
+                redirect_part = cmd_line[pos + 2 :].strip()
+                if redirect_part:
+                    import shlex
+
+                    try:
+                        parts = shlex.split(redirect_part)
+                        if parts:
+                            redirect_file = parts[0]
+                            append_mode = True
+                            cmd_line = pipeline_part
+                    except ValueError:
+                        pass
+        elif ">" in cmd_line:
+            pos = cmd_line.rfind(">")  # Find last occurrence
+            if not self._is_quoted(cmd_line, pos):
+                # Split at the last >
+                pipeline_part = cmd_line[:pos].strip()
+                redirect_part = cmd_line[pos + 1 :].strip()
+                if redirect_part:
+                    import shlex
+
+                    try:
+                        parts = shlex.split(redirect_part)
+                        if parts:
+                            redirect_file = parts[0]
+                            append_mode = False
+                            cmd_line = pipeline_part
+                    except ValueError:
+                        pass
+
+        # Now execute the pipeline
+        commands = cmd_line.split("|")
+        result = ""
+
+        for i, cmd_str in enumerate(commands):
+            cmd_str = cmd_str.strip()
+            if not cmd_str:
+                continue
+
+            # Parse the command
+            cmd, args = self.parse_command(cmd_str)
+            if not cmd:
+                continue
+
+            if cmd not in self.commands:
+                return f"{cmd}: command not found"
+
+            try:
+                # Set stdin buffer for commands that support it
+                if i == 0 and input_file:
+                    # Read input file for the first command
+                    content = self.fs.read_file(input_file)
+                    if content is None:
+                        return f"{input_file}: No such file or directory"
+                    self._stdin_buffer = content
+                elif i > 0 and result:
+                    # Store the previous command's output as stdin for this command
+                    self._stdin_buffer = result
+
+                # Execute the command
+                result = self.commands[cmd].run(args)
+
+                # Clear stdin buffer
+                if hasattr(self, "_stdin_buffer"):
+                    del self._stdin_buffer
+
+                # Check if the command returned an error
+                if result and (
+                    result.startswith(f"{cmd}: ")
+                    and ("No such file" in result or "error" in result.lower())
+                ):
+                    # Error occurred, stop pipeline and return error
+                    return result
+
+            except Exception as e:
+                logger.error(f"Error executing command '{cmd}' in pipeline: {e}")
+                return f"Error executing command in pipeline: {e}"
+
+        # Handle output redirection if specified
+        if redirect_file:
+            if append_mode:
+                # Append to file
+                existing = self.fs.read_file(redirect_file) or ""
+                if existing and not existing.endswith("\n"):
+                    content = existing + "\n" + result
+                elif existing:
+                    content = existing + result
+                else:
+                    content = result
+                self.fs.write_file(redirect_file, content)
+            else:
+                # Overwrite file
+                self.fs.write_file(redirect_file, result)
+            return ""  # No output to terminal when redirecting
+
+        return result
+
     async def execute_async(self, cmd_line: str) -> str:
         """
         Execute a command line asynchronously.
-        
+
         Args:
             cmd_line (str): The full command line string.
-        
+
         Returns:
             str: The output from the command execution.
         """
@@ -237,12 +713,14 @@ class ShellInterpreter:
             try:
                 command = self.commands[cmd]
                 # Check if command supports async execution
-                if hasattr(command, 'execute_async') and inspect.iscoroutinefunction(command.execute_async):
+                if hasattr(command, "execute_async") and inspect.iscoroutinefunction(
+                    command.execute_async
+                ):
                     result = await command.execute_async(args)
                 else:
                     # Fall back to synchronous execution for backward compatibility
                     result = command.execute(args)
-                    
+
                 if cmd == "cd":
                     self.environ["PWD"] = self.fs.pwd()
                 return result
