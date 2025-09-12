@@ -25,47 +25,78 @@ class LsCommand(ShellCommand):
             "-a", "--all", action="store_true", help="Include hidden files"
         )
         parser.add_argument(
-            "directory",
-            nargs="?",
+            "paths",
+            nargs="*",
             default=None,
-            help="Directory to list (default: current directory)",
+            help="Files or directories to list",
         )
         try:
             parsed_args, _ = parser.parse_known_args(args)
         except SystemExit:
             return self.get_help()
 
-        # Determine the directory: if none provided, use the current directory from filesystem
-        # First try to get current directory from filesystem directly, if available
-        if parsed_args.directory:
-            dir_arg = parsed_args.directory
-        elif hasattr(self.shell.fs, "pwd") and callable(self.shell.fs.pwd):
-            dir_arg = (
-                self.shell.fs.pwd()
-            )  # Get current directory directly from filesystem
+        # If no paths provided, use current directory
+        if not parsed_args.paths:
+            if hasattr(self.shell.fs, "pwd") and callable(self.shell.fs.pwd):
+                paths = [self.shell.fs.pwd()]
+            else:
+                paths = [self.shell.environ.get("PWD", ".")]
         else:
-            # Fall back to environment variable if filesystem doesn't track current directory
-            dir_arg = self.shell.environ.get("PWD", ".")
+            paths = parsed_args.paths
 
-        # Resolve the directory path
-        resolved_dir = self.shell.resolve_path(dir_arg)
+        # Handle multiple paths
+        results = []
+        for path in paths:
+            # Resolve the path
+            resolved_path = self.shell.resolve_path(path)
+            
+            # Check if it's a file or directory
+            try:
+                node_info = self.shell.fs.get_node_info(resolved_path)
+            except Exception:
+                # If get_node_info fails, assume doesn't exist
+                node_info = None
+                
+            if not node_info:
+                results.append(f"ls: cannot access '{path}': No such file or directory")
+                continue
+            
+            if node_info.is_dir:
+                # List directory contents
+                if len(paths) > 1:
+                    results.append(f"{path}:")
+                result = self._list_directory(resolved_path, parsed_args.long, parsed_args.all)
+                results.append(result)
+                if len(paths) > 1:
+                    results.append("")  # Empty line between directories
+            else:
+                # It's a file, just list it
+                if parsed_args.long:
+                    result = self._format_long_listing([path], resolved_path)
+                else:
+                    result = path
+                results.append(result)
+        
+        return "\n".join(results).strip()
 
+    def _list_directory(self, resolved_dir, long_format, show_all):
+        """List contents of a directory"""
         # Verify the directory exists and is a directory
         if not self._directory_exists(resolved_dir):
-            return f"ls: cannot access '{dir_arg}': No such file or directory"
+            return f"ls: cannot access '{resolved_dir}': No such file or directory"
 
         try:
             files = self.shell.fs.ls(resolved_dir)
 
             # Add special directory entries . and .. if in all mode
-            if parsed_args.all and isinstance(files, list):
+            if show_all and isinstance(files, list):
                 files = ["."] + ([".."] if resolved_dir != "/" else []) + files
 
         except Exception as e:
             return f"ls: error: {e}"
 
         # Filter out hidden files if --all is not specified
-        if not parsed_args.all and isinstance(files, list):
+        if not show_all and isinstance(files, list):
             files = [f for f in files if not f.startswith(".")]
 
         # Ensure files is a list before sorting
@@ -74,7 +105,7 @@ class LsCommand(ShellCommand):
 
         files = sorted(files)
 
-        if parsed_args.long:
+        if long_format:
             lines = []
             for f in files:
                 # Skip special directory entries in size calculation
@@ -130,6 +161,29 @@ class LsCommand(ShellCommand):
             return "\n".join(lines)
         else:
             return " ".join(files)
+
+    def _format_long_listing(self, files, base_path):
+        """Format files in long listing format"""
+        lines = []
+        for f in files:
+            mode = "-rw-r--r--"
+            nlink = 1
+            owner = self.shell.environ.get("USER", "user")
+            group = "staff"
+            size = 0
+            try:
+                full_path = os.path.join(base_path, f) if base_path else f
+                if hasattr(self.shell.fs, "get_size"):
+                    size = self.shell.fs.get_size(full_path)
+                elif hasattr(self.shell.fs, "read_file"):
+                    content = self.shell.fs.read_file(full_path)
+                    if content is not None:
+                        size = len(content)
+            except:
+                size = 0
+            mod_date = time.strftime("%b %d %H:%M", time.localtime())
+            lines.append(f"{mode} {nlink} {owner} {group} {size:>5} {mod_date} {f}")
+        return "\n".join(lines)
 
     def _directory_exists(self, path):
         """Check if a directory exists using available methods."""

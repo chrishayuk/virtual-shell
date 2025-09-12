@@ -184,6 +184,7 @@ class ShellInterpreter:
             "USER": "user",
             "SHELL": "/bin/pyodide-shell",
             "PWD": "/",
+            "OLDPWD": "/",
             "TERM": "xterm",
         }
 
@@ -248,20 +249,32 @@ class ShellInterpreter:
         if not cmd_line:
             return ""
 
-        # Handle command substitution $(command)
+        # Store original for history before any expansions
+        original_cmd_line = cmd_line
+
+        # Handle command substitution $(command) and backticks
         cmd_line = self._expand_command_substitution(cmd_line)
 
         # Handle alias expansion
         cmd_line = self._expand_aliases(cmd_line)
 
-        self.history.append(cmd_line)
+        self.history.append(original_cmd_line)
         if cmd_line == "exit":
             self.running = False
             return "Goodbye!"
 
+        # Check for logical operators (&&, ||) and command separator (;)
+        if any(op in cmd_line for op in ["&&", "||", ";"]) and not self._contains_quoted_operator(cmd_line):
+            return self._execute_with_operators(cmd_line)
+
         # Check for pipes (but not within quotes)
         if "|" in cmd_line and not self._is_quoted(cmd_line, cmd_line.index("|")):
             return self._execute_pipeline(cmd_line)
+
+        # Apply expansions for simple commands (no operators)
+        cmd_line = self._expand_variables(cmd_line)
+        cmd_line = self._expand_globs(cmd_line)
+        cmd_line = self._expand_tilde(cmd_line)
 
         # Check for input/output redirection
         redirect_out_file = None
@@ -425,7 +438,7 @@ class ShellInterpreter:
 
     def _expand_command_substitution(self, cmd_line: str, depth: int = 0) -> str:
         """
-        Expand command substitutions in the form $(command).
+        Expand command substitutions in the form $(command) and `command`.
 
         Args:
             cmd_line: Command line potentially containing substitutions
@@ -440,9 +453,6 @@ class ShellInterpreter:
 
         import re
 
-        # Find all $(command) patterns
-        pattern = r"\$\(([^)]+)\)"
-
         def substitute(match):
             # Execute the command and return its output
             command = match.group(1)
@@ -453,9 +463,13 @@ class ShellInterpreter:
                 result = result[:-1]
             return result
 
-        # Replace all command substitutions
-        expanded = re.sub(pattern, substitute, cmd_line)
-        return expanded
+        # Find and replace $(command) patterns
+        cmd_line = re.sub(r"\$\(([^)]+)\)", substitute, cmd_line)
+        
+        # Find and replace `command` patterns (backticks)
+        cmd_line = re.sub(r"`([^`]+)`", substitute, cmd_line)
+        
+        return cmd_line
 
     def _execute_without_substitution(self, cmd_line: str) -> str:
         """Execute a command without expanding substitutions (to avoid recursion)."""
@@ -586,6 +600,11 @@ class ShellInterpreter:
 
     def _execute_pipeline(self, cmd_line: str) -> str:
         """Execute a pipeline of commands connected by pipes."""
+        # Apply expansions to the whole pipeline
+        cmd_line = self._expand_variables(cmd_line)
+        cmd_line = self._expand_globs(cmd_line)
+        cmd_line = self._expand_tilde(cmd_line)
+        
         # Check if the last command has redirection
         redirect_file = None
         append_mode = False
@@ -792,13 +811,21 @@ class ShellInterpreter:
                             # Skip comments and empty lines
                             if line and not line.startswith("#"):
                                 try:
-                                    # Execute the command silently
-                                    result = self.execute(line)
-                                    # Check if command was not found
-                                    if result and "command not found" in result.lower():
-                                        logger.warning(
-                                            f"Error executing .shellrc line '{line}': {result}"
-                                        )
+                                    # For alias commands, don't expand variables
+                                    # They should be expanded when the alias is used
+                                    if line.startswith("alias "):
+                                        # Parse and execute alias directly
+                                        parts = line[6:].strip()  # Remove "alias "
+                                        if "alias" in self.commands:
+                                            self.commands["alias"].execute([parts])
+                                    else:
+                                        # Execute the command normally
+                                        result = self.execute(line)
+                                        # Check if command was not found
+                                        if result and "command not found" in result.lower():
+                                            logger.warning(
+                                                f"Error executing .shellrc line '{line}': {result}"
+                                            )
                                 except Exception as e:
                                     logger.warning(
                                         f"Error executing .shellrc line '{line}': {e}"
@@ -879,3 +906,423 @@ class ShellInterpreter:
     def _register_command(self, command):
         """Register a single command with the shell."""
         self.commands[command.name] = command
+
+    def _expand_variables(self, cmd_line: str) -> str:
+        """
+        Expand environment variables in the command line.
+        Supports $VAR and ${VAR} syntax.
+        """
+        import re
+
+        # Special variables
+        cmd_line = cmd_line.replace("$?", str(self.return_code))
+        cmd_line = cmd_line.replace("$$", str(id(self)))
+        cmd_line = cmd_line.replace("$#", "0")
+
+        # Expand ${VAR} format
+        def expand_braces(match):
+            var_name = match.group(1)
+            return self.environ.get(var_name, "")
+
+        cmd_line = re.sub(r"\$\{([^}]+)\}", expand_braces, cmd_line)
+
+        # Expand $VAR format - but only if VAR starts with letter/underscore
+        # and consists of alphanumeric/underscore chars
+        def expand_simple(match):
+            var_name = match.group(1)
+            # Don't expand single lowercase letters (like $d in sed)
+            # These are often special patterns in commands
+            if len(var_name) == 1 and var_name.islower():
+                return match.group(0)  # Keep original
+            # Always expand to the value (empty string if not found)
+            return self.environ.get(var_name, "")
+
+        # Match $VARNAME where VARNAME is alphanumeric starting with letter/underscore
+        cmd_line = re.sub(r"\$([A-Za-z_][A-Za-z0-9_]*)", expand_simple, cmd_line)
+
+        return cmd_line
+
+    def _expand_globs(self, cmd_line: str) -> str:
+        """
+        Expand glob patterns (wildcards) in the command line.
+        Supports *, ?, and [].
+        """
+        import glob as glob_module
+        import shlex
+
+        try:
+            # Parse the command line preserving quotes
+            parts = shlex.split(cmd_line)
+        except ValueError:
+            # If shlex fails, return as-is
+            return cmd_line
+
+        expanded_parts = []
+        for part in parts:
+            # Check if this part contains glob characters
+            if any(char in part for char in ["*", "?", "["]):
+                # Try to expand the glob pattern
+                # Convert virtual FS paths to match against
+                if part.startswith("/"):
+                    # Absolute path
+                    base_path = "/"
+                    pattern = part[1:] if len(part) > 1 else ""
+                else:
+                    # Relative path
+                    base_path = self.fs.pwd()
+                    pattern = part
+
+                matches = self._match_glob_pattern(base_path, pattern)
+                if matches:
+                    expanded_parts.extend(matches)
+                else:
+                    # No matches, keep the pattern as-is
+                    expanded_parts.append(part)
+            else:
+                expanded_parts.append(part)
+
+        # Reconstruct the command line, preserving empty strings
+        result_parts = []
+        for part in expanded_parts:
+            if part == "":
+                # Preserve empty strings with quotes
+                result_parts.append('""')
+            elif " " in part:
+                result_parts.append(shlex.quote(part))
+            else:
+                result_parts.append(part)
+        return " ".join(result_parts)
+
+    def _match_glob_pattern(self, base_path: str, pattern: str) -> list:
+        """
+        Match glob pattern against files in the virtual filesystem.
+        """
+        import fnmatch
+        import os
+
+        matches = []
+        
+        # Handle absolute vs relative patterns
+        if pattern.startswith("/"):
+            search_path = "/"
+            pattern = pattern[1:]
+        else:
+            search_path = base_path
+
+        # Get the directory to search in
+        if "/" in pattern:
+            # Pattern includes directory
+            dir_parts = pattern.rsplit("/", 1)
+            search_dir = os.path.join(search_path, dir_parts[0])
+            file_pattern = dir_parts[1]
+        else:
+            # Pattern is just for files in current/base directory
+            search_dir = search_path
+            file_pattern = pattern
+
+        # List files in the search directory
+        try:
+            entries = self.fs.ls(search_dir)
+            if entries:
+                for entry in entries:
+                    # Skip . and ..
+                    if entry in [".", ".."]:
+                        continue
+                    
+                    # Check if the entry matches the pattern
+                    if fnmatch.fnmatch(entry, file_pattern):
+                        # For relative patterns, return just the filename
+                        # For absolute patterns, return the full path
+                        if search_path == base_path and not pattern.startswith("/"):
+                            # Relative pattern in current directory
+                            matches.append(entry)
+                        else:
+                            # Absolute pattern or pattern with directory
+                            if search_dir == "/":
+                                full_path = "/" + entry
+                            else:
+                                full_path = os.path.join(search_dir, entry).replace("\\", "/")
+                            matches.append(full_path)
+        except:
+            pass
+
+        return sorted(matches)
+
+    def _expand_tilde(self, cmd_line: str) -> str:
+        """
+        Expand tilde (~) to home directory.
+        """
+        import shlex
+
+        try:
+            parts = shlex.split(cmd_line)
+        except ValueError:
+            parts = cmd_line.split()
+
+        expanded_parts = []
+        home = self.environ.get("HOME", "/home/user")
+
+        for part in parts:
+            if part == "~":
+                expanded_parts.append(home)
+            elif part.startswith("~/"):
+                expanded_parts.append(home + part[1:])
+            else:
+                expanded_parts.append(part)
+
+        # Reconstruct the command line, preserving empty strings
+        result_parts = []
+        for part in expanded_parts:
+            if part == "":
+                # Preserve empty strings with quotes
+                result_parts.append('""')
+            elif " " in part:
+                result_parts.append(shlex.quote(part))
+            else:
+                result_parts.append(part)
+        return " ".join(result_parts)
+
+    def _contains_quoted_operator(self, cmd_line: str) -> bool:
+        """
+        Check if logical operators or semicolons are within quotes.
+        """
+        for op in ["&&", "||", ";"]:
+            if op in cmd_line:
+                idx = cmd_line.index(op)
+                if self._is_quoted(cmd_line, idx):
+                    return True
+        return False
+
+    def _execute_with_operators(self, cmd_line: str) -> str:
+        """
+        Execute command line with logical operators (&&, ||) and semicolon separator.
+        """
+        import re
+
+        # Split by operators while preserving them
+        parts = re.split(r'(&&|\|\||;)', cmd_line)
+        
+        results = []
+        i = 0
+        skip_next = False
+        
+        while i < len(parts):
+            if i % 2 == 0:  # Command part
+                cmd = parts[i].strip()
+                if cmd and not skip_next:
+                    # Execute the individual command
+                    result = self._execute_single_command(cmd)
+                    
+                    # Store the result if there's output
+                    if result:
+                        results.append(result)
+                    
+                    # Check the next operator to determine flow
+                    if i + 1 < len(parts):
+                        operator = parts[i + 1].strip()
+                        
+                        if operator == "&&":
+                            # Continue only if command succeeded (return code 0)
+                            if self.return_code != 0:
+                                skip_next = True
+                        elif operator == "||":
+                            # Continue only if command failed (return code != 0)
+                            if self.return_code == 0:
+                                skip_next = True
+                        elif operator == ";":
+                            # Always continue with semicolon
+                            skip_next = False
+                else:
+                    skip_next = False
+            i += 1
+        
+        return "\n".join(results)
+
+    def _execute_single_command(self, cmd_line: str) -> str:
+        """
+        Execute a single command (no operators, but may have pipes/redirects).
+        """
+        cmd_line = cmd_line.strip()
+        if not cmd_line:
+            return ""
+
+        # Apply expansions now that we're executing a single command
+        cmd_line = self._expand_variables(cmd_line)
+        cmd_line = self._expand_globs(cmd_line)
+        cmd_line = self._expand_tilde(cmd_line)
+
+        # Check for pipes
+        if "|" in cmd_line and not self._is_quoted(cmd_line, cmd_line.index("|")):
+            return self._execute_pipeline(cmd_line)
+
+        # Handle regular command with possible redirection
+        return self._execute_command_with_redirect(cmd_line)
+
+    def _execute_command_with_redirect(self, cmd_line: str) -> str:
+        """
+        Execute a command with possible input/output redirection.
+        This is the core single command execution logic extracted from execute().
+        """
+        # Check for input/output redirection
+        redirect_out_file = None
+        redirect_in_file = None
+        append_mode = False
+
+        # First, handle input redirection (<)
+        if "<" in cmd_line:
+            pos = cmd_line.index("<")
+            if not self._is_quoted(cmd_line, pos):
+                # Split command and input file
+                cmd_part = cmd_line[:pos].strip()
+                input_part = cmd_line[pos + 1 :].strip()
+
+                # Check if there's also output redirection after input
+                if ">>" in input_part:
+                    pos2 = input_part.index(">>")
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2 + 2 :].strip()
+                        append_mode = True
+                elif ">" in input_part:
+                    pos2 = input_part.index(">")
+                    if not self._is_quoted(input_part, pos2):
+                        redirect_in_file = input_part[:pos2].strip()
+                        redirect_out_file = input_part[pos2 + 1 :].strip()
+                        append_mode = False
+                else:
+                    redirect_in_file = input_part
+
+                # Parse the input file (might be quoted)
+                if redirect_in_file:
+                    import shlex
+
+                    try:
+                        parts = shlex.split(redirect_in_file)
+                        if parts:
+                            redirect_in_file = parts[0]
+                            cmd_line = cmd_part
+                    except ValueError:
+                        redirect_in_file = None
+
+                # Parse output file if present
+                if redirect_out_file:
+                    try:
+                        parts = shlex.split(redirect_out_file)
+                        if parts:
+                            redirect_out_file = parts[0]
+                    except ValueError:
+                        redirect_out_file = None
+
+        # If no input redirection, check for output redirection only
+        if not redirect_in_file:
+            # Look for >> first (append mode)
+            if ">>" in cmd_line:
+                pos = cmd_line.index(">>")
+                if not self._is_quoted(cmd_line, pos):
+                    # Split command and redirect file
+                    cmd_part = cmd_line[:pos].strip()
+                    redirect_part = cmd_line[pos + 2 :].strip()
+                    if redirect_part:
+                        # Parse the redirect file (might be quoted)
+                        import shlex
+
+                        try:
+                            parts = shlex.split(redirect_part)
+                            if parts:
+                                redirect_out_file = parts[0]
+                                append_mode = True
+                                cmd_line = cmd_part
+                        except ValueError:
+                            pass
+            # Look for > (overwrite mode)
+            elif ">" in cmd_line:
+                pos = cmd_line.index(">")
+                if not self._is_quoted(cmd_line, pos):
+                    # Split command and redirect file
+                    cmd_part = cmd_line[:pos].strip()
+                    redirect_part = cmd_line[pos + 1 :].strip()
+                    if redirect_part:
+                        # Parse the redirect file (might be quoted)
+                        import shlex
+
+                        try:
+                            parts = shlex.split(redirect_part)
+                            if parts:
+                                redirect_out_file = parts[0]
+                                append_mode = False
+                                cmd_line = cmd_part
+                        except ValueError:
+                            pass
+
+        # Handle input redirection
+        if redirect_in_file:
+            # Read the input file content
+            input_content = self.fs.read_file(redirect_in_file)
+            if input_content is None:
+                self.return_code = 1
+                return f"bash: {redirect_in_file}: No such file or directory"
+            # Set stdin buffer for the command
+            self._stdin_buffer = input_content
+
+        # Execute the command
+        cmd, args = self.parse_command(cmd_line)
+        if not cmd:
+            return ""
+
+        if cmd in self.commands:
+            try:
+                # Track command timing if enabled
+                start_time = time.time() if self.enable_timing else None
+
+                # Use run() instead of execute() to handle async commands properly
+                result = self.commands[cmd].run(args)
+                self.return_code = 0  # Success
+
+                # Record timing statistics
+                if self.enable_timing and start_time:
+                    elapsed = time.time() - start_time
+                    if cmd not in self.command_timing:
+                        self.command_timing[cmd] = {
+                            "count": 0,
+                            "total_time": 0.0,
+                            "min_time": float("inf"),
+                            "max_time": 0.0,
+                        }
+                    stats = self.command_timing[cmd]
+                    stats["count"] += 1
+                    stats["total_time"] += elapsed
+                    stats["min_time"] = min(stats["min_time"], elapsed)
+                    stats["max_time"] = max(stats["max_time"], elapsed)
+
+                if cmd == "cd":
+                    self.environ["PWD"] = self.fs.pwd()
+
+                # Clear stdin buffer after command execution
+                if hasattr(self, "_stdin_buffer"):
+                    del self._stdin_buffer
+
+                # Handle output redirection
+                if redirect_out_file:
+                    if append_mode:
+                        # Append to file
+                        existing = self.fs.read_file(redirect_out_file) or ""
+                        if existing and not existing.endswith("\n"):
+                            content = existing + "\n" + result
+                        elif existing:
+                            content = existing + result
+                        else:
+                            content = result
+                        self.fs.write_file(redirect_out_file, content)
+                    else:
+                        # Overwrite file
+                        self.fs.write_file(redirect_out_file, result)
+                    return ""  # No output to terminal when redirecting
+
+                return result
+            except Exception as e:
+                logger.error(f"Error executing command '{cmd}': {e}")
+                self.return_code = 1
+                return f"Error executing command: {e}"
+        else:
+            self.return_code = 127  # Command not found
+            return f"{cmd}: command not found"

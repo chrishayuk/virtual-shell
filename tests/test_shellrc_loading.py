@@ -266,7 +266,8 @@ alias test="echo $VAR1"
 
         # VAR1 should be changed
         assert shell.environ.get("VAR1") == "changed"
-        # VAR2 should have the literal string since variable expansion happens at command time
-        assert shell.environ.get("VAR2") == "$VAR1_second"
+        # VAR2 should be empty string since $VAR1_second variable doesn't exist
+        # (bash behavior: looking for variable named VAR1_second, not VAR1 + "_second")
+        assert shell.environ.get("VAR2") == ""
         # Alias should have the literal string with variable
         assert shell.aliases["test"] == "echo $VAR1"
