@@ -2,6 +2,7 @@ import pytest
 from chuk_virtual_shell.commands.system.whoami import WhoamiCommand
 from tests.dummy_shell import DummyShell
 
+
 @pytest.fixture
 def whoami_command():
     # Setup a dummy shell.
@@ -10,12 +11,14 @@ def whoami_command():
     dummy_shell.environ = {"USER": "testuser"}
     return WhoamiCommand(shell_context=dummy_shell)
 
+
 def test_whoami_command_basic(whoami_command):
     """
     The whoami command should return the username from the shell environment.
     """
     output = whoami_command.execute([])
     assert output == "testuser"
+
 
 def test_whoami_command_with_extra_args(whoami_command):
     """

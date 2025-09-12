@@ -1,9 +1,11 @@
 """
 tests/chuk_virtual_shell/commands/filesystem/test_mkdir_command.py
 """
+
 import pytest
 from chuk_virtual_shell.commands.filesystem.mkdir import MkdirCommand
 from tests.dummy_shell import DummyShell
+
 
 # Fixture to create a MkdirCommand with a dummy shell as the shell_context
 @pytest.fixture
@@ -15,10 +17,12 @@ def mkdir_command():
     command = MkdirCommand(shell_context=dummy_shell)
     return command
 
+
 # Test for missing operand (no directories provided)
 def test_mkdir_missing_operand(mkdir_command):
     output = mkdir_command.execute([])
     assert output == "mkdir: missing operand"
+
 
 # Test for successful directory creation
 def test_mkdir_create_directory_success(mkdir_command):
@@ -30,6 +34,7 @@ def test_mkdir_create_directory_success(mkdir_command):
     assert "new_dir" in shell.fs.files
     # Optionally, check that the directory is represented as an empty dict.
     assert shell.fs.files["new_dir"] == {}
+
 
 # Test for failure when directory creation is not allowed (e.g. directory already exists)
 def test_mkdir_create_directory_failure(mkdir_command):

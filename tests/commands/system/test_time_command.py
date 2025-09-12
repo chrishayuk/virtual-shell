@@ -4,6 +4,7 @@ import pytest
 from chuk_virtual_shell.commands.system.time import TimeCommand
 from tests.dummy_shell import DummyShell
 
+
 @pytest.fixture
 def time_command():
     dummy_shell = DummyShell({})
@@ -23,6 +24,7 @@ def test_time_command_no_subcommand(time_command):
     # Optionally, check for a date/time pattern (YYYY-MM-DD HH:MM:SS).
     pattern = r"Current time:\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
     assert re.match(pattern, output)
+
 
 def test_time_command_with_subcommand(time_command):
     """

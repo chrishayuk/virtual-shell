@@ -34,25 +34,25 @@ Examples:
     def execute(self, args):
         """Execute the alias command"""
         # Initialize aliases dict if it doesn't exist
-        if not hasattr(self.shell, 'aliases'):
+        if not hasattr(self.shell, "aliases"):
             self.shell.aliases = {}
-        
+
         if not args:
             # Display all aliases
             if not self.shell.aliases:
                 return ""
-            
+
             results = []
             for name, value in sorted(self.shell.aliases.items()):
                 results.append(f"alias {name}='{value}'")
             return "\n".join(results)
-        
+
         # Process alias definitions
         results = []
         for arg in args:
-            if '=' in arg:
+            if "=" in arg:
                 # Define an alias
-                name, value = arg.split('=', 1)
+                name, value = arg.split("=", 1)
                 # Remove quotes if present
                 if value.startswith(("'", '"')) and value.endswith(value[0]):
                     value = value[1:-1]
@@ -63,5 +63,5 @@ Examples:
                     results.append(f"alias {arg}='{self.shell.aliases[arg]}'")
                 else:
                     results.append(f"alias: {arg}: not found")
-        
+
         return "\n".join(results) if results else ""

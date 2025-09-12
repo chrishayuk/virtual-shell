@@ -1,6 +1,7 @@
 """
 Tests for the df (disk free) command
 """
+
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.filesystem.df import DfCommand
 
@@ -12,7 +13,7 @@ class TestDfCommand:
         """Set up test environment before each test"""
         self.shell = DummyShell({})
         self.cmd = DfCommand(self.shell)
-        
+
         # Create some test files
         self.shell.fs.write_file("/test1.txt", "x" * 1024)  # 1KB file
         self.shell.fs.write_file("/test2.txt", "y" * 2048)  # 2KB file
@@ -36,7 +37,7 @@ class TestDfCommand:
         assert "Filesystem" in result
         assert "Mounted on" in result
         # Should show human-readable sizes (K, M, G, etc.)
-        
+
         # Also test long form
         result2 = self.cmd.execute(["--human-readable"])
         assert "Filesystem" in result2
@@ -49,7 +50,7 @@ class TestDfCommand:
         assert "IUsed" in result
         assert "IFree" in result
         assert "IUse%" in result
-        
+
         # Also test long form
         result2 = self.cmd.execute(["--inodes"])
         assert "Inodes" in result2
@@ -98,15 +99,15 @@ class TestDfCommand:
         result = self.cmd.execute(["-i", "/testdir"])
         assert "Inodes" in result
         assert "/testdir" in result
-        
+
     def test_df_storage_stats(self):
         """Test that df correctly reports storage statistics"""
         # Get the storage stats directly
         self.shell.fs.get_storage_stats()
-        
+
         # Run df command
         result = self.cmd.execute([])
-        
+
         # Parse the output to verify stats are reflected
         lines = result.split("\n")
         for line in lines:
@@ -115,7 +116,9 @@ class TestDfCommand:
                 if len(parts) >= 5:
                     # Verify that total/used/available make sense
                     try:
-                        if not any(suffix in parts[1] for suffix in ['K', 'M', 'G', 'T']):
+                        if not any(
+                            suffix in parts[1] for suffix in ["K", "M", "G", "T"]
+                        ):
                             total = int(parts[1])
                             used = int(parts[2])
                             available = int(parts[3])
@@ -130,7 +133,7 @@ class TestDfCommand:
         """Test that df correctly calculates usage percentage"""
         result = self.cmd.execute([])
         lines = result.split("\n")
-        
+
         # Just verify we got some output with percentages
         assert any("%" in line or "-" in line for line in lines)
 

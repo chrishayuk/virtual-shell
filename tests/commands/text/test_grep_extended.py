@@ -1,6 +1,7 @@
 """
 Extended tests for grep command to improve coverage
 """
+
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.text.grep import GrepCommand
 
@@ -12,7 +13,7 @@ class TestGrepExtended:
         """Set up test environment"""
         self.shell = DummyShell({})
         self.cmd = GrepCommand(self.shell)
-        
+
         # Create test files and directories
         self.shell.fs.write_file("/test.txt", "hello world\nHELLO WORLD\ngoodbye world")
         self.shell.fs.write_file("/numbers.txt", "line1\nline2\nline3\nline4\nline5")
@@ -43,13 +44,17 @@ class TestGrepExtended:
 
     def test_grep_files_with_matches(self):
         """Test grep with -l option (files with matches)"""
-        result = self.cmd.execute(["-l", "match", "/testdir/file1.txt", "/testdir/file2.txt"])
+        result = self.cmd.execute(
+            ["-l", "match", "/testdir/file1.txt", "/testdir/file2.txt"]
+        )
         assert "/testdir/file1.txt" in result
         assert "/testdir/file2.txt" in result
 
     def test_grep_files_without_matches(self):
         """Test grep with -l option (files with matches only)"""
-        result = self.cmd.execute(["-l", "match", "/testdir/file1.txt", "/testdir/file2.txt"])
+        result = self.cmd.execute(
+            ["-l", "match", "/testdir/file1.txt", "/testdir/file2.txt"]
+        )
         # -l shows only filenames with matches
         assert "file1.txt" in result or "/testdir/file1.txt" in result
         assert "file2.txt" in result or "/testdir/file2.txt" in result
@@ -118,7 +123,7 @@ class TestGrepExtended:
         """Test grep with regex pattern"""
         result = self.cmd.execute(["h.*o", "/test.txt"])
         assert "hello" in result
-        
+
     def test_grep_case_sensitive_default(self):
         """Test that grep is case-sensitive by default"""
         result = self.cmd.execute(["hello", "/test.txt"])

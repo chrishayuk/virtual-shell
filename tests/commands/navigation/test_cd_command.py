@@ -2,6 +2,7 @@ import pytest
 from chuk_virtual_shell.commands.navigation.cd import CdCommand
 from tests.dummy_shell import DummyShell
 
+
 # Fixture to create a CdCommand with a dummy shell as the shell_context.
 @pytest.fixture
 def cd_command():
@@ -20,6 +21,7 @@ def cd_command():
     command = CdCommand(shell_context=dummy_shell)
     return command
 
+
 def test_cd_no_argument_home_set(cd_command):
     """
     Test that when no argument is provided and HOME is set,
@@ -30,6 +32,7 @@ def test_cd_no_argument_home_set(cd_command):
     env = cd_command.shell.environ
     # Verify that the directory changed to HOME.
     assert env["PWD"] == cd_command.shell.fs.pwd() == "home"
+
 
 def test_cd_no_argument_home_not_set():
     """
@@ -47,6 +50,7 @@ def test_cd_no_argument_home_not_set():
     # Should default to "/" since HOME is not set.
     assert env.get("PWD") == command.shell.fs.pwd() == "/"
 
+
 def test_cd_valid_directory(cd_command):
     """
     Test that cd to a valid directory (e.g., "projects") changes the PWD.
@@ -55,6 +59,7 @@ def test_cd_valid_directory(cd_command):
     assert output == ""
     env = cd_command.shell.environ
     assert env["PWD"] == cd_command.shell.fs.pwd() == "projects"
+
 
 def test_cd_invalid_directory(cd_command):
     """

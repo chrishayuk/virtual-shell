@@ -61,7 +61,7 @@ class FileSystemCompat:
         """List directory contents"""
         result = self.fs.ls(path)
         return result if result is not None else []
-    
+
     def list_directory(self, path):
         """List directory contents (alias for list_dir)"""
         return self.list_dir(path)

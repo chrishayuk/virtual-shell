@@ -1,4 +1,3 @@
-
 class DummyFileSystem:
     def __init__(self, files):
         """
@@ -9,17 +8,17 @@ class DummyFileSystem:
         """
         self.files = files
         self.current_directory = "/"  # Default current directory
-        
+
     @property
     def cwd(self):
         """Alias for current_directory for compatibility"""
         return self.current_directory
-    
+
     @cwd.setter
     def cwd(self, path):
         """Set current working directory"""
         self.current_directory = path
-    
+
     def chdir(self, path):
         """Alias for cd for compatibility"""
         return self.cd(path)
@@ -34,21 +33,21 @@ class DummyFileSystem:
     def write_file(self, path, content):
         # Store the file with the exact path as key
         self.files[path] = content
-        
+
         # Also update the parent directory's structure if it exists
         # This ensures the file appears in directory listings
-        if '/' in path:
-            parent_path = '/'.join(path.split('/')[:-1])
-            filename = path.split('/')[-1]
-            
+        if "/" in path:
+            parent_path = "/".join(path.split("/")[:-1])
+            filename = path.split("/")[-1]
+
             # If parent is root, handle specially
-            if parent_path == '':
-                parent_path = '/'
-            
+            if parent_path == "":
+                parent_path = "/"
+
             # If parent directory exists and is a dict, add the file reference
             if parent_path in self.files and isinstance(self.files[parent_path], dict):
                 self.files[parent_path][filename] = content
-        
+
         return True
 
     def mkdir(self, path):
@@ -61,21 +60,23 @@ class DummyFileSystem:
         # Remove file (not directory)
         if self.exists(path) and self.is_file(path):
             del self.files[path]
-            
+
             # Also remove from parent directory's structure if it exists
-            if '/' in path:
-                parent_path = '/'.join(path.split('/')[:-1])
-                filename = path.split('/')[-1]
-                
+            if "/" in path:
+                parent_path = "/".join(path.split("/")[:-1])
+                filename = path.split("/")[-1]
+
                 # If parent is root, handle specially
-                if parent_path == '':
-                    parent_path = '/'
-                
+                if parent_path == "":
+                    parent_path = "/"
+
                 # If parent directory exists and is a dict, remove the file reference
-                if parent_path in self.files and isinstance(self.files[parent_path], dict):
+                if parent_path in self.files and isinstance(
+                    self.files[parent_path], dict
+                ):
                     if filename in self.files[parent_path]:
                         del self.files[parent_path][filename]
-            
+
             return True
         return False
 
@@ -112,7 +113,7 @@ class DummyFileSystem:
             return list(self.files[path].keys())
         elif self.exists(path):
             # Use portable path operations
-            basename = path.split('/')[-1] if '/' in path else path
+            basename = path.split("/")[-1] if "/" in path else path
             return [basename]
         return []
 
@@ -183,36 +184,38 @@ class DummyFileSystem:
     def get_node_info(self, path):
         """
         Return information about a file or directory at the given path.
-        
+
         Returns a NodeInfo object with path, name, is_dir, and is_file attributes,
         or None if the path doesn't exist.
         """
         if not self.exists(path):
             return None
-        
+
         # Create a NodeInfo object with required attributes
         class NodeInfo:
             def __init__(self, fs, path):
                 self.path = path  # Keep the full path
                 # Use portable path operations
-                self.name = path.split('/')[-1] if '/' in path else path or path  # Handle root directory
+                self.name = (
+                    path.split("/")[-1] if "/" in path else path or path
+                )  # Handle root directory
                 self.is_dir = fs.is_dir(path)
                 self.is_file = not self.is_dir
                 # Include children for directories to support recursion
                 self.children = []
                 if self.is_dir:
                     self.children = fs.list_dir(path)
-        
+
         # Create the NodeInfo with a reference to the filesystem
         return NodeInfo(self, path)
-    
+
     def get_storage_stats(self):
         """
         Return storage statistics for the filesystem.
         """
         total_files = 0
         total_size = 0
-        
+
         def count_files(d):
             nonlocal total_files, total_size
             for key, value in d.items():
@@ -222,17 +225,17 @@ class DummyFileSystem:
                 else:
                     total_files += 1  # Count file
                     total_size += len(value) if value else 0
-        
+
         count_files(self.files)
-        
+
         return {
-            'provider_name': 'DummyFS',
-            'max_total_size': 1000000000,  # 1GB dummy limit
-            'total_size_bytes': total_size,
-            'max_files': 10000,  # 10k files dummy limit
-            'file_count': total_files
+            "provider_name": "DummyFS",
+            "max_total_size": 1000000000,  # 1GB dummy limit
+            "total_size_bytes": total_size,
+            "max_files": 10000,  # 10k files dummy limit
+            "file_count": total_files,
         }
-    
+
     def copy_file(self, src, dst):
         """Copy a file from src to dst"""
         if self.is_file(src):
@@ -240,19 +243,19 @@ class DummyFileSystem:
             self.write_file(dst, content)
             return True
         return False
-    
+
     def copy_dir(self, src, dst):
         """Recursively copy a directory from src to dst"""
         if not self.is_dir(src):
             return False
-        
+
         # Create destination directory with proper structure
         if not self.exists(dst):
             self.files[dst] = {}
-        
+
         # Get the source directory structure
         src_dir = self.files[src]
-        
+
         # If it's a nested dict structure, copy it properly
         if isinstance(src_dir, dict):
             # Copy nested structure
@@ -264,19 +267,19 @@ class DummyFileSystem:
                     # It's a file in nested format
                     dst_file_path = f"{dst}/{key}" if dst != "/" else f"/{key}"
                     self.files[dst_file_path] = value
-        
+
         # Also handle flat file paths that start with src
         for path in list(self.files.keys()):
             if path.startswith(src + "/"):
                 # Get relative path from src
-                relative = path[len(src)+1:]
+                relative = path[len(src) + 1 :]
                 dst_path = f"{dst}/{relative}" if dst != "/" else f"/{relative}"
-                
+
                 if self.is_dir(path):
                     if not self.exists(dst_path):
                         self.files[dst_path] = {}
                 else:
                     # Copy file content
                     self.files[dst_path] = self.files[path]
-        
+
         return True

@@ -1,6 +1,7 @@
 """
 Extended tests for the mv command to improve coverage
 """
+
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.filesystem.mv import MvCommand
 
@@ -12,7 +13,7 @@ class TestMvExtended:
         """Set up test environment before each test"""
         self.shell = DummyShell({})
         self.cmd = MvCommand(self.shell)
-        
+
         # Create test files and directories
         self.shell.fs.write_file("/file1.txt", "Content 1")
         self.shell.fs.write_file("/file2.txt", "Content 2")
@@ -50,8 +51,10 @@ class TestMvExtended:
         """Test when destination cannot be written"""
         # Mock write_file to fail
         original_write = self.shell.fs.write_file
-        self.shell.fs.write_file = lambda p, c: False if p == "/dest.txt" else original_write(p, c)
-        
+        self.shell.fs.write_file = lambda p, c: (
+            False if p == "/dest.txt" else original_write(p, c)
+        )
+
         result = self.cmd.execute(["/file1.txt", "/dest.txt"])
         assert "failed to write" in result
 
@@ -59,7 +62,7 @@ class TestMvExtended:
         """Test when source cannot be removed after copy"""
         # Mock rm to fail
         self.shell.fs.rm = lambda p: False
-        
+
         result = self.cmd.execute(["/file1.txt", "/newfile.txt"])
         assert "failed to remove original" in result
 
@@ -95,11 +98,13 @@ class TestMvExtended:
         """Test _is_directory exception handling"""
         # Mock get_node_info to raise exception
         original_get_node_info = self.shell.fs.get_node_info
-        self.shell.fs.get_node_info = lambda p: (_ for _ in ()).throw(Exception("Test error"))
-        
+        self.shell.fs.get_node_info = lambda p: (_ for _ in ()).throw(
+            Exception("Test error")
+        )
+
         result = self.cmd._is_directory("/any")
         assert result is False
-        
+
         # Restore
         self.shell.fs.get_node_info = original_get_node_info
 
@@ -113,11 +118,13 @@ class TestMvExtended:
         """Test _file_exists exception handling"""
         # Mock to raise exception
         original_get_node_info = self.shell.fs.get_node_info
-        self.shell.fs.get_node_info = lambda p: (_ for _ in ()).throw(Exception("Test error"))
-        
+        self.shell.fs.get_node_info = lambda p: (_ for _ in ()).throw(
+            Exception("Test error")
+        )
+
         result = self.cmd._file_exists("/any")
         assert result is False
-        
+
         # Restore
         self.shell.fs.get_node_info = original_get_node_info
 
@@ -132,32 +139,34 @@ class TestMvExtended:
         """Test _remove_file using delete_file method"""
         # Create a filesystem that only has delete_file
         from unittest.mock import MagicMock
+
         mock_fs = MagicMock()
         mock_fs.delete_file.return_value = True
         # Ensure rm is not there
         del mock_fs.rm
-        
+
         original_fs = self.shell.fs
         self.shell.fs = mock_fs
-        
+
         assert self.cmd._remove_file("/temp2.txt")
         mock_fs.delete_file.assert_called_with("/temp2.txt")
-        
+
         # Restore
         self.shell.fs = original_fs
 
     def test_remove_file_no_methods(self):
         """Test _remove_file when no removal methods available"""
+
         # Create mock filesystem with no removal methods
         class MinimalFS:
             pass
-        
+
         original_fs = self.shell.fs
         self.shell.fs = MinimalFS()
-        
+
         result = self.cmd._remove_file("/any")
         assert result is False
-        
+
         # Restore
         self.shell.fs = original_fs
 
@@ -166,9 +175,9 @@ class TestMvExtended:
         # Mock rm to raise exception
         original_rm = self.shell.fs.rm
         self.shell.fs.rm = lambda p: (_ for _ in ()).throw(Exception("Test error"))
-        
+
         result = self.cmd._remove_file("/any")
         assert result is False
-        
+
         # Restore
         self.shell.fs.rm = original_rm

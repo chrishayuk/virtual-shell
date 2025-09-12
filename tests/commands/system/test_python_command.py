@@ -1,6 +1,7 @@
 """
 Tests for the python command
 """
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from tests.dummy_shell import DummyShell
@@ -14,7 +15,7 @@ class TestPythonCommand:
         """Set up test environment before each test"""
         self.shell = DummyShell({})
         self.cmd = PythonCommand(self.shell)
-        
+
         # Create test files
         self.shell.fs.write_file("/script.py", "print('Hello')")
         self.shell.fs.write_file("/error.py", "raise ValueError('test error')")
@@ -30,14 +31,14 @@ class TestPythonCommand:
         """Test python version flag"""
         result = self.cmd.execute(["-V"])
         assert "Python 3" in result
-        
+
         # Also test long form
         result2 = self.cmd.execute(["--version"])
         assert "Python 3" in result2
 
     def test_python_c_option(self):
         """Test python -c option"""
-        with patch.object(self.cmd, 'interpreter') as mock_interp:
+        with patch.object(self.cmd, "interpreter") as mock_interp:
             mock_interp.execute_code_sync.return_value = "42"
             result = self.cmd.execute(["-c", "print(6*7)"])
             mock_interp.execute_code_sync.assert_called_with("print(6*7)")
@@ -52,7 +53,10 @@ class TestPythonCommand:
         """Test python -m option (not fully implemented)"""
         # In sync mode, -m is treated as a script name
         result = self.cmd.execute(["-m", "json.tool"])
-        assert "No such file" in result or "module execution not fully implemented" in result
+        assert (
+            "No such file" in result
+            or "module execution not fully implemented" in result
+        )
 
     def test_python_m_missing_argument(self):
         """Test python -m without argument"""
@@ -61,7 +65,7 @@ class TestPythonCommand:
 
     def test_python_script_file(self):
         """Test executing a python script file"""
-        with patch.object(self.cmd, 'interpreter') as mock_interp:
+        with patch.object(self.cmd, "interpreter") as mock_interp:
             mock_interp.run_script_sync.return_value = "Hello"
             result = self.cmd.execute(["/script.py"])
             mock_interp.run_script_sync.assert_called_with("/script.py", [])
@@ -69,7 +73,7 @@ class TestPythonCommand:
 
     def test_python_script_with_args(self):
         """Test executing a python script with arguments"""
-        with patch.object(self.cmd, 'interpreter') as mock_interp:
+        with patch.object(self.cmd, "interpreter") as mock_interp:
             mock_interp.run_script_sync.return_value = "['/args.py', 'arg1', 'arg2']"
             self.cmd.execute(["/args.py", "arg1", "arg2"])
             mock_interp.run_script_sync.assert_called_with("/args.py", ["arg1", "arg2"])
@@ -99,13 +103,13 @@ class TestPythonCommand:
     async def test_python_async_execution(self):
         """Test async execution of python command"""
         cmd = PythonCommand(self.shell)
-        
+
         # Test version async
         result = await cmd.execute_async(["-V"])
         assert "Python 3" in result
-        
+
         # Test -c async
-        with patch.object(cmd, 'interpreter') as mock_interp:
+        with patch.object(cmd, "interpreter") as mock_interp:
             mock_interp.execute_code = AsyncMock(return_value="async result")
             result = await cmd.execute_async(["-c", "print('async')"])
             mock_interp.execute_code.assert_called_with("print('async')")
@@ -115,8 +119,8 @@ class TestPythonCommand:
     async def test_python_async_script(self):
         """Test async script execution"""
         cmd = PythonCommand(self.shell)
-        
-        with patch.object(cmd, 'interpreter') as mock_interp:
+
+        with patch.object(cmd, "interpreter") as mock_interp:
             mock_interp.run_script = AsyncMock(return_value="script output")
             result = await cmd.execute_async(["/script.py", "arg1"])
             mock_interp.run_script.assert_called_with("/script.py", ["arg1"])
@@ -131,18 +135,18 @@ class TestPythonCommand:
 
     def test_python_run_with_asyncio_running(self):
         """Test run method when asyncio loop is running"""
-        
+
         # Mock the asyncio functions
-        with patch('asyncio.get_running_loop') as mock_get_loop:
+        with patch("asyncio.get_running_loop") as mock_get_loop:
             mock_loop = MagicMock()
             mock_loop.is_running.return_value = True
             mock_get_loop.return_value = mock_loop
-            
-            with patch('asyncio.run_coroutine_threadsafe') as mock_run_threadsafe:
+
+            with patch("asyncio.run_coroutine_threadsafe") as mock_run_threadsafe:
                 future = MagicMock()
                 future.result.return_value = "Python 3.x.x (virtual environment)"
                 mock_run_threadsafe.return_value = future
-                    
+
                 result = self.cmd.run(["-V"])
                 # Should use run_coroutine_threadsafe for running loop
                 assert mock_run_threadsafe.called
@@ -150,9 +154,9 @@ class TestPythonCommand:
 
     def test_python_execute_fallback_to_sync(self):
         """Test execute method fallback to sync when async fails"""
-        with patch('asyncio.get_event_loop') as mock_get_loop:
+        with patch("asyncio.get_event_loop") as mock_get_loop:
             mock_get_loop.side_effect = Exception("No loop")
-            
+
             # Should fallback to sync
             result = self.cmd.execute(["-V"])
             assert "Python 3" in result
@@ -161,17 +165,17 @@ class TestPythonCommand:
         """Test interpreter is initialized on first use"""
         cmd = PythonCommand(self.shell)
         assert cmd.interpreter is None
-        
+
         # Execute something to trigger initialization - test with -c that requires interpreter
         cmd._execute_sync(["-c", "print('test')"])
-        # After execution, interpreter should be initialized  
+        # After execution, interpreter should be initialized
         assert cmd.interpreter is not None
 
     def test_python3_command_alias(self):
         """Test Python3Command alias"""
         cmd = Python3Command(self.shell)
         assert cmd.name == "python3"
-        
+
         # Should work the same as PythonCommand
         result = cmd.execute(["-V"])
         assert "Python 3" in result
@@ -179,7 +183,7 @@ class TestPythonCommand:
     def test_python_complex_options(self):
         """Test complex option combinations"""
         # Test -c with additional args
-        with patch.object(self.cmd, 'interpreter') as mock_interp:
+        with patch.object(self.cmd, "interpreter") as mock_interp:
             mock_interp.execute_code_sync.return_value = "executed"
             self.cmd.execute(["-c", "print('test')", "/script.py"])
             mock_interp.execute_code_sync.assert_called_with("print('test')")

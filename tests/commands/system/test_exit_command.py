@@ -2,6 +2,7 @@ import pytest
 from chuk_virtual_shell.commands.system.exit import ExitCommand
 from tests.dummy_shell import DummyShell
 
+
 # Fixture to create an ExitCommand with a dummy shell as the shell_context.
 @pytest.fixture
 def exit_command():
@@ -16,6 +17,7 @@ def exit_command():
     command = ExitCommand(shell_context=dummy_shell)
     return command
 
+
 def test_exit_command_basic(exit_command):
     """
     Test that executing the exit command returns the expected goodbye message and stops the shell.
@@ -23,6 +25,7 @@ def test_exit_command_basic(exit_command):
     output = exit_command.execute([])
     assert output == "Goodbye!"
     assert exit_command.shell.running is False
+
 
 def test_exit_command_with_extra_args(exit_command):
     """
@@ -34,6 +37,7 @@ def test_exit_command_with_extra_args(exit_command):
     assert output == "Goodbye!"
     assert exit_command.shell.running is False
 
+
 def test_exit_command_no_side_effects(exit_command):
     """
     Verify that aside from stopping the shell, no other shell attributes are unexpectedly modified.
@@ -43,10 +47,9 @@ def test_exit_command_no_side_effects(exit_command):
     # Execute the exit command.
     _ = exit_command.execute([])
     # Remove the 'running' attribute and any extra keys (like 'initial_state') from the comparison.
-    for key in ['running', 'initial_state']:
+    for key in ["running", "initial_state"]:
         initial_state.pop(key, None)
     current_state = exit_command.shell.__dict__.copy()
-    for key in ['running', 'initial_state']:
+    for key in ["running", "initial_state"]:
         current_state.pop(key, None)
     assert current_state == initial_state
-

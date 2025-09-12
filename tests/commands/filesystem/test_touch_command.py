@@ -1,9 +1,11 @@
 """
 tests/chuk_virtual_shell/commands/filesystem/test_touch_command.py
 """
+
 import pytest
 from chuk_virtual_shell.commands.filesystem.touch import TouchCommand
 from tests.dummy_shell import DummyShell
+
 
 # Fixture to create a TouchCommand with a dummy shell as the shell_context
 @pytest.fixture
@@ -15,10 +17,12 @@ def touch_command():
     command = TouchCommand(shell_context=dummy_shell)
     return command
 
+
 # Test for missing operand (no files provided)
 def test_touch_missing_operand(touch_command):
     output = touch_command.execute([])
     assert output == "touch: missing operand"
+
 
 # Test for successful creation of an empty file
 def test_touch_create_file_success(touch_command):
@@ -30,11 +34,13 @@ def test_touch_create_file_success(touch_command):
     assert "newfile.txt" in shell.fs.files
     assert shell.fs.files["newfile.txt"] == ""
 
+
 # Test for failure when touch returns False (simulate failure)
 def test_touch_failure(touch_command):
     # Override the touch method to simulate a failure.
     def fail_touch(path):
         return False
+
     touch_command.shell.fs.touch = fail_touch
     output = touch_command.execute(["failfile.txt"])
     # Expect an error message indicating the file could not be touched.

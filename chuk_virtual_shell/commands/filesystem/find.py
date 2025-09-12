@@ -80,7 +80,9 @@ class FindCommand(ShellCommand):
             for found_path in found_paths:
                 if parsed_args.name:
                     # Use portable path operations
-                    display_path = found_path.split('/')[-1] if '/' in found_path else found_path
+                    display_path = (
+                        found_path.split("/")[-1] if "/" in found_path else found_path
+                    )
                 else:
                     display_path = found_path
 
@@ -117,7 +119,7 @@ class FindCommand(ShellCommand):
             include_this = False
 
         # Use portable path operations
-        base_name = path.split('/')[-1] if '/' in path else path or path
+        base_name = path.split("/")[-1] if "/" in path else path or path
 
         if name_pattern and include_this:
             if not fnmatch.fnmatch(base_name, name_pattern):
@@ -135,7 +137,7 @@ class FindCommand(ShellCommand):
                 contents = self.shell.fs.ls(path)
                 for item in contents:
                     # Use portable path operations
-                    item_path = path.rstrip('/') + '/' + item
+                    item_path = path.rstrip("/") + "/" + item
                     results.extend(
                         self._find_recursive(
                             item_path,

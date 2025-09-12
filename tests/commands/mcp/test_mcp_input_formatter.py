@@ -3,6 +3,7 @@ tests/commands/mcp/test_mcp_input_formatter.py - Tests for MCP input formatter
 
 Tests the functionality of formatting user input for MCP tools based on their schemas.
 """
+
 from chuk_virtual_shell.commands.mcp.mcp_input_formatter import format_mcp_input
 
 
@@ -26,10 +27,8 @@ def test_format_mcp_input_single_required_query():
     args = ["SELECT", "*", "FROM", "users"]
     schema = {
         "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "SQL query"}
-        },
-        "required": ["query"]
+        "properties": {"query": {"type": "string", "description": "SQL query"}},
+        "required": ["query"],
     }
     result = format_mcp_input(args, schema)
     assert result == {"query": "SELECT * FROM users"}
@@ -40,10 +39,8 @@ def test_format_mcp_input_single_required_non_query():
     args = ["my_table"]
     schema = {
         "type": "object",
-        "properties": {
-            "table_name": {"type": "string", "description": "Table name"}
-        },
-        "required": ["table_name"]
+        "properties": {"table_name": {"type": "string", "description": "Table name"}},
+        "required": ["table_name"],
     }
     result = format_mcp_input(args, schema)
     assert result == {"table_name": "my_table"}
@@ -54,10 +51,8 @@ def test_format_mcp_input_single_required_multiple_args():
     args = ["value1", "value2", "value3"]
     schema = {
         "type": "object",
-        "properties": {
-            "field": {"type": "string"}
-        },
-        "required": ["field"]
+        "properties": {"field": {"type": "string"}},
+        "required": ["field"],
     }
     result = format_mcp_input(args, schema)
     # Should only take the first argument for non-query fields
@@ -69,11 +64,8 @@ def test_format_mcp_input_query_property_not_required():
     args = ["SELECT", "COUNT(*)", "FROM", "orders"]
     schema = {
         "type": "object",
-        "properties": {
-            "query": {"type": "string"},
-            "limit": {"type": "number"}
-        },
-        "required": []
+        "properties": {"query": {"type": "string"}, "limit": {"type": "number"}},
+        "required": [],
     }
     result = format_mcp_input(args, schema)
     assert result == {"query": "SELECT COUNT(*) FROM orders"}
@@ -84,10 +76,8 @@ def test_format_mcp_input_no_args_with_required():
     args = []
     schema = {
         "type": "object",
-        "properties": {
-            "query": {"type": "string"}
-        },
-        "required": ["query"]
+        "properties": {"query": {"type": "string"}},
+        "required": ["query"],
     }
     result = format_mcp_input(args, schema)
     # Should return empty query since no args provided
@@ -99,11 +89,8 @@ def test_format_mcp_input_multiple_required_properties():
     args = ["value1", "value2"]
     schema = {
         "type": "object",
-        "properties": {
-            "field1": {"type": "string"},
-            "field2": {"type": "string"}
-        },
-        "required": ["field1", "field2"]
+        "properties": {"field1": {"type": "string"}, "field2": {"type": "string"}},
+        "required": ["field1", "field2"],
     }
     result = format_mcp_input(args, schema)
     # Falls back to default formatting since multiple required fields
@@ -112,14 +99,28 @@ def test_format_mcp_input_multiple_required_properties():
 
 def test_format_mcp_input_complex_query():
     """Test formatting with a complex SQL query"""
-    args = ["SELECT", "u.name,", "COUNT(o.id)", "FROM", "users", "u", 
-            "JOIN", "orders", "o", "ON", "u.id=o.user_id", "GROUP", "BY", "u.name"]
+    args = [
+        "SELECT",
+        "u.name,",
+        "COUNT(o.id)",
+        "FROM",
+        "users",
+        "u",
+        "JOIN",
+        "orders",
+        "o",
+        "ON",
+        "u.id=o.user_id",
+        "GROUP",
+        "BY",
+        "u.name",
+    ]
     schema = {
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "SQL query to execute"}
         },
-        "required": ["query"]
+        "required": ["query"],
     }
     result = format_mcp_input(args, schema)
     expected_query = "SELECT u.name, COUNT(o.id) FROM users u JOIN orders o ON u.id=o.user_id GROUP BY u.name"

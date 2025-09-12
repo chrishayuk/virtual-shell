@@ -1,10 +1,12 @@
 """
 tests/chuk_virtual_shell/test_script_runner.py
 """
+
 import pytest
 
 # virtual shell imports
 from chuk_virtual_shell.script_runner import ScriptRunner
+
 
 # Dummy file system for our dummy shell.
 class DummyFS:
@@ -13,6 +15,7 @@ class DummyFS:
 
     def read_file(self, path):
         return self.files.get(path, None)
+
 
 # Dummy shell that provides an fs, an execute() method, and a running flag.
 class DummyShell:
@@ -32,17 +35,20 @@ class DummyShell:
         # Otherwise, return a dummy result.
         return f"result: {cmd_line.strip()}"
 
+
 # Fixture to provide a new dummy shell for each test.
 @pytest.fixture
 def dummy_shell():
     # Initialize with an empty file dictionary.
     return DummyShell({})
 
+
 def test_run_script_file_not_found(dummy_shell):
     runner = ScriptRunner(dummy_shell)
     # Attempt to run a script that does not exist.
     output = runner.run_script("nonexistent.sh")
     assert output == "script: cannot open 'nonexistent.sh': No such file"
+
 
 def test_run_script_content_single_command(dummy_shell):
     runner = ScriptRunner(dummy_shell)
@@ -51,6 +57,7 @@ def test_run_script_content_single_command(dummy_shell):
     output = runner.run_script_content(script_content)
     # Expect the dummy shell to process the command.
     assert output == "result: echo hello"
+
 
 def test_run_script_content_multiple_commands(dummy_shell):
     runner = ScriptRunner(dummy_shell)
@@ -65,6 +72,7 @@ echo world
     # Expected execution of "echo hello" and "echo world" only.
     expected = "result: echo hello\nresult: echo world"
     assert output == expected
+
 
 def test_run_script_stop_on_exit(dummy_shell):
     runner = ScriptRunner(dummy_shell)

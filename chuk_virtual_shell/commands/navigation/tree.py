@@ -47,11 +47,11 @@ Examples:
         ignore_pattern = None
         dirs_first = False
         directories = []
-        
+
         i = 0
         while i < len(args):
             arg = args[i]
-            
+
             if arg == "-a":
                 show_all = True
             elif arg == "-d":
@@ -80,108 +80,132 @@ Examples:
             else:
                 directories.append(arg)
             i += 1
-        
+
         # Default to current directory if no directories specified
         if not directories:
             directories = [self.shell.fs.pwd()]
-        
+
         # Process each directory
         all_output = []
         total_dirs = 0
         total_files = 0
-        
+
         for directory in directories:
             try:
                 resolved_dir = self.shell.fs.resolve_path(directory)
                 if not self.shell.fs.exists(resolved_dir):
                     all_output.append(f"tree: {directory}: No such file or directory")
                     continue
-                
+
                 if not self.shell.fs.is_dir(resolved_dir):
                     all_output.append(f"tree: {directory}: Not a directory")
                     continue
-                
+
                 # Display the root directory
                 if full_path:
                     all_output.append(resolved_dir)
                 else:
-                    all_output.append(directory if directory != "." else self.shell.fs.get_cwd())
-                
+                    all_output.append(
+                        directory if directory != "." else self.shell.fs.get_cwd()
+                    )
+
                 # Recursively display tree
                 dir_count, file_count = self._display_tree(
-                    resolved_dir, "", show_all, dirs_only, full_path, 
-                    max_level, ignore_pattern, dirs_first, all_output, 1
+                    resolved_dir,
+                    "",
+                    show_all,
+                    dirs_only,
+                    full_path,
+                    max_level,
+                    ignore_pattern,
+                    dirs_first,
+                    all_output,
+                    1,
                 )
-                
+
                 total_dirs += dir_count
                 total_files += file_count
-                
+
             except Exception as e:
                 all_output.append(f"tree: {directory}: {str(e)}")
-        
+
         # Add summary
         all_output.append("")
         if dirs_only:
             all_output.append(f"{total_dirs} directories")
         else:
             all_output.append(f"{total_dirs} directories, {total_files} files")
-        
+
         return "\n".join(all_output)
-    
-    def _display_tree(self, path, prefix, show_all, dirs_only, full_path, 
-                     max_level, ignore_pattern, dirs_first, output, current_level):
+
+    def _display_tree(
+        self,
+        path,
+        prefix,
+        show_all,
+        dirs_only,
+        full_path,
+        max_level,
+        ignore_pattern,
+        dirs_first,
+        output,
+        current_level,
+    ):
         """Recursively display directory tree"""
         dir_count = 0
         file_count = 0
-        
+
         # Check max level
         if max_level is not None and current_level > max_level:
             return dir_count, file_count
-        
+
         try:
             # Get directory contents
             items = self.shell.fs.list_directory(path)
-            
+
             # Filter hidden files if needed
             if not show_all:
-                items = [item for item in items if not item.startswith('.')]
-            
+                items = [item for item in items if not item.startswith(".")]
+
             # Filter by ignore pattern
             if ignore_pattern:
                 import fnmatch
-                items = [item for item in items if not fnmatch.fnmatch(item, ignore_pattern)]
-            
+
+                items = [
+                    item for item in items if not fnmatch.fnmatch(item, ignore_pattern)
+                ]
+
             # Separate directories and files
             dirs = []
             files = []
-            
+
             for item in items:
                 item_path = f"{path}/{item}"
                 if self.shell.fs.is_dir(item_path):
                     dirs.append(item)
                 else:
                     files.append(item)
-            
+
             # Sort
             dirs.sort()
             files.sort()
-            
+
             # Order based on dirs_first flag
             if dirs_first:
                 all_items = dirs + files
             else:
                 all_items = sorted(items)
-            
+
             # Display items
             for i, item in enumerate(all_items):
-                is_last = (i == len(all_items) - 1)
+                is_last = i == len(all_items) - 1
                 item_path = f"{path}/{item}"
                 is_dir = self.shell.fs.is_dir(item_path)
-                
+
                 # Skip files if dirs_only
                 if dirs_only and not is_dir:
                     continue
-                
+
                 # Create the tree branch characters
                 if is_last:
                     branch = "└── "
@@ -189,30 +213,37 @@ Examples:
                 else:
                     branch = "├── "
                     extension = "│   "
-                
+
                 # Display the item
                 if full_path:
                     display_name = item_path
                 else:
                     display_name = item
-                
+
                 output.append(f"{prefix}{branch}{display_name}")
-                
+
                 # Count
                 if is_dir:
                     dir_count += 1
                     # Recurse into directory
                     sub_dirs, sub_files = self._display_tree(
-                        item_path, prefix + extension, show_all, dirs_only, 
-                        full_path, max_level, ignore_pattern, dirs_first, 
-                        output, current_level + 1
+                        item_path,
+                        prefix + extension,
+                        show_all,
+                        dirs_only,
+                        full_path,
+                        max_level,
+                        ignore_pattern,
+                        dirs_first,
+                        output,
+                        current_level + 1,
                     )
                     dir_count += sub_dirs
                     file_count += sub_files
                 else:
                     file_count += 1
-                    
+
         except Exception:
             pass  # Silently skip directories we can't read
-        
+
         return dir_count, file_count
