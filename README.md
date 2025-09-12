@@ -9,6 +9,7 @@ Chuk Virtual Shell provides a complete virtual shell environment with enterprise
 - **Session Management**: Stateful sessions with persistent working directory, environment, and command history
 - **Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
 - **Rich Command Set**: 50+ Unix-like commands including text processing, file operations, and system utilities
+- **Bash-Compatible Operators**: Full support for &&, ||, ;, variable expansion, wildcards, and command substitution
 - **AI Agent Ready**: Built for multi-step workflows with context preservation
 - **Extensible Architecture**: Easy to add new commands and storage providers
 - **Telnet Server**: Remote access capabilities for distributed systems
@@ -70,10 +71,11 @@ Complete filesystem abstraction with multiple storage backends:
 ### 🛠️ Rich Command Set
 
 Over 50 Unix-like commands with full implementations:
-- **File Operations**: cp, mv, rm, mkdir, touch, find
-- **Text Processing**: grep, sed, awk, sort, uniq
-- **System Utilities**: which, history, tree, timings
-- **Environment**: export, alias, source (.shellrc support)
+- **File Operations**: cp, mv, rm, mkdir, touch, find, ls, cat, head, tail
+- **Text Processing**: grep, sed, awk, sort, uniq, wc, cut, tr
+- **System Utilities**: which, history, tree, timings, date, whoami, uname
+- **Environment**: export, alias, source (.shellrc support), env
+- **Shell Features**: Command chaining (&&, ||, ;), variable expansion ($VAR), wildcards (*, ?), command substitution ($()), tilde expansion (~)
 
 ## Installation
 
@@ -214,6 +216,72 @@ pyodideshell/
 ```
 
 ## Core Features
+
+### Shell Operators and Expansion
+
+The shell supports advanced bash-like operators and expansions for powerful command composition:
+
+#### Command Chaining
+```bash
+# && - Execute next command only if previous succeeds
+mkdir /tmp && cd /tmp && echo "Success"
+
+# || - Execute next command only if previous fails
+cd /nonexistent || echo "Directory not found"
+
+# ; - Execute commands sequentially regardless of status
+echo "First"; echo "Second"; echo "Third"
+```
+
+#### Variable Expansion
+```bash
+# Set and use environment variables
+export NAME="World"
+echo "Hello $NAME"                    # Output: Hello World
+echo "Path: ${HOME}/documents"        # Output: Path: /home/user/documents
+
+# Special variables
+echo "Exit code: $?"                  # Last command's exit code
+echo "Process ID: $$"                 # Shell process ID
+echo "Current dir: $PWD"              # Current working directory
+```
+
+#### Wildcard/Glob Expansion
+```bash
+# * - Match any characters
+ls *.txt                              # List all .txt files
+rm /tmp/*.log                         # Remove all log files
+
+# ? - Match single character
+ls test?.py                           # Matches test1.py, test2.py, etc.
+
+# Works with any command
+cp *.txt /backup/                     # Copy all text files
+grep "error" *.log                    # Search in all log files
+```
+
+#### Command Substitution
+```bash
+# Modern $() syntax
+echo "Current time: $(date)"
+export COUNT=$(ls | wc -l)
+
+# Legacy backtick syntax
+echo "User: `whoami`"
+cd `cat /tmp/target_dir.txt`
+```
+
+#### Tilde and Path Expansion
+```bash
+# ~ expands to home directory
+cd ~                                  # Go to home directory
+ls ~/documents                        # List documents in home
+
+# cd - returns to previous directory
+cd /tmp
+cd /home
+cd -                                  # Returns to /tmp
+```
 
 ### Shell Configuration (.shellrc)
 
