@@ -2,13 +2,36 @@
 
 A powerful virtual shell with session management, perfect for AI agents and sandboxed execution environments.
 
+## 🌟 Highlight: AI Agents as Unix Processes
+
+**Revolutionary Feature**: Run AI agents as first-class shell processes! Agents behave like Unix commands with PIDs, pipes, background execution, and process management.
+
+```bash
+# Run agents like shell commands
+echo "Hello" | agent assistant.agent
+
+# Agent pipelines
+cat data.csv | agent analyzer.agent | agent reporter.agent > report.md
+
+# Background agents
+agent monitor.agent -b &
+
+# Process management
+agent -l  # List agents
+agent -k agent_1  # Kill agent
+```
+
+🎬 **[Watch the Demo](examples/README_AGENTS.md)** | 📖 **[Full Documentation](docs/AGENTS.md)**
+
 ## Overview
 
 Chuk Virtual Shell provides a complete virtual shell environment with enterprise-grade features:
 
+- **🤖 AI Agents as Shell Processes**: Run AI agents as first-class Unix processes with PIDs, piping, and background execution
 - **Session Management**: Stateful sessions with persistent working directory, environment, and command history
 - **Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
 - **Rich Command Set**: 50+ Unix-like commands including text processing, file operations, and system utilities
+- **Multi-Agent Collaboration**: Agents can work together, communicate via pipes/files, and run in parallel
 - **AI Agent Ready**: Built for multi-step workflows with context preservation
 - **Extensible Architecture**: Easy to add new commands and storage providers
 - **Telnet Server**: Remote access capabilities for distributed systems
@@ -59,6 +82,38 @@ await agent.execute_task(implement_endpoints_task)
 await agent.execute_task(add_tests_task)
 # Context maintained throughout!
 ```
+
+### 🤖 AI Agents as Unix Processes
+
+Revolutionary feature: AI agents run as shell processes with full Unix semantics:
+
+```bash
+# Run an agent like any command
+agent assistant.agent
+
+# Pipe input to agents
+echo "analyze this" | agent analyzer.agent
+
+# Chain agents in pipelines
+cat data.csv | agent parser.agent | agent reporter.agent > report.txt
+
+# Background execution
+agent monitor.agent -b &
+
+# Process management
+agent -l                    # List running agents
+agent -k agent_123          # Kill an agent
+agent -s agent_123          # Check agent status
+```
+
+**Agent Features:**
+- **Process IDs**: Each agent gets a unique PID
+- **I/O Redirection**: Full support for `<`, `>`, `>>`, and `|`
+- **Background Execution**: Run agents with `&` or `-b` flag
+- **Process Management**: List, kill, and monitor agent processes
+- **Tool Access**: Agents can execute shell commands
+- **Memory Modes**: Session or persistent memory across invocations
+- **LLM Integration**: Supports OpenAI, Anthropic, and other providers via [chuk-llm](https://github.com/chrishayuk/chuk-llm)
 
 ### 📁 Virtual Filesystem
 
@@ -331,7 +386,7 @@ The shell includes 50+ commands organized into logical categories. For complete 
 - **[File Management](docs/commands/filesystem/README.md)**: cat, cp, echo, find, mkdir, more, mv, rm, rmdir, touch, df, du, quota  
 - **[Text Processing](docs/commands/text/README.md)**: awk, diff, grep, head, patch, sed, sort, tail, uniq, wc
 - **[Environment](docs/commands/environment/README.md)**: env, export, alias, unalias
-- **[System](docs/commands/system/README.md)**: clear, exit, help, history, python, script, sh, time, timings, uptime, which, whoami
+- **[System](docs/commands/system/README.md)**: clear, exit, help, history, python, script, sh, time, timings, uptime, which, whoami, **agent**
 - **[MCP Integration](docs/commands/mcp/README.md)**: Dynamically loaded MCP server commands
 
 ### Shell Redirection and Pipelines
@@ -527,6 +582,38 @@ main.run_interactive_shell("sqlite", {"db_path": ":memory:"})  # With provider s
 ```
 
 ## Examples
+
+### AI Agent Demos
+
+#### Single Agent Demo
+Run AI agents as shell processes:
+
+```bash
+# Clean demo with filtered output
+uv run python demo.py
+
+# Full demo with all output
+uv run python examples/agent_clean_demo.py
+```
+
+#### Multi-Agent Collaboration
+Watch multiple agents work together as a team:
+
+```bash
+# Software development team simulation
+uv run python examples/software_team_demo.py
+
+# Multi-agent collaboration with pipelines
+uv run python run_multi_agent.py
+```
+
+These demos showcase:
+- ✅ AI agents running as Unix processes with PIDs
+- ✅ Agent pipelines and I/O redirection
+- ✅ Parallel agent execution
+- ✅ Multi-agent collaboration and communication
+- ✅ Real LLM integration (OpenAI, Anthropic via chuk-llm)
+- ✅ Background agent processes
 
 ### Session Management Demo
 
@@ -889,6 +976,73 @@ Run `make help` to see all available targets:
 - **Version Management**: `version`, `bump-patch`, `bump-minor`, `bump-major`
 - **Release Workflow**: `release-patch`, `release-minor`, `release-major`
 
+## AI Agent System
+
+### Creating Agent Definitions
+
+Agents are defined in YAML files with a special `#!agent` shebang:
+
+```yaml
+#!agent
+name: assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful AI assistant.
+  Use the available tools to help users.
+tools:
+  - ls
+  - cat
+  - echo
+  - grep
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 500
+timeout: 30
+```
+
+### Multi-Agent Collaboration Example
+
+Create specialized agents that work together:
+
+```python
+# From examples/software_team_demo.py
+shell.execute("agent /team/product_owner.agent < requirements.txt")
+shell.execute("agent /team/tech_lead.agent < user_stories.txt")
+shell.execute("agent /team/backend_dev.agent -b")  # Background
+shell.execute("agent /team/qa_engineer.agent < code.py")
+```
+
+### Agent Pipeline Processing
+
+```bash
+# Data processing pipeline
+cat raw_data.csv | \
+  agent parser.agent | \
+  agent analyzer.agent | \
+  agent formatter.agent > report.md
+
+# Parallel processing
+for file in *.txt; do
+  agent processor.agent < "$file" &
+done
+wait  # Wait for all background agents
+```
+
+### Configuring LLM Providers
+
+Set up your API keys for real LLM integration:
+
+```bash
+# In .env file or environment
+export OPENAI_API_KEY=your_key
+export ANTHROPIC_API_KEY=your_key
+
+# Install chuk-llm for LLM support
+pip install chuk-llm
+```
+
 ## Future Enhancements
 
 - User authentication and permissions system
@@ -897,3 +1051,10 @@ Run `make help` to see all available targets:
 - More advanced file operations
 - Additional storage providers (Redis, IndexedDB, etc.)
 - Provider data migration tools
+- **AI Agent Enhancements**:
+  - Agent-to-agent direct communication protocols
+  - Distributed agent execution across machines
+  - Agent marketplace for sharing definitions
+  - Visual agent pipeline builder
+  - Agent resource limits and quotas
+  - Event-triggered agent activation
