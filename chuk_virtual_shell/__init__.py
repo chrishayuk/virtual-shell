@@ -1,12 +1,23 @@
 """
-chuk_virtual_shell/commands/__init__.py - Command module package initialization
+chuk_virtual_shell/__init__.py - Virtual shell package initialization
 
 This module manages the registration and initialization of command classes.
 It provides functions to register commands, initialize them with a given shell context,
 list available commands, and retrieve command executors.
 """
 
+import warnings
 import logging
+
+# Suppress specific warnings that occur during async cleanup
+warnings.filterwarnings("ignore", message="There is no current event loop")
+warnings.filterwarnings("ignore", message="Task exception was never retrieved")
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="asyncio")
+
+# Configure logging to reduce noise from HTTP libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("anyio").setLevel(logging.WARNING)
 from typing import Dict, Optional, Type
 
 # Navigation commands

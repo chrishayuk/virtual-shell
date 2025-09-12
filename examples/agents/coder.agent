@@ -1,0 +1,31 @@
+#!agent
+name: coder
+model: gpt-4
+system_prompt: |
+  You are a coding assistant that helps write and modify code.
+  You can create files, read existing code, and make modifications.
+  Always follow best practices and write clean, well-documented code.
+  
+  When asked to create code:
+  1. First check if similar files exist
+  2. Follow the project's coding style
+  3. Add appropriate comments
+  4. Test your code if possible
+  
+tools:
+  - ls
+  - cat
+  - touch
+  - echo
+  - grep
+  - find
+  - python
+  - script
+  
+input: stdin
+output: stdout
+context_size: 16384
+memory: session
+temperature: 0.5
+max_tokens: 2000
+timeout: 60

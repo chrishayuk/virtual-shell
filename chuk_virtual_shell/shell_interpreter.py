@@ -805,6 +805,32 @@ class ShellInterpreter:
             except Exception as e:
                 logger.debug(f"Could not load {rc_path}: {e}")
     
+    def _cleanup(self):
+        """Clean up resources on exit"""
+        # Clean up agent processes if they exist
+        if hasattr(self, 'agent_manager'):
+            # Cancel all active agent processes
+            for pid, process in list(self.agent_manager.processes.items()):
+                if process.is_active():
+                    process.terminate()
+            
+            # Clean up any pending async tasks
+            try:
+                loop = asyncio.get_event_loop()
+                if loop and not loop.is_closed():
+                    # Cancel all tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+                    
+                    # Give tasks a chance to cleanup
+                    if pending:
+                        loop.run_until_complete(
+                            asyncio.gather(*pending, return_exceptions=True)
+                        )
+            except:
+                pass  # Ignore cleanup errors
+    
     def _expand_aliases(self, cmd_line):
         """Expand aliases in the command line."""
         if not hasattr(self, 'aliases') or not self.aliases:

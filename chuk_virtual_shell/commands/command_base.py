@@ -76,7 +76,17 @@ class ShellCommand:
                 except RuntimeError:
                     # No loop is running, create one
                     logger.debug(f"Creating new event loop for command '{self.name}'")
-                    return asyncio.run(self.execute_async(args))
+                    # Use asyncio.new_event_loop() for better control
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        return loop.run_until_complete(self.execute_async(args))
+                    finally:
+                        # Properly close the loop
+                        try:
+                            loop.close()
+                        except:
+                            pass
             except Exception as e:
                 logger.exception(f"Error executing async command '{self.name}': {e}")
                 return f"Error executing command '{self.name}': {e}"
