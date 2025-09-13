@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/timings.py
 """
 chuk_virtual_shell/commands/system/timings.py - timings command implementation
 

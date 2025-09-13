@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/head.py
 """
 chuk_virtual_shell/commands/text/head.py - Display first lines of files
 """

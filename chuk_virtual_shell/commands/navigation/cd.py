@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/navigation/cd.py
 """
 chuk_virtual_shell/commands/navigation/cd.py - Change directory command
 """

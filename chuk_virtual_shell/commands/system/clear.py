@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/clear.py
 """
 chuk_virtual_shell/commands/system/clear.py - Clear the screen command
 """

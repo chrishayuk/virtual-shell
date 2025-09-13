@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/python.py
 """
 chuk_virtual_shell/commands/system/python.py - Execute Python scripts in virtual environment
 """

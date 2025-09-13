@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/mcp/__imit__.py
 """
 chuk_virtual_shell/commands/mcp/__init__.py - MCP command package
 

@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/help.py
 """
 chuk_virtual_shell/commands/system/help.py - Help command
 """

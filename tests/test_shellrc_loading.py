@@ -6,6 +6,52 @@ from chuk_virtual_fs import VirtualFileSystem
 from chuk_virtual_shell.filesystem_compat import FileSystemCompat
 
 
+def create_shell_with_custom_fs(fs):
+    """Helper function to create a shell with a custom filesystem."""
+    # Create shell without initialization
+    shell = ShellInterpreter.__new__(ShellInterpreter)
+    
+    # Set the filesystem
+    shell.fs = fs
+    
+    # Initialize components manually
+    from chuk_virtual_shell.core.environment import EnvironmentManager
+    from chuk_virtual_shell.core.parser import CommandParser
+    from chuk_virtual_shell.core.expansion import ExpansionHandler
+    from chuk_virtual_shell.core.executor import CommandExecutor
+    from chuk_virtual_shell.core.control_flow_executor import ControlFlowExecutor
+    
+    shell.env_manager = EnvironmentManager(shell)
+    shell.environ = shell.env_manager.environ
+    shell.parser = CommandParser()
+    shell.expansion = ExpansionHandler(shell)
+    shell.executor = CommandExecutor(shell)
+    shell._control_flow_executor = ControlFlowExecutor(shell)
+    
+    # Initialize shell state
+    shell.history = []
+    shell.running = True
+    shell.return_code = 0
+    shell.start_time = 0
+    shell.command_timing = {}
+    shell.enable_timing = False
+    shell.current_user = shell.environ.get("USER", "user")
+    shell.resolve_path = lambda path: shell.fs.resolve_path(path)
+    
+    # Load commands
+    shell.commands = {}
+    shell._load_commands()
+    
+    # Initialize aliases
+    shell.aliases = {}
+    shell.mcp_servers = []
+    
+    # Now load shellrc
+    shell.env_manager.load_shellrc()
+    
+    return shell
+
+
 class TestShellRCLoading:
     """Test cases for .shellrc file loading."""
 
@@ -35,15 +81,8 @@ timings -e
 """
         fs.write_file("/home/user/.shellrc", shellrc_content)
 
-        # Create shell and manually initialize with the filesystem
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell.enable_timing = False
-        shell.command_timing = {}
-        shell._load_shellrc()
+        # Create shell with custom filesystem
+        shell = create_shell_with_custom_fs(fs)
 
         # Check that settings were applied
         assert shell.environ.get("TEST_VAR") == "test_value"
@@ -62,12 +101,7 @@ export ROOT_VAR=root_value"""
         fs.write_file("/.shellrc", shellrc_content)
 
         # Create shell
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell._load_shellrc()
+        shell = create_shell_with_custom_fs(fs)
 
         assert shell.aliases["root"] == "echo root"
         assert shell.environ.get("ROOT_VAR") == "root_value"
@@ -89,12 +123,7 @@ alias test="echo test"
 """
         fs.write_file("/home/user/.shellrc", shellrc_content)
 
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell._load_shellrc()
+        shell = create_shell_with_custom_fs(fs)
 
         # Only the alias should be set
         assert len(shell.aliases) == 1
@@ -115,21 +144,15 @@ alias another="echo another"
         fs.write_file("/home/user/.shellrc", shellrc_content)
 
         with caplog.at_level(logging.WARNING):
-            shell = ShellInterpreter()
-            shell.fs = fs
-            shell._setup_default_environment()
-            shell._load_commands()
-            shell.aliases = {}
-            shell._load_shellrc()
+            shell = create_shell_with_custom_fs(fs)
 
         # Good aliases should still be set
         assert shell.aliases["good"] == "echo good"
         assert shell.aliases["another"] == "echo another"
 
-        # Check if there was any warning logged (might vary based on implementation)
-        # The invalid command should trigger some warning/error
+        # Check if there was any warning logged
         warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
-        # Should have at least a warning about creating home directory or executing shellrc line
+        # Should have at least a warning about the invalid command
         assert len(warning_records) > 0
 
     def test_shellrc_complex_configuration(self):
@@ -167,14 +190,7 @@ echo "test content" > /tmp/test/file2.txt
 """
         fs.write_file("/home/user/.shellrc", shellrc_content)
 
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell.enable_timing = False
-        shell.command_timing = {}
-        shell._load_shellrc()
+        shell = create_shell_with_custom_fs(fs)
 
         # Check environment variables
         assert shell.environ.get("EDITOR") == "nano"
@@ -210,12 +226,7 @@ alias mixed='grep "pattern" file.txt'
 """
         fs.write_file("/home/user/.shellrc", shellrc_content)
 
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell._load_shellrc()
+        shell = create_shell_with_custom_fs(fs)
 
         assert shell.aliases["single"] == 'echo "single quotes"'
         assert shell.aliases["double"] == "echo 'double quotes'"
@@ -232,12 +243,7 @@ alias mixed='grep "pattern" file.txt'
         fs.write_file("/home/user/.shellrc", 'alias home="echo home"')
         fs.write_file("/.shellrc", 'alias root="echo root"')
 
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell._load_shellrc()
+        shell = create_shell_with_custom_fs(fs)
 
         # Only home .shellrc should be loaded
         assert shell.aliases.get("home") == "echo home"
@@ -257,12 +263,7 @@ alias test="echo $VAR1"
 """
         fs.write_file("/home/user/.shellrc", shellrc_content)
 
-        shell = ShellInterpreter()
-        shell.fs = fs
-        shell._setup_default_environment()
-        shell._load_commands()
-        shell.aliases = {}
-        shell._load_shellrc()
+        shell = create_shell_with_custom_fs(fs)
 
         # VAR1 should be changed
         assert shell.environ.get("VAR1") == "changed"

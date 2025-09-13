@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/environment/unalias.py
 """
 chuk_virtual_shell/commands/environment/unalias.py - unalias command implementation
 

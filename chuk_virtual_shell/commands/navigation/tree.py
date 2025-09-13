@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/navigation/tree.py
 """
 chuk_virtual_shell/commands/navigation/tree.py - tree command implementation
 

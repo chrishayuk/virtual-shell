@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/environment/export.py
 import argparse
 from chuk_virtual_shell.commands.command_base import ShellCommand
 

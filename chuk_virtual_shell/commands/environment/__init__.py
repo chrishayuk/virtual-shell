@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/environment/__init__.py
 """
 chuk_virtual_shell/commands/environment/__init__.py - Environment commands package
 """

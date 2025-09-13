@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/date.py
 """
 Date command implementation for virtual shell
 """

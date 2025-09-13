@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/wc.py
 """
 chuk_virtual_shell/commands/text/wc.py - Word, line, character, and byte count
 """

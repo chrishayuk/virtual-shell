@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/history.py
 """
 chuk_virtual_shell/commands/system/history.py - history command implementation
 

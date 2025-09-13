@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/environment/env.py
 """
 chuk_virtual_shell/commands/environment/env.py - Set environment variables command
 """

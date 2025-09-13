@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/sed.py
 """
 chuk_virtual_shell/commands/text/sed.py - Stream editor for filtering and transforming text
 """

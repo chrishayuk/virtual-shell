@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/environment/alias.py
 """
 chuk_virtual_shell/commands/environment/alias.py - alias command implementation
 

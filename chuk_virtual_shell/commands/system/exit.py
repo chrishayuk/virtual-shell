@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/exit.py
 """
 chuk_virtual_shell/commands/system/exit.py - Exit the shell command
 """

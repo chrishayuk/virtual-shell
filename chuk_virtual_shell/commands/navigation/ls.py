@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/navigation/ls.py
 import argparse
 import os
 import time

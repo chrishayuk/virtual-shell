@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/system/script.py
 """
 chuk_virtual_shell/chuk_virtual_shell/commands/system/script.py - Run shell scripts command
 """
