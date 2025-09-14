@@ -100,6 +100,91 @@ async def initialize_shell_mcp(shell):
         logger.debug("No MCP servers configured, skipping initialization")
 
 
+def needs_continuation(cmd_line):
+    """
+    Check if a command line needs continuation (multi-line input).
+    
+    Args:
+        cmd_line: The current command line
+        
+    Returns:
+        bool: True if the command needs continuation
+    """
+    cmd = cmd_line.strip()
+    
+    # Check for control flow keywords that require continuation
+    control_flow_starts = ["if ", "for ", "while ", "until ", "case ", "function "]
+    for keyword in control_flow_starts:
+        if cmd.startswith(keyword) or cmd == keyword.strip():
+            return True
+    
+    # Check for lines ending with specific keywords that need continuation
+    if cmd.endswith(" do") or cmd == "do":
+        return True
+    if cmd.endswith(" then") or cmd == "then":
+        return True
+        
+    return False
+
+
+def is_command_complete(combined_command):
+    """
+    Check if a multi-line command is complete.
+    
+    Args:
+        combined_command: The combined multi-line command
+        
+    Returns:
+        bool: True if the command is complete
+    """
+    lines = combined_command.strip().split('\n')
+    
+    # Track nesting levels for different structures
+    if_count = 0
+    for_count = 0
+    while_count = 0
+    until_count = 0
+    case_count = 0
+    function_count = 0
+    
+    for line in lines:
+        line = line.strip()
+        
+        # Count opening keywords
+        if line.startswith("if "):
+            if_count += 1
+        elif line.startswith("for "):
+            for_count += 1
+        elif line.startswith("while "):
+            while_count += 1
+        elif line.startswith("until "):
+            until_count += 1
+        elif line.startswith("case "):
+            case_count += 1
+        elif line.startswith("function "):
+            function_count += 1
+            
+        # Count closing keywords
+        if line == "fi":
+            if_count -= 1
+        elif line == "done":
+            # done closes for, while, and until loops
+            if for_count > 0:
+                for_count -= 1
+            elif while_count > 0:
+                while_count -= 1
+            elif until_count > 0:
+                until_count -= 1
+        elif line == "esac":
+            case_count -= 1
+        elif line == "}":
+            function_count -= 1
+    
+    # Command is complete if all structures are closed
+    return (if_count <= 0 and for_count <= 0 and while_count <= 0 and 
+            until_count <= 0 and case_count <= 0 and function_count <= 0)
+
+
 def create_shell_interpreter(provider=None, provider_args=None, sandbox_yaml=None):
     """Create a shell interpreter with the specified provider or sandbox"""
     if sandbox_yaml:
@@ -137,6 +222,25 @@ def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
             sys.stdout.flush()
 
             cmd_line = input()
+            
+            # Check if this is the start of a multi-line control flow structure
+            if needs_continuation(cmd_line):
+                # Collect continuation lines
+                full_command = [cmd_line]
+                continuation_prompt = "> "
+                
+                while True:
+                    sys.stdout.write(continuation_prompt)
+                    sys.stdout.flush()
+                    next_line = input()
+                    full_command.append(next_line)
+                    
+                    # Check if we have a complete command
+                    combined = "\n".join(full_command)
+                    if is_command_complete(combined):
+                        cmd_line = " ".join(full_command)  # Join with spaces for single-line execution
+                        break
+            
             try:
                 result = shell.execute(cmd_line)
                 if result:
@@ -279,32 +383,50 @@ def main():
         parse_provider_args(args.fs_provider_args) if args.fs_provider_args else {}
     )
 
-    # For S3 provider, auto-populate from environment if no args provided
-    if args.fs_provider == "s3" and not provider_args:
-        if "S3_BUCKET_NAME" in os.environ:
+    # For S3 provider, auto-populate from environment
+    if args.fs_provider == "s3":
+        # Set bucket name if not already provided
+        if "bucket_name" not in provider_args and "S3_BUCKET_NAME" in os.environ:
             provider_args["bucket_name"] = os.environ["S3_BUCKET_NAME"].strip('"')
+            logger.info(
+                f"Using S3 bucket from environment: {provider_args['bucket_name']}"
+            )
 
-            # Auto-detect region
+        # Auto-detect region if not provided
+        if "region_name" not in provider_args:
             if "AWS_DEFAULT_REGION" in os.environ:
                 provider_args["region_name"] = os.environ["AWS_DEFAULT_REGION"]
             elif "AWS_REGION" in os.environ:
                 provider_args["region_name"] = os.environ["AWS_REGION"]
 
-            # Auto-detect S3 endpoint URL (for S3-compatible services like Tigris)
-            if "AWS_ENDPOINT_URL_S3" in os.environ:
-                provider_args["endpoint_url"] = os.environ["AWS_ENDPOINT_URL_S3"]
-                logger.info(
-                    f"Using S3-compatible endpoint: {provider_args['endpoint_url']}"
-                )
-
+        # Auto-detect S3 endpoint URL (for S3-compatible services like Tigris)
+        if "endpoint_url" not in provider_args and "AWS_ENDPOINT_URL_S3" in os.environ:
+            provider_args["endpoint_url"] = os.environ["AWS_ENDPOINT_URL_S3"]
             logger.info(
-                f"Using S3 bucket from environment: {provider_args['bucket_name']}"
+                f"Using S3-compatible endpoint: {provider_args['endpoint_url']}"
             )
-        else:
+
+        # Pass AWS credentials explicitly to the provider if not already provided
+        if "aws_access_key_id" not in provider_args and "aws_secret_access_key" not in provider_args:
+            if (
+                "AWS_ACCESS_KEY_ID" in os.environ
+                and "AWS_SECRET_ACCESS_KEY" in os.environ
+            ):
+                provider_args["aws_access_key_id"] = os.environ["AWS_ACCESS_KEY_ID"]
+                provider_args["aws_secret_access_key"] = os.environ[
+                    "AWS_SECRET_ACCESS_KEY"
+                ]
+                logger.info("Using AWS credentials from environment")
+
+        # Check if we have minimum required config
+        if "bucket_name" not in provider_args:
             logger.error(
                 "S3 provider requires bucket_name. Set S3_BUCKET_NAME environment variable or use --fs-provider-args"
             )
             return
+        
+        # Debug logging to see what we're passing
+        logger.info(f"S3 provider_args: {provider_args}")
 
     if args.fs_provider == "list":
         print("Available filesystem providers:")
