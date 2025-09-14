@@ -78,9 +78,12 @@ class TestMoreCommand:
         # Test with number of lines option (if supported)
         result = self.cmd.execute(["-10", "/long.txt"])
         if "usage" not in result.lower():
-            lines = result.split("\n")
-            # Should show limited lines
-            assert len(lines) <= 15
+            # With -10, should paginate with 10 lines per page
+            # Check that pagination markers appear
+            assert "--More--" in result
+            # Should have multiple pages for a 50-line file with 10 lines per page
+            more_count = result.count("--More--")
+            assert more_count >= 3  # At least 4 pages (10+10+10+10+10)
 
     def test_more_directory(self):
         """Test more with a directory (should fail)"""

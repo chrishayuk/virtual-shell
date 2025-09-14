@@ -43,6 +43,7 @@ class EnvironmentManager:
         """
         from chuk_virtual_shell.sandbox.loader.environment_loader import load_environment
         self.environ = load_environment(config)
+        logger.debug(f"Loaded sandbox environment variables: HOME={self.environ.get('HOME')}, USER={self.environ.get('USER')}")
     
     def ensure_home_directory(self) -> None:
         """Ensure home directory exists and is accessible."""

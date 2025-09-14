@@ -1,7 +1,7 @@
-# Default sandbox configuration for PyodideShell
+# Tigris sandbox configuration for PyodideShell  
 # Sandbox name and description
-name: "default"
-description: "Balanced security environment with starter project"
+name: "tigris"
+description: "Tigris-style environment (using cloud S3 storage)"
 
 # Security settings
 security:
@@ -28,8 +28,9 @@ security:
 filesystem:
   provider: "s3"      # Provider to use (memory, sqlite, pyodide, s3)
   provider_args: {
-    bucket_name: "chuk-sandbox-2",
-    prefix: "/home/user"
+    bucket_name: "chuk-bucket-10",
+    prefix: "/home/user",
+    endpoint_url: "https://t3.storage.dev"
   }       # Arguments for the provider
 
 # Filesystem template for project initialization

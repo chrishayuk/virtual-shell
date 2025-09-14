@@ -46,15 +46,22 @@ class ShellInterpreter:
             fs_provider_args (dict, optional): Arguments for the filesystem provider.
             sandbox_yaml (str, optional): Path or name of a YAML sandbox configuration.
         """
-        # Initialize filesystem first (but don't setup env yet)
-        self._initialize_filesystem(fs_provider, fs_provider_args, sandbox_yaml)
+        # Store sandbox config for later processing
+        self._sandbox_yaml = sandbox_yaml
+        
+        # Initialize filesystem first (without sandbox environment setup)
+        self._initialize_filesystem(fs_provider, fs_provider_args, None)
         
         # Initialize core components (env_manager needs filesystem)
         self.env_manager = EnvironmentManager(self)
         self.environ = self.env_manager.environ  # Compatibility alias
         
-        # Now ensure home directory after env_manager is created
-        if not sandbox_yaml:  # Sandbox already handles this
+        # Now handle sandbox initialization if provided
+        if sandbox_yaml:
+            self._finish_sandbox_initialization(sandbox_yaml)
+            # Update environ alias after sandbox loading
+            self.environ = self.env_manager.environ
+        else:
             self.env_manager.ensure_home_directory()
         
         self.parser = CommandParser()
@@ -85,21 +92,67 @@ class ShellInterpreter:
         # Initialize optional features
         self._initialize_optional_features(sandbox_yaml)
         
-        # Load shell configuration
-        self.env_manager.load_shellrc()
+        # Load shell configuration (skip in sandbox mode for security)
+        if not self._sandbox_yaml:
+            self.env_manager.load_shellrc()
     
     def _initialize_filesystem(self, fs_provider, fs_provider_args, sandbox_yaml):
         """Initialize the filesystem based on provided configuration."""
         if sandbox_yaml:
             self._initialize_from_sandbox(sandbox_yaml)
         elif fs_provider:
-            self._initialize_with_provider(fs_provider, fs_provider_args)
+            self._initialize_with_provider(fs_provider, fs_provider_args, sandbox_yaml)
         else:
             raw_fs = VirtualFileSystem()
             self.fs = FileSystemCompat(raw_fs)
     
     def _initialize_from_sandbox(self, sandbox_yaml: str) -> None:
-        """Initialize filesystem and environment using a YAML sandbox configuration."""
+        """This method is no longer used - sandbox initialization moved to _finish_sandbox_initialization."""
+        # This method is kept for compatibility but does nothing
+        # The actual sandbox initialization happens in _finish_sandbox_initialization
+        pass
+    
+    def _initialize_with_provider(self, fs_provider: str, fs_provider_args: dict, sandbox_yaml: str = None) -> None:
+        """Initialize filesystem using the specified provider and arguments."""
+        try:
+            raw_fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
+            self.fs = FileSystemCompat(raw_fs)
+        except Exception as e:
+            logger.error(f"Error initializing filesystem provider '{fs_provider}': {e}")
+            
+            # Provide helpful guidance for common provider errors
+            if fs_provider == 's3':
+                if 'bucket_name' in str(e):
+                    logger.error("S3 provider requires a 'bucket_name' argument.")
+                    logger.error("Example: --fs-provider s3 --fs-provider-args '{\"bucket_name\": \"my-bucket\"}'")
+                elif '403' in str(e) or 'Forbidden' in str(e) or 'credentials' in str(e).lower() or 'Failed to initialize provider' in str(e):
+                    logger.error("S3 access denied - check your AWS credentials and permissions.")
+                    logger.error("Set AWS credentials using one of these methods:")
+                    logger.error("  • Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY")
+                    logger.error("  • For Tigris: Set TIGRIS_ACCESS_KEY_ID and TIGRIS_SECRET_ACCESS_KEY")
+                    logger.error("  • AWS CLI: aws configure")
+                    logger.error("  • IAM role (if running on EC2)")
+                    logger.error("  • AWS credentials file: ~/.aws/credentials")
+                    if sandbox_yaml and 'tigris' in sandbox_yaml.lower():
+                        logger.error("  • Tigris sandbox requires: https://console.tigris.dev/ account and API keys")
+                elif '404' in str(e) or 'NoSuchBucket' in str(e):
+                    logger.error("S3 bucket not found - check bucket name and region.")
+                elif 'region' in str(e).lower():
+                    logger.error("S3 region issue - try specifying region in provider args.")
+                    logger.error("Example: --fs-provider-args '{\"bucket_name\": \"my-bucket\", \"region_name\": \"us-east-1\"}'")
+                else:
+                    logger.error("S3 provider initialization failed.")
+                    logger.error("Check bucket name, AWS credentials, and permissions.")
+            elif fs_provider == 'sqlite' and ('path' in str(e) or 'db_path' in str(e)):
+                logger.error("SQLite provider may need a 'db_path' argument.")
+                logger.error("Example: --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'")
+            
+            logger.info("Falling back to memory provider.")
+            raw_fs = VirtualFileSystem()
+            self.fs = FileSystemCompat(raw_fs)
+    
+    def _finish_sandbox_initialization(self, sandbox_yaml: str) -> None:
+        """Complete sandbox initialization after env_manager is created."""
         from chuk_virtual_shell.sandbox.loader.sandbox_config_loader import (
             load_config_file, find_config_file
         )
@@ -123,49 +176,30 @@ class ShellInterpreter:
             # Load the sandbox configuration
             config = load_config_file(config_path)
             
-            # Create and configure the filesystem
+            # Replace filesystem with sandbox-configured one
             raw_fs = create_filesystem(config)
             self.fs = FileSystemCompat(raw_fs)
             
-            # Set up the environment
+            # Set up the environment (now that env_manager exists)
             self.env_manager.load_from_sandbox(config)
-            self.environ = self.env_manager.environ  # Update alias
-            
-            # Ensure the home directory exists
-            self.env_manager.ensure_home_directory()
             
             # Execute initialization commands
             init_commands = config.get("initialization", [])
             if init_commands:
-                execute_initialization(self.fs, init_commands)
+                execute_initialization(self.fs.fs, init_commands)
             
-            # Load MCP server configurations
-            self.mcp_servers = load_mcp_servers(config)
-            if self.mcp_servers:
-                logger.info(f"MCP servers loaded: {[s.get('server_name') for s in self.mcp_servers]}")
-            
-            logger.info(f"Using sandbox configuration: {config.get('name', 'custom')}")
-            logger.info(f"Home directory set to: {self.environ['HOME']}")
+            # Load MCP servers if specified
+            if 'mcp_servers' in config:
+                self.mcp_servers = load_mcp_servers(config.get('mcp_servers', []))
+                
+            logger.info(f"Sandbox '{config.get('name', 'unknown')}' loaded successfully")
             
         except Exception as e:
-            logger.error(f"Error loading sandbox configuration '{sandbox_yaml}': {e}")
-            traceback.print_exc()
-            logger.info("Falling back to default configuration.")
-            raw_fs = VirtualFileSystem()
-            self.fs = FileSystemCompat(raw_fs)
+            logger.error(f"Error completing sandbox configuration '{sandbox_yaml}': {e}")
+            logger.exception("Detailed sandbox error:")
+            # Fall back to default environment setup
             self.env_manager.setup_default_environment()
-            self.environ = self.env_manager.environ
-    
-    def _initialize_with_provider(self, fs_provider: str, fs_provider_args: dict) -> None:
-        """Initialize filesystem using the specified provider and arguments."""
-        try:
-            raw_fs = VirtualFileSystem(fs_provider, **(fs_provider_args or {}))
-            self.fs = FileSystemCompat(raw_fs)
-        except Exception as e:
-            logger.error(f"Error initializing filesystem provider '{fs_provider}': {e}")
-            logger.info("Falling back to memory provider.")
-            raw_fs = VirtualFileSystem()
-            self.fs = FileSystemCompat(raw_fs)
+            self.env_manager.ensure_home_directory()
     
     def _initialize_optional_features(self, sandbox_yaml):
         """Initialize optional features like MCP servers and aliases."""

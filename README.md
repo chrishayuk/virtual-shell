@@ -6,10 +6,12 @@ A powerful virtual shell with session management, perfect for AI agents and sand
 
 Chuk Virtual Shell provides a complete virtual shell environment with enterprise-grade features:
 
+- **Pre-configured Sandboxes**: Ready-to-use environments for AI agents, development, and secure execution
 - **Session Management**: Stateful sessions with persistent working directory, environment, and command history
 - **Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
 - **Rich Command Set**: 50+ Unix-like commands including text processing, file operations, and system utilities
 - **Bash-Compatible Operators**: Full support for &&, ||, ;, variable expansion, wildcards, and command substitution
+- **Security Policies**: Configurable path restrictions and access controls for safe execution
 - **AI Agent Ready**: Built for multi-step workflows with context preservation
 - **Extensible Architecture**: Easy to add new commands and storage providers
 - **Telnet Server**: Remote access capabilities for distributed systems
@@ -46,6 +48,42 @@ await manager.run_command(session_id, "pwd")  # Returns: /project
 - **Multi-Session Isolation**: Run multiple isolated sessions concurrently
 - **Backend Persistence**: Optional persistence with `chuk-sessions` library
 - **PTY Support**: Full pseudo-terminal support for interactive applications
+
+### 🏖️ Pre-configured Sandboxes
+
+Ready-to-use environments with built-in security and initialization:
+
+```bash
+# AI Sandbox - Restricted environment for safe AI code execution
+uv run chuk-virtual-shell --sandbox ai_sandbox
+ai@pyodide:/$ pwd
+/
+ai@pyodide:/$ ls
+sandbox
+ai@pyodide:/$ echo $HOME
+/sandbox
+
+# Default Sandbox - Balanced development environment
+uv run chuk-virtual-shell --sandbox default  
+user@pyodide:/$ ls /home/user
+README.txt documents
+
+# List all available sandboxes
+uv run chuk-virtual-shell --list-sandboxes
+Available sandbox configurations:
+  ai_sandbox
+  default
+  readonly
+  e2b
+  tigris
+```
+
+**Sandbox Features:**
+- **Pre-configured environments** - Custom HOME, PATH, USER variables
+- **Security policies** - Path restrictions and access controls
+- **File initialization** - Pre-created directories and starter files
+- **Isolated execution** - Safe environment for untrusted code
+- **Multiple profiles** - AI agents, development, read-only exploration
 
 ### 🎯 Built for AI Agents
 
@@ -85,57 +123,245 @@ Over 50 Unix-like commands with full implementations:
 - Works on Windows, macOS, and Linux
 - No platform-specific dependencies
 
-### Quick Start with uvx (Easiest)
-
-Run directly without installation using uvx:
+### Quick Install
 
 ```bash
 # Install uv if you haven't already
 pip install uv
 
-# Run the virtual shell directly
+# For development (if you cloned the repo)
+cd chuk-virtual-shell
+uv sync
+
+# Or run directly without any installation using uvx
 uvx chuk-virtual-shell
-
-# Or use the shorter alias
-uvx virtual-shell
 ```
 
-### Install with uv (Recommended for Development)
+## Getting Started
+
+### 1. Quick Start with Sandboxes (Recommended)
+
+The fastest way to get started is using pre-configured sandbox environments:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/pyodideshell.git
-cd pyodideshell
+# Start with AI sandbox - perfect for AI agents and safe code execution
+uv run chuk-virtual-shell --sandbox ai_sandbox
 
-# Install dependencies and run
-uv run virtual-shell
+# You'll get a clean, isolated environment:
+ai@pyodide:/$ pwd
+/
+ai@pyodide:/$ ls
+sandbox
+ai@pyodide:/$ cd /sandbox
+ai@pyodide:/sandbox$ ls
+README.txt  USAGE.txt  input  output
+ai@pyodide:/sandbox$ echo "print('Hello AI!')" > test.py
+ai@pyodide:/sandbox$ cat test.py
+print('Hello AI!')
+ai@pyodide:/sandbox$ exit
 ```
 
-### Install with pip
-
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/pyodideshell.git
-cd pyodideshell
+# Or use default sandbox for general development
+uv run chuk-virtual-shell --sandbox default
 
-# Install in development mode
-pip install -e .
-
-# Run the shell
-virtual-shell
+user@pyodide:/$ echo $HOME
+/home/user
+user@pyodide:/$ ls $HOME
+README.txt  documents
+user@pyodide:/$ cat $HOME/README.txt
+Welcome to the chukshell ai sandbox environment.
 ```
 
-### Install from PyPI (When Published)
+**Why use sandboxes?**
+- ✅ **Pre-configured** - Ready to use with sensible defaults
+- ✅ **Secure** - Built-in path restrictions and access controls
+- ✅ **Isolated** - Safe environment for running untrusted code
+- ✅ **Consistent** - Same environment every time
+
+### 2. Running the Basic Interactive Shell
+
+You can also run without a sandbox for full system access:
 
 ```bash
-# Using pip
-pip install chuk-virtual-shell
+# Basic shell (no restrictions)
+uv run chuk-virtual-shell
 
-# Using uv
-uv pip install chuk-virtual-shell
+$ pwd
+/
+$ mkdir myproject
+$ cd myproject  
+$ echo "Hello World" > hello.txt
+$ cat hello.txt
+Hello World
+$ exit
+```
 
-# Then run
-virtual-shell
+### 3. Running Scripts from Command Line
+
+You can pass shell scripts directly to execute:
+
+```bash
+# Run script in AI sandbox (secure)
+uv run chuk-virtual-shell --sandbox ai_sandbox examples/hello_world.sh
+
+# Run script in default sandbox
+uv run chuk-virtual-shell --sandbox default my_script.sh
+
+# Run script without sandbox
+uv run chuk-virtual-shell examples/hello_world.sh
+```
+
+### 4. Choosing a Storage Backend
+
+By default, the shell uses in-memory storage. You can choose different backends:
+
+```bash
+# Use SQLite for persistent storage
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+
+# Use in-memory SQLite (sandbox mode)
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=:memory:'
+
+# Use S3 for cloud storage (requires bucket_name and AWS credentials)
+# Automatically loads .env file if present, or use environment variables:
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket"}'
+
+# List available providers
+uv run chuk-virtual-shell --fs-provider list
+```
+
+### 5. Exploring Available Sandboxes
+
+See what sandbox environments are available:
+
+```bash
+# List all available sandboxes
+uv run chuk-virtual-shell --list-sandboxes
+Available sandbox configurations:
+  ai_sandbox    # Restricted environment for AI code execution  
+  default       # Balanced development environment
+  readonly      # Read-only exploration environment
+  e2b          # E2B cloud environment
+  tigris       # Tigris storage environment
+```
+
+### 6. Common Usage Patterns
+
+#### Secure AI Development
+```bash
+# Perfect for AI agents - isolated and secure
+uv run chuk-virtual-shell --sandbox ai_sandbox
+
+ai@pyodide:/$ cd /sandbox/input
+ai@pyodide:/sandbox/input$ echo "data.csv" > file_list.txt
+ai@pyodide:/sandbox/input$ cd ../output  
+ai@pyodide:/sandbox/output$ echo "print('Processing complete')" > result.py
+ai@pyodide:/sandbox/output$ exit
+```
+
+#### Interactive Development Session
+```bash
+# Start shell with persistent storage
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=dev_session.db'
+
+# Your files persist between sessions
+$ mkdir /myapp
+$ cd /myapp
+$ echo "import flask" > app.py
+$ ls
+app.py
+$ exit
+
+# Later, continue where you left off
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=dev_session.db'
+$ cd /myapp
+$ ls
+app.py
+```
+
+#### Sandbox Mode for Testing
+```bash
+# Use memory provider (default) for isolated testing
+uv run chuk-virtual-shell
+
+# Or explicitly specify memory provider
+uv run chuk-virtual-shell --fs-provider memory
+
+# Everything is isolated and disappears on exit
+$ rm -rf /important  # Safe - only affects virtual filesystem
+$ exit  # All changes are gone
+```
+
+#### Running Scripts with Custom Environment
+```bash
+# Create a setup script
+echo 'export API_KEY=secret123
+export DEBUG=true
+mkdir /app
+cd /app
+echo "Ready to go!"' > setup.sh
+
+# Run it with the shell
+uv run chuk-virtual-shell setup.sh
+```
+
+#### Quick One-Liners
+```bash
+# Execute a single command and exit
+echo 'ls -la /' | uv run chuk-virtual-shell
+
+# Process a file through shell commands
+echo 'echo "hello world" | grep world | wc -w' | uv run chuk-virtual-shell
+```
+
+### 7. Shell Configuration (.shellrc)
+
+The shell automatically loads `~/.shellrc` on startup. Create one to customize your environment:
+
+```bash
+# Start the shell
+uv run chuk-virtual-shell
+
+# Create your configuration
+$ cat > ~/.shellrc << 'EOF'
+# Environment variables
+export EDITOR=nano
+export PATH=/usr/local/bin:/usr/bin:/bin
+
+# Aliases
+alias ll="ls -la"
+alias ..="cd .."
+alias grep="grep -i"
+
+# Enable command timing
+timings -e
+
+echo "Welcome to Chuk Virtual Shell!"
+EOF
+
+$ exit
+
+# Next time you start, your config is loaded
+uv run chuk-virtual-shell
+Welcome to Chuk Virtual Shell!
+$ ll  # Your alias works!
+```
+
+### 8. Advanced Options
+
+```bash
+# Run with telnet server for remote access
+uv run chuk-virtual-shell --telnet --port 8023
+
+# Then from another terminal:
+telnet localhost 8023
+
+# Run with specific script and exit
+uv run chuk-virtual-shell --script examples/text_processing.sh
+
+# Combine options
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=shared.db' --telnet
 ```
 
 ## Project Structure
@@ -391,6 +617,77 @@ You can easily switch between providers or create custom ones to suit your needs
 
 All commands are implemented as separate classes that extend the `ShellCommand` base class, making it easy to add new commands.
 
+### Sandbox Environments
+
+Chuk Virtual Shell comes with pre-configured sandbox environments for different use cases:
+
+#### Built-in Sandboxes
+
+| Sandbox | User | Home | Description | Use Case |
+|---------|------|------|-------------|----------|
+| `ai_sandbox` | `ai` | `/sandbox` | Highly restricted environment | AI agents, untrusted code execution |
+| `default` | `user` | `/home/user` | Balanced development environment | General development, learning |
+| `readonly` | `user` | `/home/user` | Read-only file system | Safe exploration, demonstrations |
+| `e2b` | `user` | `/home/user` | E2B cloud environment | Cloud development workflows |
+| `tigris` | `user` | `/home/user` | Tigris storage integration | Distributed storage workflows |
+
+#### Cloud Sandboxes
+
+Some sandboxes require cloud provider credentials:
+
+**Tigris Sandbox:**
+Requires a [Tigris](https://console.tigris.dev/) account and API keys:
+
+```bash
+# Set Tigris credentials
+export TIGRIS_ACCESS_KEY_ID="your_access_key"
+export TIGRIS_SECRET_ACCESS_KEY="your_secret_key"
+export AWS_ENDPOINT_URL_S3="https://t3.storage.dev"
+
+# Launch Tigris sandbox
+uv run chuk-virtual-shell --sandbox tigris
+```
+
+**E2B Sandbox:**
+Requires an [E2B](https://e2b.dev/) account and API key:
+
+```bash
+# Set E2B credentials
+export E2B_API_KEY="your_api_key"
+
+# Launch E2B sandbox
+uv run chuk-virtual-shell --sandbox e2b
+```
+
+#### Sandbox Features
+
+**Security Policies:**
+- Path restrictions (only allowed directories accessible)
+- File operation controls (read-only, size limits, etc.)
+- Pattern-based denylists (block sensitive files)
+- Configurable access controls
+
+**Pre-initialization:**
+- Custom environment variables (HOME, PATH, USER)
+- Pre-created directories and starter files
+- Welcome messages and usage instructions
+- Tool-specific configurations
+
+**Usage Examples:**
+```bash
+# List available sandboxes
+uv run chuk-virtual-shell --list-sandboxes
+
+# Use by name
+uv run chuk-virtual-shell --sandbox ai_sandbox
+
+# Use by file path  
+uv run chuk-virtual-shell --sandbox config/ai_sandbox.yaml
+
+# Combine with other options
+uv run chuk-virtual-shell --sandbox default --telnet --port 8024
+```
+
 ### Available Commands
 
 The shell includes 50+ commands organized into logical categories. For complete documentation with usage examples, options, and integration guides, see the [Command Documentation](docs/README.md).
@@ -528,71 +825,6 @@ result = runner.run_script('/tmp/script.sh')
 print(result)
 ```
 
-## Usage
-
-### Interactive Mode with Default Provider
-
-```bash
-# Using uvx (no installation required)
-uvx virtual-shell
-
-# Using uv (if cloned locally)
-uv run virtual-shell
-
-# Using pip install
-virtual-shell
-```
-
-### Interactive Mode with Specific Provider
-
-```bash
-# Use SQLite storage
-uvx virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
-
-# Use S3 storage  
-uvx virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket", "prefix": "shell1"}'
-
-# Or with uv run if cloned locally
-uv run virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
-```
-
-### List Available Providers
-
-```bash
-python main.py --fs-provider list
-```
-
-### Telnet Server Mode
-
-```bash
-# With default memory provider
-python main.py --telnet
-
-# With SQLite provider
-python main.py --telnet --fs-provider sqlite --fs-provider-args 'db_path=telnet_shell.db'
-```
-
-Then connect using any telnet client:
-
-```bash
-telnet localhost 8023
-```
-
-### Script Execution
-
-```bash
-# Run a script with specific provider
-python main.py --script my_script.sh --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
-```
-
-### Pyodide Mode
-
-When running in a browser environment with Pyodide, the shell operates in interactive mode:
-
-```python
-import main
-main.run_interactive_shell("sqlite", {"db_path": ":memory:"})  # With provider selection
-```
 
 ## Examples
 
@@ -800,15 +1032,88 @@ python main.py --fs-provider sqlite --fs-provider-args '{"db_path": ":memory:"}'
 
 ### S3 Provider
 
-Stores the filesystem in an Amazon S3 bucket or compatible service:
+Stores the filesystem in an Amazon S3 bucket or compatible service. **Requires `bucket_name` parameter** and AWS credentials.
+
+#### Setting up AWS Credentials
+
+The S3 provider uses standard AWS credential methods and **automatically loads `.env` files**:
 
 ```bash
-python main.py --fs-provider s3 --fs-provider-args '{
+# Method 1: .env file (easiest for development)
+# Create .env file in your project directory:
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=us-east-1
+S3_BUCKET_NAME=my-shell-bucket
+
+# Method 2: Environment variables
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=us-east-1
+
+# Method 3: AWS CLI configuration
+aws configure
+
+# Method 4: AWS credentials file (~/.aws/credentials)
+[default]
+aws_access_key_id = your_access_key
+aws_secret_access_key = your_secret_key
+region = us-east-1
+```
+
+#### Usage Examples
+
+```bash
+# Super easy: Just use .env file with S3_BUCKET_NAME
+# (no --fs-provider-args needed if S3_BUCKET_NAME is in .env)
+uv run chuk-virtual-shell --fs-provider s3
+
+# Basic usage with explicit bucket name
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-shell-bucket"}'
+
+# Using environment variable expansion
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "$S3_BUCKET_NAME"}'
+
+# With specific region
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{
   "bucket_name": "my-shell-bucket",
-  "prefix": "user1",
   "region_name": "us-west-2"
 }'
+
+# With prefix for organizing multiple shells
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{
+  "bucket_name": "my-shell-bucket",
+  "prefix": "user1/session1"
+}'
+
+# Using key=value format
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args 'bucket_name=my-shell-bucket,region_name=us-east-1'
 ```
+
+#### Complete Setup Example
+
+```bash
+# 1. Create .env file with AWS credentials and bucket
+cat > .env << EOF
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=abcd...
+AWS_DEFAULT_REGION=us-east-1
+S3_BUCKET_NAME=my-shell-bucket
+EOF
+
+# 2. Create S3 bucket (if needed)
+aws s3 mb s3://my-shell-bucket
+
+# 3. Start shell with S3 storage (automatically loads .env, no args needed!)
+uv run chuk-virtual-shell --fs-provider s3
+
+# Alternative: Set environment variables manually
+# export AWS_ACCESS_KEY_ID=AKIA...
+# export AWS_SECRET_ACCESS_KEY=abcd...
+# uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-shell-bucket"}'
+```
+
+**Note**: Ensure your AWS credentials have the necessary S3 permissions (`s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket`).
 
 ## Extending PyodideShell
 

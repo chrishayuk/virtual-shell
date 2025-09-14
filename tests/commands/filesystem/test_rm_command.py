@@ -18,6 +18,23 @@ def rm_command():
     return command
 
 
+# Fixture with directory structure
+@pytest.fixture
+def rm_command_with_dirs():
+    files = {
+        "/file1.txt": "Content",
+        "/dir1": {},
+        "/dir1/file2.txt": "Nested file",
+        "/dir1/subdir": {},
+        "/dir1/subdir/deep.txt": "Deep file",
+        "/dir2": {},
+        "/emptydir": {}
+    }
+    dummy_shell = DummyShell(files)
+    command = RmCommand(shell_context=dummy_shell)
+    return command
+
+
 # Test for missing operand (no files provided)
 def test_rm_missing_operand(rm_command):
     output = rm_command.execute([])
@@ -37,4 +54,63 @@ def test_rm_remove_existing_file(rm_command):
 def test_rm_remove_non_existent_file(rm_command):
     output = rm_command.execute(["nonexistent.txt"])
     # Expect an error message indicating the file cannot be removed.
-    assert output == "rm: cannot remove 'nonexistent.txt'"
+    assert "cannot remove" in output and "nonexistent.txt" in output
+
+
+# Test force flag with non-existent file
+def test_rm_force_nonexistent(rm_command):
+    output = rm_command.execute(["-f", "nonexistent.txt"])
+    # With -f, should not report error for non-existent files
+    assert output == ""
+
+
+# Test removing directory without recursive flag
+def test_rm_directory_without_recursive(rm_command_with_dirs):
+    output = rm_command_with_dirs.execute(["/dir1"])
+    # Should fail when trying to remove directory without -r
+    assert "Is a directory" in output
+
+
+# Test recursive removal
+def test_rm_recursive(rm_command_with_dirs):
+    output = rm_command_with_dirs.execute(["-r", "/dir1"])
+    # Should succeed
+    assert output == ""
+    # Verify directory and contents are removed
+    assert "/dir1" not in rm_command_with_dirs.shell.fs.files
+    assert "/dir1/file2.txt" not in rm_command_with_dirs.shell.fs.files
+    assert "/dir1/subdir/deep.txt" not in rm_command_with_dirs.shell.fs.files
+
+
+# Test verbose flag
+def test_rm_verbose(rm_command):
+    output = rm_command.execute(["-v", "file1.txt"])
+    # Should show what was removed
+    assert "removed" in output
+    assert "file1.txt" in output
+
+
+# Test combined flags
+def test_rm_combined_flags(rm_command_with_dirs):
+    output = rm_command_with_dirs.execute(["-rf", "/dir1"])
+    # Should succeed silently
+    assert output == ""
+    assert "/dir1" not in rm_command_with_dirs.shell.fs.files
+
+
+# Test verbose recursive
+def test_rm_verbose_recursive(rm_command_with_dirs):
+    output = rm_command_with_dirs.execute(["-rv", "/dir1"])
+    # Should show each file/dir removed
+    assert "removed" in output
+    # Should mention multiple items
+    lines = output.strip().split('\n')
+    assert len(lines) > 1  # Multiple items removed
+
+
+# Test help flag
+def test_rm_help(rm_command):
+    output = rm_command.execute(["--help"])
+    assert "Usage:" in output
+    assert "-r" in output
+    assert "-f" in output

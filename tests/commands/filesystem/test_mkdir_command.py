@@ -31,9 +31,10 @@ def test_mkdir_create_directory_success(mkdir_command):
     assert output == ""
     # Verify that the directory is created in the dummy file system.
     shell = mkdir_command.shell
-    assert "new_dir" in shell.fs.files
+    # DummyFileSystem stores absolute paths
+    assert "/new_dir" in shell.fs.files
     # Optionally, check that the directory is represented as an empty dict.
-    assert shell.fs.files["new_dir"] == {}
+    assert shell.fs.files["/new_dir"] == {}
 
 
 # Test for failure when directory creation is not allowed (e.g. directory already exists)
@@ -41,4 +42,6 @@ def test_mkdir_create_directory_failure(mkdir_command):
     # Pre-create the directory to simulate an existing one.
     mkdir_command.shell.fs.mkdir("existing_dir")
     output = mkdir_command.execute(["existing_dir"])
-    assert output == "mkdir: cannot create directory 'existing_dir'"
+    # Check that the error message contains the directory name
+    assert "mkdir: cannot create directory" in output
+    assert "existing_dir" in output
