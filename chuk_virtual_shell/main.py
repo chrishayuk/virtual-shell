@@ -29,13 +29,16 @@ logging.basicConfig(level=logging.WARNING)
 
 
 def parse_provider_args(provider_args_str):
-    """Parse provider arguments from a string"""
+    """Parse provider arguments from a string, with environment variable expansion"""
     if not provider_args_str:
         return {}
 
+    # Expand environment variables in the arguments string
+    provider_args_str = os.path.expandvars(provider_args_str)
+
     try:
         # Try to parse as JSON
-        return json.loads(provider_args_str)
+        args = json.loads(provider_args_str)
     except json.JSONDecodeError:
         # If not valid JSON, try to parse as key=value pairs
         args = {}
@@ -43,7 +46,11 @@ def parse_provider_args(provider_args_str):
             if "=" in arg_pair:
                 key, value = arg_pair.split("=", 1)
                 args[key.strip()] = value.strip()
-        return args
+
+    # Note: S3-specific environment variable handling moved to main() function
+    # to avoid adding S3 args to non-S3 providers
+
+    return args
 
 
 def convert_dict_to_object(d):
@@ -93,6 +100,97 @@ async def initialize_shell_mcp(shell):
         logger.debug("No MCP servers configured, skipping initialization")
 
 
+def needs_continuation(cmd_line):
+    """
+    Check if a command line needs continuation (multi-line input).
+
+    Args:
+        cmd_line: The current command line
+
+    Returns:
+        bool: True if the command needs continuation
+    """
+    cmd = cmd_line.strip()
+
+    # Check for control flow keywords that require continuation
+    control_flow_starts = ["if ", "for ", "while ", "until ", "case ", "function "]
+    for keyword in control_flow_starts:
+        if cmd.startswith(keyword) or cmd == keyword.strip():
+            return True
+
+    # Check for lines ending with specific keywords that need continuation
+    if cmd.endswith(" do") or cmd == "do":
+        return True
+    if cmd.endswith(" then") or cmd == "then":
+        return True
+
+    return False
+
+
+def is_command_complete(combined_command):
+    """
+    Check if a multi-line command is complete.
+
+    Args:
+        combined_command: The combined multi-line command
+
+    Returns:
+        bool: True if the command is complete
+    """
+    lines = combined_command.strip().split("\n")
+
+    # Track nesting levels for different structures
+    if_count = 0
+    for_count = 0
+    while_count = 0
+    until_count = 0
+    case_count = 0
+    function_count = 0
+
+    for line in lines:
+        line = line.strip()
+
+        # Count opening keywords
+        if line.startswith("if "):
+            if_count += 1
+        elif line.startswith("for "):
+            for_count += 1
+        elif line.startswith("while "):
+            while_count += 1
+        elif line.startswith("until "):
+            until_count += 1
+        elif line.startswith("case "):
+            case_count += 1
+        elif line.startswith("function "):
+            function_count += 1
+
+        # Count closing keywords
+        if line == "fi":
+            if_count -= 1
+        elif line == "done":
+            # done closes for, while, and until loops
+            if for_count > 0:
+                for_count -= 1
+            elif while_count > 0:
+                while_count -= 1
+            elif until_count > 0:
+                until_count -= 1
+        elif line == "esac":
+            case_count -= 1
+        elif line == "}":
+            function_count -= 1
+
+    # Command is complete if all structures are closed
+    return (
+        if_count <= 0
+        and for_count <= 0
+        and while_count <= 0
+        and until_count <= 0
+        and case_count <= 0
+        and function_count <= 0
+    )
+
+
 def create_shell_interpreter(provider=None, provider_args=None, sandbox_yaml=None):
     """Create a shell interpreter with the specified provider or sandbox"""
     if sandbox_yaml:
@@ -130,6 +228,27 @@ def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
             sys.stdout.flush()
 
             cmd_line = input()
+
+            # Check if this is the start of a multi-line control flow structure
+            if needs_continuation(cmd_line):
+                # Collect continuation lines
+                full_command = [cmd_line]
+                continuation_prompt = "> "
+
+                while True:
+                    sys.stdout.write(continuation_prompt)
+                    sys.stdout.flush()
+                    next_line = input()
+                    full_command.append(next_line)
+
+                    # Check if we have a complete command
+                    combined = "\n".join(full_command)
+                    if is_command_complete(combined):
+                        cmd_line = " ".join(
+                            full_command
+                        )  # Join with spaces for single-line execution
+                        break
+
             try:
                 result = shell.execute(cmd_line)
                 if result:
@@ -146,13 +265,14 @@ def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
         logger.exception("Uncaught error in interactive shell")
 
 
-async def run_telnet_server(provider=None, provider_args=None, sandbox_yaml=None):
+async def run_telnet_server(
+    provider=None, provider_args=None, sandbox_yaml=None, host="0.0.0.0", port=8023
+):
     """Run PyodideShell in telnet server mode"""
-    # Create shell and initialize MCP
-    shell = await setup_shell_with_mcp(provider, provider_args, sandbox_yaml)
-
-    # Create and start telnet server
-    server = TelnetServer(shell=shell)
+    # Create and start telnet server (it will create its own shell instances per connection)
+    server = TelnetServer(
+        host=host, port=port, fs_provider=provider, fs_provider_args=provider_args
+    )
     await server.start()
 
 
@@ -189,6 +309,9 @@ def main():
     )
 
     parser.add_argument("--telnet", action="store_true", help="Run as telnet server")
+    parser.add_argument(
+        "--port", type=int, default=8023, help="Port for telnet server (default: 8023)"
+    )
     parser.add_argument("--script", type=str, help="Script file to run")
 
     # Sandbox configuration
@@ -229,6 +352,7 @@ def main():
             # Fallback for Pyodide or no args
             args = argparse.Namespace(
                 telnet=False,
+                port=8023,
                 script=None,
                 script_path=None,
                 fs_provider="memory",
@@ -241,6 +365,7 @@ def main():
         if "pyodide" in sys.modules:
             args = argparse.Namespace(
                 telnet=False,
+                port=8023,
                 script=None,
                 script_path=None,
                 fs_provider="memory",
@@ -251,6 +376,74 @@ def main():
             )
         else:
             return
+
+    # Handle list commands first (before sandbox checks)
+    if args.list_sandboxes:
+        from chuk_virtual_shell.sandbox.loader import list_available_configs
+
+        configs = list_available_configs()
+        print("Available sandbox configurations:")
+        for name in configs:
+            print(f"  {name}")
+        return
+
+    provider_args = (
+        parse_provider_args(args.fs_provider_args) if args.fs_provider_args else {}
+    )
+
+    # For S3 provider, auto-populate from environment
+    if args.fs_provider == "s3":
+        # Set bucket name if not already provided
+        if "bucket_name" not in provider_args and "S3_BUCKET_NAME" in os.environ:
+            provider_args["bucket_name"] = os.environ["S3_BUCKET_NAME"].strip('"')
+            logger.info(
+                f"Using S3 bucket from environment: {provider_args['bucket_name']}"
+            )
+
+        # Auto-detect region if not provided
+        if "region_name" not in provider_args:
+            if "AWS_DEFAULT_REGION" in os.environ:
+                provider_args["region_name"] = os.environ["AWS_DEFAULT_REGION"]
+            elif "AWS_REGION" in os.environ:
+                provider_args["region_name"] = os.environ["AWS_REGION"]
+
+        # Auto-detect S3 endpoint URL (for S3-compatible services like Tigris)
+        if "endpoint_url" not in provider_args and "AWS_ENDPOINT_URL_S3" in os.environ:
+            provider_args["endpoint_url"] = os.environ["AWS_ENDPOINT_URL_S3"]
+            logger.info(
+                f"Using S3-compatible endpoint: {provider_args['endpoint_url']}"
+            )
+
+        # Pass AWS credentials explicitly to the provider if not already provided
+        if (
+            "aws_access_key_id" not in provider_args
+            and "aws_secret_access_key" not in provider_args
+        ):
+            if (
+                "AWS_ACCESS_KEY_ID" in os.environ
+                and "AWS_SECRET_ACCESS_KEY" in os.environ
+            ):
+                provider_args["aws_access_key_id"] = os.environ["AWS_ACCESS_KEY_ID"]
+                provider_args["aws_secret_access_key"] = os.environ[
+                    "AWS_SECRET_ACCESS_KEY"
+                ]
+                logger.info("Using AWS credentials from environment")
+
+        # Check if we have minimum required config
+        if "bucket_name" not in provider_args:
+            logger.error(
+                "S3 provider requires bucket_name. Set S3_BUCKET_NAME environment variable or use --fs-provider-args"
+            )
+            return
+
+        # Debug logging to see what we're passing
+        logger.info(f"S3 provider_args: {provider_args}")
+
+    if args.fs_provider == "list":
+        print("Available filesystem providers:")
+        for name in list_providers():
+            print(f"  {name}")
+        return
 
     # If the user just runs `chuk-virtual-shell` with no --sandbox, fall back to default.yaml
     if not args.sandbox:
@@ -266,25 +459,6 @@ def main():
                 "No sandbox specified, and default.yaml not found. Proceeding without a sandbox config."
             )
 
-    if args.list_sandboxes:
-        from chuk_virtual_shell.sandbox.loader import list_available_configs
-
-        configs = list_available_configs()
-        print("Available sandbox configurations:")
-        for name in configs:
-            print(f"  {name}")
-        return
-
-    provider_args = (
-        parse_provider_args(args.fs_provider_args) if args.fs_provider_args else {}
-    )
-
-    if args.fs_provider == "list":
-        logger.info("Available filesystem providers:")
-        for name in list_providers():
-            logger.info(f"  {name}")
-        return
-
     # Modify initialize_shell_mcp function to respect --no-mcp flag
     original_initialize_shell_mcp = initialize_shell_mcp
 
@@ -298,8 +472,12 @@ def main():
 
     # Determine operation mode
     if args.telnet:
-        logger.info("Starting telnet server...")
-        asyncio.run(run_telnet_server(args.fs_provider, provider_args, args.sandbox))
+        logger.info(f"Starting telnet server on port {args.port}...")
+        asyncio.run(
+            run_telnet_server(
+                args.fs_provider, provider_args, args.sandbox, port=args.port
+            )
+        )
     elif args.script or args.script_path:
         script = args.script or args.script_path
         logger.info(f"Running script: {script}")

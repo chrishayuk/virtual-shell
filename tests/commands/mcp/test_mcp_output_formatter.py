@@ -3,6 +3,7 @@ tests/commands/mcp/test_mcp_output_formatter.py - Tests for MCP output formatter
 
 Tests the functionality of parsing and formatting MCP tool responses.
 """
+
 import json
 from chuk_virtual_shell.commands.mcp.mcp_output_formatter import (
     parse_mcp_response,
@@ -37,7 +38,7 @@ def test_attempt_json_load_none():
 def test_attempt_literal_eval_valid():
     """Test literal_eval with valid Python literal"""
     result = _attempt_literal_eval("{'key': 'value', 'list': [1, 2, 3]}")
-    assert result == {'key': 'value', 'list': [1, 2, 3]}
+    assert result == {"key": "value", "list": [1, 2, 3]}
 
 
 def test_attempt_literal_eval_invalid():
@@ -49,71 +50,42 @@ def test_attempt_literal_eval_invalid():
 # Tests for parse_mcp_response
 def test_parse_mcp_response_with_result():
     """Test parsing response with 'result' field"""
-    response = {
-        "result": {
-            "content": [
-                {"text": '["item1", "item2", "item3"]'}
-            ]
-        }
-    }
+    response = {"result": {"content": [{"text": '["item1", "item2", "item3"]'}]}}
     result = parse_mcp_response(response)
     assert result == ["item1", "item2", "item3"]
 
 
 def test_parse_mcp_response_without_result():
     """Test parsing response without 'result' field"""
-    response = {
-        "content": [
-            {"text": '{"status": "success"}'}
-        ]
-    }
+    response = {"content": [{"text": '{"status": "success"}'}]}
     result = parse_mcp_response(response)
     assert result == {"status": "success"}
 
 
 def test_parse_mcp_response_string_result():
     """Test parsing response where result is a string"""
-    response = {
-        "result": '{"data": [1, 2, 3]}'
-    }
+    response = {"result": '{"data": [1, 2, 3]}'}
     result = parse_mcp_response(response)
     assert result == {"data": [1, 2, 3]}
 
 
 def test_parse_mcp_response_plain_text():
     """Test parsing response with plain text content"""
-    response = {
-        "result": {
-            "content": [
-                {"text": "Plain text response"}
-            ]
-        }
-    }
+    response = {"result": {"content": [{"text": "Plain text response"}]}}
     result = parse_mcp_response(response)
     assert result == "Plain text response"
 
 
 def test_parse_mcp_response_python_literal():
     """Test parsing response with Python literal string"""
-    response = {
-        "result": {
-            "content": [
-                {"text": "{'python': 'dict', 'number': 42}"}
-            ]
-        }
-    }
+    response = {"result": {"content": [{"text": "{'python': 'dict', 'number': 42}"}]}}
     result = parse_mcp_response(response)
-    assert result == {'python': 'dict', 'number': 42}
+    assert result == {"python": "dict", "number": 42}
 
 
 def test_parse_mcp_response_direct_dict():
     """Test parsing response that's already a dict"""
-    response = {
-        "result": {
-            "data": "value",
-            "number": 123
-        }
-    }
+    response = {"result": {"data": "value", "number": 123}}
     result = parse_mcp_response(response)
     assert result == {"data": "value", "number": 123}
 
@@ -153,11 +125,7 @@ def test_format_tabular_data_with_columns():
     """Test formatting tabular data with column names"""
     data = {
         "columns": ["id", "name", "age"],
-        "rows": [
-            [1, "Alice", 30],
-            [2, "Bob", 25],
-            [3, "Charlie", None]
-        ]
+        "rows": [[1, "Alice", 30], [2, "Bob", 25], [3, "Charlie", None]],
     }
     result = _format_tabular_data(data)
     assert "| id | name | age |" in result
@@ -168,12 +136,7 @@ def test_format_tabular_data_with_columns():
 
 def test_format_tabular_data_without_columns():
     """Test formatting tabular data without column names"""
-    data = {
-        "rows": [
-            ["value1", "value2"],
-            ["value3", "value4"]
-        ]
-    }
+    data = {"rows": [["value1", "value2"], ["value3", "value4"]]}
     result = _format_tabular_data(data)
     assert "| Col1 | Col2 |" in result
     assert "| value1 | value2 |" in result
@@ -188,12 +151,7 @@ def test_format_tabular_data_empty_rows():
 
 def test_format_tabular_data_non_list_rows():
     """Test formatting when rows are not lists"""
-    data = {
-        "rows": [
-            {"id": 1, "name": "Alice"},
-            {"id": 2, "name": "Bob"}
-        ]
-    }
+    data = {"rows": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}
     result = _format_tabular_data(data)
     # Should fall back to JSON formatting
     parsed = json.loads(result)
@@ -217,10 +175,7 @@ def test_format_mcp_result_list():
 
 def test_format_mcp_result_dict_with_rows():
     """Test formatting dict with rows/columns structure"""
-    data = {
-        "columns": ["name", "value"],
-        "rows": [["key1", "val1"], ["key2", "val2"]]
-    }
+    data = {"columns": ["name", "value"], "rows": [["key1", "val1"], ["key2", "val2"]]}
     result = format_mcp_result(data)
     assert "| name | value |" in result
     assert "| key1 | val1 |" in result
@@ -256,22 +211,24 @@ def test_parse_and_format_integration():
         "result": {
             "content": [
                 {
-                    "text": json.dumps({
-                        "columns": ["id", "name", "status"],
-                        "rows": [
-                            [1, "Task 1", "completed"],
-                            [2, "Task 2", "pending"],
-                            [3, "Task 3", "in_progress"]
-                        ]
-                    })
+                    "text": json.dumps(
+                        {
+                            "columns": ["id", "name", "status"],
+                            "rows": [
+                                [1, "Task 1", "completed"],
+                                [2, "Task 2", "pending"],
+                                [3, "Task 3", "in_progress"],
+                            ],
+                        }
+                    )
                 }
             ]
         }
     }
-    
+
     parsed = parse_mcp_response(raw_response)
     formatted = format_mcp_result(parsed)
-    
+
     assert "| id | name | status |" in formatted
     assert "| 1 | Task 1 | completed |" in formatted
     assert "| 2 | Task 2 | pending |" in formatted
@@ -280,13 +237,11 @@ def test_parse_and_format_integration():
 
 def test_parse_and_format_list_integration():
     """Test parsing and formatting a list response"""
-    raw_response = {
-        "result": '["file1.txt", "file2.py", "file3.js"]'
-    }
-    
+    raw_response = {"result": '["file1.txt", "file2.py", "file3.js"]'}
+
     parsed = parse_mcp_response(raw_response)
     formatted = format_mcp_result(parsed)
-    
+
     assert "  - file1.txt" in formatted
     assert "  - file2.py" in formatted
     assert "  - file3.js" in formatted

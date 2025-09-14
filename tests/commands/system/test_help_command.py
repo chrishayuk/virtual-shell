@@ -2,6 +2,7 @@ import pytest
 from chuk_virtual_shell.commands.system.help import HelpCommand
 from tests.dummy_shell import DummyShell
 
+
 # A simple dummy command to simulate help output.
 class DummyCommand:
     def __init__(self, name, help_text):
@@ -10,6 +11,7 @@ class DummyCommand:
 
     def get_help(self):
         return self.help_text
+
 
 # Fixture to create a HelpCommand with a dummy shell as the shell_context.
 @pytest.fixture
@@ -42,6 +44,7 @@ def help_command():
     command = HelpCommand(shell_context=dummy_shell)
     return command
 
+
 def test_help_with_valid_argument(help_command):
     """
     Test that calling help with a valid command argument returns its specific help text.
@@ -49,12 +52,14 @@ def test_help_with_valid_argument(help_command):
     output = help_command.execute(["cat"])
     assert output == "cat help text"
 
+
 def test_help_with_invalid_argument(help_command):
     """
     Test that calling help with an invalid command argument returns an appropriate error message.
     """
     output = help_command.execute(["nonexistent"])
     assert output == "help: no help found for 'nonexistent'"
+
 
 def test_help_no_arguments(help_command):
     """

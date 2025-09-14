@@ -33,7 +33,7 @@ Examples:
         """Execute the which command"""
         show_all = False
         commands_to_find = []
-        
+
         # Parse arguments
         i = 0
         while i < len(args):
@@ -45,40 +45,40 @@ Examples:
             else:
                 commands_to_find.append(arg)
             i += 1
-        
+
         if not commands_to_find:
             return "which: no command specified"
-        
+
         results = []
-        
+
         for cmd in commands_to_find:
             found = []
-            
+
             # First check if it's a built-in shell command
             if cmd in self.shell.commands:
                 found.append(f"{cmd}: shell built-in command")
                 if not show_all:
                     results.append(found[0])
                     continue
-            
+
             # Check PATH environment variable
             path_env = self.shell.environ.get("PATH", "/usr/bin:/bin")
             paths = path_env.split(":")
-            
+
             for path_dir in paths:
                 # Resolve the path
                 try:
                     resolved_path = self.shell.fs.resolve_path(path_dir)
                 except Exception:
                     continue
-                
+
                 # Check if command exists in this directory
                 cmd_path = f"{resolved_path}/{cmd}"
                 if self.shell.fs.exists(cmd_path) and self.shell.fs.is_file(cmd_path):
                     found.append(cmd_path)
                     if not show_all:
                         break
-            
+
             # Add results
             if found:
                 if show_all:
@@ -90,5 +90,5 @@ Examples:
                 # Command not found
                 if show_all or not results:
                     results.append(f"{cmd} not found")
-        
+
         return "\n".join(results) if results else "Command not found"

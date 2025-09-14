@@ -33,13 +33,13 @@ filesystem:
   provider: "memory"      # Provider to use (memory, sqlite, pyodide, s3)
   provider_args: {}       # Arguments for the provider
 
-# Filesystem template for project initialization
-filesystem-template:
-  name: "default_project"
-  variables:
-    project_name: "sandbox_project"
-    project_description: "Default starter project in PyodideShell"
-    project_version: "0.1.0"
+# Filesystem template for project initialization (currently disabled)
+# filesystem-template:
+#   name: "default_project"
+#   variables:
+#     project_name: "sandbox_project"
+#     project_description: "Default starter project in PyodideShell"
+#     project_version: "0.1.0"
 
 # Environment variables
 environment:

@@ -35,18 +35,22 @@ class ScriptRunner:
 
     def run_script_content(self, script_content):
         """
-        Run a shell script from a string, supporting heredocs
+        Run a shell script from a string, supporting heredocs and multi-line control flow
 
         Args:
-            script_content: String containing the script commands
+            script_content: String or bytes containing the script commands
 
         Returns:
             str: Output from the script execution
         """
+        # Handle both bytes and string content
+        if isinstance(script_content, bytes):
+            script_content = script_content.decode("utf-8")
+
         # Split the script into lines
         lines = script_content.splitlines()
 
-        # Process each line, handling heredocs
+        # Process each line, handling control flow and heredocs
         results = []
         i = 0
         while i < len(lines):
@@ -57,12 +61,12 @@ class ScriptRunner:
                 i += 1
                 continue
 
-            # Check for if statement
-            if line.startswith("if "):
-                # Process if/else/fi block
-                if_result, end_line = self._process_if_block(lines, i)
-                if if_result:
-                    results.append(if_result)
+            # Check for control flow statements
+            if any(line.startswith(kw + " ") for kw in ["if", "for", "while", "until"]):
+                # Process control flow block
+                control_result, end_line = self._process_control_flow_block(lines, i)
+                if control_result:
+                    results.append(control_result)
                 i = end_line + 1
             # Check for heredoc
             elif "<<" in line:
@@ -134,6 +138,117 @@ class ScriptRunner:
         # Delimiter not found
         return None
 
+    def _process_control_flow_block(self, lines, start_line):
+        """
+        Process a control flow block (if/for/while/until)
+
+        Args:
+            lines: All script lines
+            start_line: Index of the line containing control flow keyword
+
+        Returns:
+            Tuple of (result, end_line)
+        """
+        first_line = lines[start_line].strip()
+
+        # Determine the type of control flow
+        if first_line.startswith("if "):
+            return self._process_if_block(lines, start_line)
+        elif first_line.startswith("for "):
+            return self._process_loop_block(lines, start_line, "for", "done")
+        elif first_line.startswith("while "):
+            return self._process_loop_block(lines, start_line, "while", "done")
+        elif first_line.startswith("until "):
+            return self._process_loop_block(lines, start_line, "until", "done")
+        else:
+            # Shouldn't happen, but fallback to single line execution
+            result = self.shell.execute(first_line)
+            return result if result else "", start_line
+
+    def _process_loop_block(self, lines, start_line, loop_type, end_keyword):
+        """
+        Process a loop block (for/while/until)
+
+        Args:
+            lines: All script lines
+            start_line: Index of the line containing loop keyword
+            loop_type: "for", "while", or "until"
+            end_keyword: "done"
+
+        Returns:
+            Tuple of (result, end_line)
+        """
+        # Collect all lines that make up the loop
+        loop_lines = []
+        current = start_line
+        nesting_level = 0
+
+        while current < len(lines):
+            line = lines[current].strip()
+
+            # Track nesting
+            if any(line.startswith(kw + " ") for kw in ["for", "while", "until"]):
+                nesting_level += 1
+                loop_lines.append(line)
+            elif line == end_keyword:
+                nesting_level -= 1
+                loop_lines.append(line)
+                if nesting_level == 0:
+                    # Found the matching done
+                    # Join lines with proper separators
+                    loop_command = self._join_control_flow_lines(loop_lines)
+                    result = self.shell.execute(loop_command)
+                    return result if result else "", current
+            elif line == "do":
+                loop_lines.append(line)
+            elif line in ["then", "else", "elif", "fi"]:
+                loop_lines.append(line)
+            else:
+                # Regular command - needs semicolon if not a keyword
+                if loop_lines and not loop_lines[-1].endswith(";"):
+                    # Add semicolon before regular commands
+                    if loop_lines[-1] not in ["do", "then", "else"]:
+                        loop_lines[-1] += ";"
+                loop_lines.append(line)
+
+            current += 1
+
+        # End keyword not found, execute what we have
+        loop_command = self._join_control_flow_lines(loop_lines)
+        result = self.shell.execute(loop_command)
+        return result if result else "", current - 1
+
+    def _join_control_flow_lines(self, lines):
+        """
+        Join control flow lines with proper syntax.
+
+        Args:
+            lines: List of lines to join
+
+        Returns:
+            Single command string
+        """
+        result = []
+        for i, line in enumerate(lines):
+            result.append(line)
+            # Add semicolon between statements when needed
+            if i < len(lines) - 1:
+                next_line = lines[i + 1]
+                # Add semicolon if current line is a command and next is a keyword or command
+                if (
+                    not line.endswith(";")
+                    and line not in ["do", "then", "else", "elif"]
+                    and not line.startswith("if ")
+                    and not line.startswith("for ")
+                    and not line.startswith("while ")
+                    and not line.startswith("until ")
+                ):
+                    # This is a regular command, add semicolon if next is not 'do' or 'then'
+                    if next_line not in ["do", "then"]:
+                        result[-1] += ";"
+
+        return " ".join(result)
+
     def _process_if_block(self, lines, start_line):
         """
         Process if/then/else/fi block
@@ -145,72 +260,42 @@ class ScriptRunner:
         Returns:
             Tuple of (result, end_line)
         """
-        # Parse if condition
-        if_line = lines[start_line].strip()
-
-        # Extract condition (simple support for [ ] test conditions)
-        condition = if_line[3:].strip()  # Remove 'if '
-
-        # Find then, else, and fi
-        then_line = -1
-        else_line = -1
-        fi_line = -1
-        current = start_line + 1
+        # Collect all lines that make up the if block
+        if_lines = []
+        current = start_line
         nesting_level = 0
 
         while current < len(lines):
             line = lines[current].strip()
 
-            # Track nested if statements
+            # Track nesting and add lines
             if line.startswith("if "):
                 nesting_level += 1
+                if_lines.append(line)
             elif line == "fi":
+                nesting_level -= 1
+                if_lines.append(line)
                 if nesting_level == 0:
-                    fi_line = current
-                    break
-                else:
-                    nesting_level -= 1
-            elif nesting_level == 0:
-                if line == "then":
-                    then_line = current
-                elif line == "else":
-                    else_line = current
+                    # Found the matching fi
+                    # Join lines with proper syntax
+                    if_command = self._join_control_flow_lines(if_lines)
+                    result = self.shell.execute(if_command)
+                    return result if result else "", current
+            elif line in ["then", "else", "elif"]:
+                if_lines.append(line)
+            else:
+                # Regular command
+                if if_lines and not if_lines[-1].endswith(";"):
+                    if if_lines[-1] not in ["do", "then", "else"]:
+                        if_lines[-1] += ";"
+                if_lines.append(line)
 
             current += 1
 
-        if fi_line == -1:
-            # Missing fi, treat as single line if
-            return "", start_line
-
-        # Evaluate condition
-        condition_result = self._evaluate_condition(condition)
-
-        # Execute appropriate block
-        result_lines = []
-        if condition_result:
-            # Execute then block
-            if then_line != -1:
-                start = then_line + 1
-                end = else_line if else_line != -1 else fi_line
-                for i in range(start, end):
-                    line = lines[i].strip()
-                    if line and not line.startswith("#"):
-                        res = self.shell.execute(line)
-                        if res:
-                            result_lines.append(res)
-        else:
-            # Execute else block if it exists
-            if else_line != -1:
-                start = else_line + 1
-                end = fi_line
-                for i in range(start, end):
-                    line = lines[i].strip()
-                    if line and not line.startswith("#"):
-                        res = self.shell.execute(line)
-                        if res:
-                            result_lines.append(res)
-
-        return "\n".join(result_lines), fi_line
+        # fi not found, execute what we have
+        if_command = self._join_control_flow_lines(if_lines)
+        result = self.shell.execute(if_command)
+        return result if result else "", current - 1
 
     def _evaluate_condition(self, condition):
         """

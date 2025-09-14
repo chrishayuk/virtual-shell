@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/mcp/mcp_command_loader.py
 """
 chuk_virtual_shell/commands/mcp/mcp_command_loader.py - Load MCP commands dynamically
 

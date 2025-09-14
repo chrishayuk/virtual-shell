@@ -4,6 +4,7 @@ import pytest
 from chuk_virtual_shell.commands.system.uptime import UptimeCommand
 from tests.dummy_shell import DummyShell
 
+
 @pytest.fixture
 def uptime_command():
     # Setup a dummy shell.
@@ -11,6 +12,7 @@ def uptime_command():
     # Simulate that the shell started 2 hours (7200 seconds) ago.
     dummy_shell.start_time = time.time() - 7200
     return UptimeCommand(shell_context=dummy_shell)
+
 
 def test_uptime_command_format(uptime_command):
     """
@@ -27,6 +29,7 @@ def test_uptime_command_format(uptime_command):
     # Verify that the hours are at least 2 (since we set a 2-hour offset).
     hours = int(match.group(1))
     assert hours >= 2
+
 
 def test_uptime_command_with_extra_args(uptime_command):
     """

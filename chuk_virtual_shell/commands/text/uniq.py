@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/uniq.py
 """
 chuk_virtual_shell/commands/text/uniq.py - Report or omit repeated lines
 """

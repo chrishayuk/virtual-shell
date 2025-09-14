@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/tail.py
 """
 chuk_virtual_shell/commands/text/tail.py - Display last lines of files
 """

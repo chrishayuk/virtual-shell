@@ -1,11 +1,13 @@
 """
 tests/test_telnet_server.py
 """
+
 import pytest
 from unittest.mock import Mock, patch
 
 # virtual shell imports
 from chuk_virtual_shell.telnet_server import TelnetConnection
+
 
 # Fake stream reader that returns preset lines.
 class FakeStreamReader:
@@ -18,6 +20,7 @@ class FakeStreamReader:
         if self.lines:
             return self.lines.pop(0)
         return b""
+
 
 # Fake stream writer that records written data.
 class FakeStreamWriter:
@@ -44,6 +47,7 @@ class FakeStreamWriter:
     async def wait_closed(self):
         pass
 
+
 @pytest.mark.asyncio
 async def test_telnet_server_handle_client_exit():
     # Prepare fake reader:
@@ -52,28 +56,29 @@ async def test_telnet_server_handle_client_exit():
     fake_writer = FakeStreamWriter()
 
     # Create a connection with a mock shell interpreter
-    with patch('chuk_virtual_shell.telnet_server.ShellInterpreter') as MockShell:
+    with patch("chuk_virtual_shell.telnet_server.ShellInterpreter") as MockShell:
         # Configure the mock shell
         mock_shell = MockShell.return_value
         mock_shell.running = True  # Initially running
         mock_fs = Mock()
         mock_fs.get_provider_name.return_value = "MemoryStorageProvider"
         mock_shell.fs = mock_fs
-        
+
         # Make sure execute("exit") sets running to False and returns "Goodbye!"
         def mock_execute(cmd):
             if cmd == "exit":
                 mock_shell.running = False
                 return "Goodbye!"
             return None
+
         mock_shell.execute.side_effect = mock_execute
-        
+
         # Set up the prompt method
         mock_shell.prompt.return_value = "user@pyodide:/$ "
-        
+
         # Create the connection
         connection = TelnetConnection(fake_reader, fake_writer)
-        
+
         # Run the connection handler
         await connection.handle()
 

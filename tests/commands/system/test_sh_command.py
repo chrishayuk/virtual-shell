@@ -1,6 +1,7 @@
 """
 Tests for the sh command
 """
+
 import pytest
 from unittest.mock import MagicMock, patch
 from tests.dummy_shell import DummyShell
@@ -14,7 +15,7 @@ class TestShCommand:
         """Set up test environment before each test"""
         self.shell = DummyShell({})
         self.cmd = ShCommand(self.shell)
-        
+
         # Create test script files
         self.shell.fs.write_file("/script.sh", "echo 'Hello'\necho 'World'")
         self.shell.fs.write_file("/error.sh", "exit 1")
@@ -28,7 +29,7 @@ class TestShCommand:
 
     def test_sh_c_option(self):
         """Test sh -c option"""
-        with patch.object(self.shell, 'execute') as mock_exec:
+        with patch.object(self.shell, "execute") as mock_exec:
             mock_exec.return_value = "command output"
             result = self.cmd.execute(["-c", "echo hello"])
             mock_exec.assert_called_with("echo hello")
@@ -41,7 +42,7 @@ class TestShCommand:
 
     def test_sh_script_file(self):
         """Test executing a shell script file"""
-        with patch.object(self.shell, 'execute') as mock_exec:
+        with patch.object(self.shell, "execute") as mock_exec:
             mock_exec.side_effect = ["Hello", "World"]
             result = self.cmd.execute(["/script.sh"])
             assert mock_exec.call_count == 2
@@ -83,7 +84,7 @@ class TestShCommand:
 
     def test_sh_script_with_comments(self):
         """Test executing script with comments"""
-        with patch.object(self.shell, 'execute') as mock_exec:
+        with patch.object(self.shell, "execute") as mock_exec:
             mock_exec.side_effect = ["arg1", "file1 file2"]
             self.cmd.execute(["/complex.sh", "arg1"])
             # Comments should be skipped
@@ -105,9 +106,11 @@ class TestShCommand:
     async def test_sh_async_execution(self):
         """Test async execution of sh command"""
         cmd = ShCommand(self.shell)
-        
+
         # Test -c async
-        with patch.object(self.shell, 'execute', return_value="async output") as mock_exec:
+        with patch.object(
+            self.shell, "execute", return_value="async output"
+        ) as mock_exec:
             result = await cmd.execute_async(["-c", "echo async"])
             mock_exec.assert_called_with("echo async")
             assert result == "async output"
@@ -116,9 +119,9 @@ class TestShCommand:
     async def test_sh_async_script(self):
         """Test async script execution"""
         cmd = ShCommand(self.shell)
-        
+
         # Use the actual script that's already set up
-        with patch.object(self.shell, 'execute', return_value="Hello") as mock_exec:
+        with patch.object(self.shell, "execute", return_value="Hello") as mock_exec:
             result = await cmd.execute_async(["/script.sh"])
             # Should execute the lines from the script
             assert mock_exec.called
@@ -147,28 +150,28 @@ class TestShCommand:
 
     def test_sh_run_with_asyncio_running(self):
         """Test run method when asyncio loop is running"""
-        
-        with patch('asyncio.get_running_loop') as mock_get_loop:
+
+        with patch("asyncio.get_running_loop") as mock_get_loop:
             mock_loop = MagicMock()
             mock_loop.is_running.return_value = True
             mock_get_loop.return_value = mock_loop
-            
-            with patch('asyncio.run_coroutine_threadsafe') as mock_run_threadsafe:
+
+            with patch("asyncio.run_coroutine_threadsafe") as mock_run_threadsafe:
                 future = MagicMock()
                 future.result.return_value = "test output"
                 mock_run_threadsafe.return_value = future
-                
-                with patch.object(self.shell, 'execute', return_value="test output"):
+
+                with patch.object(self.shell, "execute", return_value="test output"):
                     self.cmd.run(["-c", "test"])
                     # Should use run_coroutine_threadsafe for running loop
                     assert mock_run_threadsafe.called
 
     def test_sh_execute_fallback_to_sync(self):
         """Test execute method fallback to sync when async fails"""
-        with patch('asyncio.get_event_loop') as mock_get_loop:
+        with patch("asyncio.get_event_loop") as mock_get_loop:
             mock_get_loop.side_effect = Exception("No loop")
-            
-            with patch.object(self.shell, 'execute') as mock_exec:
+
+            with patch.object(self.shell, "execute") as mock_exec:
                 mock_exec.return_value = "sync result"
                 result = self.cmd.execute(["-c", "echo fallback"])
                 assert result == "sync result"
@@ -177,10 +180,12 @@ class TestShCommand:
         """Test interpreter is initialized on first use"""
         cmd = ShCommand(self.shell)
         assert cmd.interpreter is None
-        
+
         # Execute something to trigger initialization in sync mode
-        with patch('chuk_virtual_shell.interpreters.bash_interpreter.VirtualBashInterpreter'):
-            with patch.object(self.shell, 'execute') as mock_exec:
+        with patch(
+            "chuk_virtual_shell.interpreters.bash_interpreter.VirtualBashInterpreter"
+        ):
+            with patch.object(self.shell, "execute") as mock_exec:
                 mock_exec.return_value = "result"
                 cmd.execute(["-c", "test"])
 
@@ -192,7 +197,7 @@ class TestShCommand:
 
     def test_sh_script_with_args(self):
         """Test script with arguments"""
-        with patch.object(self.shell, 'execute') as mock_exec:
+        with patch.object(self.shell, "execute") as mock_exec:
             mock_exec.return_value = ""
             result = self.cmd.execute(["/script.sh", "arg1", "arg2"])
             # Args are parsed but not used in sync mode
@@ -201,7 +206,7 @@ class TestShCommand:
     def test_sh_cannot_read_file(self):
         """Test when file cannot be read"""
         # Make read_file return None
-        with patch.object(self.shell.fs, 'read_file') as mock_read:
+        with patch.object(self.shell.fs, "read_file") as mock_read:
             mock_read.return_value = None
             result = self.cmd.execute(["/script.sh"])
             assert "Cannot read file" in result

@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/navigation/pwd.py
 """
 chuk_virtual_shell/commands/navigation/pwd.py - Print working directory command
 """

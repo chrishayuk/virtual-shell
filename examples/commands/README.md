@@ -87,99 +87,72 @@ Demonstrates environment variable management:
 
 ## Running the Examples
 
-### Option 1: Run All Examples Automatically
-
-Use the Python test runner scripts to execute all examples:
-
-```bash
-# Run all example scripts (comprehensive test)
-uv run python examples/commands/run_all_examples.py
-
-# Run examples from a specific category
-uv run python examples/commands/run_all_examples.py --category filesystem
-uv run python examples/commands/run_all_examples.py --category navigation
-uv run python examples/commands/run_all_examples.py --category text
-uv run python examples/commands/run_all_examples.py --category system
-uv run python examples/commands/run_all_examples.py --category environment
-
-# Run a single specific script
-uv run python examples/commands/run_all_examples.py --script examples/hello_world.sh
-
-# Filter scripts by pattern
-uv run python examples/commands/run_all_examples.py --filter "working_commands"
-
-# Quick test of key examples
-uv run python examples/commands/test_examples.py
-```
-
-### Option 2: Run Individual Category Demos
+### Option 1: Run Individual Category Demos
 
 Run a specific category demonstration directly:
 
 ```bash
 # Run filesystem commands demo
-uv run python -m chuk_virtual_shell.main examples/commands/filesystem/filesystem_demo.sh
+chuk-virtual-shell examples/commands/filesystem/filesystem_demo.sh
 
 # Run navigation commands demo  
-uv run python -m chuk_virtual_shell.main examples/commands/navigation/navigation_demo.sh
+chuk-virtual-shell examples/commands/navigation/navigation_demo.sh
 
 # Run text processing demo
-uv run python -m chuk_virtual_shell.main examples/commands/text/text_demo.sh
+chuk-virtual-shell examples/commands/text/text_demo.sh
 
 # Run system commands demo
-uv run python -m chuk_virtual_shell.main examples/commands/system/system_demo.sh
+chuk-virtual-shell examples/commands/system/system_demo.sh
 
 # Run environment commands demo
-uv run python -m chuk_virtual_shell.main examples/commands/environment/environment_demo.sh
+chuk-virtual-shell examples/commands/environment/environment_demo.sh
 ```
 
-### Option 3: Run Complete Demo Suite
+### Option 2: Run Complete Demo Suite
 
 Run all command demonstrations in sequence:
 
 ```bash
 # Run the master demo script
-uv run python -m chuk_virtual_shell.main examples/commands/all_commands_demo.sh
+chuk-virtual-shell examples/commands/all_commands_demo.sh
 
 # Run the working commands demo (verified to work)
-uv run python -m chuk_virtual_shell.main examples/commands/working_commands_demo.sh
+chuk-virtual-shell examples/commands/working_commands_demo.sh
 ```
 
-### Option 4: Interactive Shell Execution
+### Option 3: Interactive Shell Execution
 
 Start interactive shell and run demos from within:
 
 ```bash
 # Start virtual shell
-uv run virtual-shell
+chuk-virtual-shell
 
 # From within the shell, run demos:
-$ script examples/commands/filesystem/filesystem_demo.sh
-$ script examples/commands/navigation/navigation_demo.sh
-$ script examples/commands/text/text_demo.sh
-$ script examples/commands/system/system_demo.sh
-$ script examples/commands/environment/environment_demo.sh
+user@pyodide:/$ source examples/commands/filesystem/filesystem_demo.sh
+user@pyodide:/$ source examples/commands/navigation/navigation_demo.sh
+user@pyodide:/$ source examples/commands/text/text_demo.sh
+user@pyodide:/$ source examples/commands/system/system_demo.sh
+user@pyodide:/$ source examples/commands/environment/environment_demo.sh
 ```
 
-### Option 5: Python API Execution
+### Option 4: Batch Execution
 
-Execute demos programmatically:
+Create a shell script to run multiple demos:
 
-```python
-from chuk_virtual_shell.shell_interpreter import ShellInterpreter
-from chuk_virtual_shell.script_runner import ScriptRunner
+```bash
+#!/bin/bash
+# run_all_demos.sh
 
-# Create shell instance
-shell = ShellInterpreter()
-runner = ScriptRunner(shell)
+echo "Running all command demos..."
 
-# Load and run a demo script
-with open('examples/commands/filesystem/filesystem_demo.sh', 'r') as f:
-    content = f.read()
+for category in filesystem navigation text system environment; do
+    echo "Running $category demo..."
+    chuk-virtual-shell examples/commands/$category/${category}_demo.sh
+    echo "---"
+done
 
-shell.fs.write_file('/tmp/demo.sh', content)
-result = runner.run_script('/tmp/demo.sh')
-print(result)
+echo "All demos complete!"
 ```
 
 ## What Each Demo Proves

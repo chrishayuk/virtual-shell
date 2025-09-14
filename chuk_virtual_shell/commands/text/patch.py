@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/patch.py
 """
 chuk_virtual_shell/commands/text/patch.py - Apply diff patches to files
 """

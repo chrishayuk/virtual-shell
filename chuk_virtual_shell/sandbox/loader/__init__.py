@@ -24,6 +24,18 @@ def list_available_configs() -> List[str]:
     """List all available sandbox configurations"""
     configs = []
 
+    # Check project config directory (where built-in configs are)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+    project_config_dir = os.path.join(project_root, "config")
+
+    if os.path.exists(project_config_dir):
+        for file in os.listdir(project_config_dir):
+            if file.endswith((".yaml", ".yml", ".json")):
+                # Remove extension for display
+                config_name = os.path.splitext(file)[0]
+                configs.append(config_name)
+
     # Check user config directory
     home_dir = os.path.expanduser("~")
     user_config_dir = os.path.join(home_dir, ".chuk_virtual_shell", "sandboxes")
@@ -31,9 +43,11 @@ def list_available_configs() -> List[str]:
     if os.path.exists(user_config_dir):
         for file in os.listdir(user_config_dir):
             if file.endswith((".yaml", ".yml", ".json")):
-                configs.append(file)
+                config_name = os.path.splitext(file)[0]
+                if config_name not in configs:  # Avoid duplicates
+                    configs.append(f"user:{config_name}")
 
-    return configs
+    return sorted(configs)
 
 
 __all__ = [

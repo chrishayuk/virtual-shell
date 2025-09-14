@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/navigation/__init__.py
 """
 chuk_virtual_shell/commands/navigation/__init__.py - Navigation commands package
 """

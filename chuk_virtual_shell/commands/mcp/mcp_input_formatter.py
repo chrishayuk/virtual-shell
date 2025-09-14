@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/mcp/mcp_input_formatter.py
 """
 chuk_virtual_shell/commands/mcp/mcp_input_formatter.py
 

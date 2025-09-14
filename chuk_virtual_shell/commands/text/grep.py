@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/grep.py
 """
 chuk_virtual_shell/commands/text/grep.py - Search for patterns in files
 """

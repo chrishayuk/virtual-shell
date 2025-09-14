@@ -15,8 +15,9 @@ from chuk_mcp.mcp_client.transport.stdio.stdio_client import stdio_client
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    stream=sys.stderr
+    stream=sys.stderr,
 )
+
 
 async def main():
     print("=== Starting Example MCP Run Script ===")

@@ -1,6 +1,7 @@
 """
 Tests for the more command (paginated file viewer)
 """
+
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.filesystem.more import MoreCommand
 
@@ -12,20 +13,25 @@ class TestMoreCommand:
         """Set up test environment before each test"""
         self.shell = DummyShell({})
         self.cmd = MoreCommand(self.shell)
-        
+
         # Create test files with various content
         self.short_content = "Line 1\nLine 2\nLine 3"
         self.shell.fs.write_file("/short.txt", self.short_content)
-        
+
         # Create a long file (more than 24 lines for pagination)
         self.long_content = "\n".join([f"Line {i}" for i in range(1, 51)])
         self.shell.fs.write_file("/long.txt", self.long_content)
-        
+
         # Create empty file
         self.shell.fs.write_file("/empty.txt", "")
-        
+
         # Create file with long lines
-        self.long_lines = "\n".join([f"This is a very long line with lots of text: {'x' * 100}" for i in range(10)])
+        self.long_lines = "\n".join(
+            [
+                f"This is a very long line with lots of text: {'x' * 100}"
+                for i in range(10)
+            ]
+        )
         self.shell.fs.write_file("/long_lines.txt", self.long_lines)
 
     def test_more_basic(self):
@@ -72,9 +78,12 @@ class TestMoreCommand:
         # Test with number of lines option (if supported)
         result = self.cmd.execute(["-10", "/long.txt"])
         if "usage" not in result.lower():
-            lines = result.split("\n")
-            # Should show limited lines
-            assert len(lines) <= 15
+            # With -10, should paginate with 10 lines per page
+            # Check that pagination markers appear
+            assert "--More--" in result
+            # Should have multiple pages for a 50-line file with 10 lines per page
+            more_count = result.count("--More--")
+            assert more_count >= 3  # At least 4 pages (10+10+10+10+10)
 
     def test_more_directory(self):
         """Test more with a directory (should fail)"""
@@ -103,7 +112,7 @@ class TestMoreCommand:
         # Might show a "-- More --" or percentage indicator
         # This depends on implementation, but should handle long files
         assert result
-        
+
     def test_more_with_stdin(self):
         """Test more reading from stdin (if supported)"""
         # Set up stdin buffer
@@ -140,7 +149,7 @@ class TestMoreCommand:
         self.shell.fs.mkdir("/subdir")
         self.shell.fs.cwd = "/subdir"
         self.shell.fs.write_file("/subdir/local.txt", "Local file content")
-        
+
         result = self.cmd.execute(["local.txt"])
         if "Local file content" in result:
             assert True

@@ -6,6 +6,8 @@ Complete documentation for the Chuk Virtual Shell, including commands, APIs, and
 
 - **[Session API](session-api.md)** - Session management API for stateful execution
 - **[Command Reference](#command-categories)** - All available shell commands
+- **[Shell Operators](SHELL_OPERATORS.md)** - Bash-compatible operators and expansions
+- **[Command Taxonomy](COMMAND_TAXONOMY.md)** - Command organization and categorization
 - **[Examples](../examples/)** - Demo scripts and usage examples
 - **[Integration Guide](#integration-guide)** - Using with AI agents and applications
 
@@ -19,6 +21,18 @@ The shell provides enterprise-grade session management for maintaining state acr
 - **Multi-Session**: Isolated sessions for concurrent operations
 
 See the [Session API Documentation](session-api.md) for detailed usage.
+
+## Shell Features
+
+### Bash-Compatible Operators
+The shell supports advanced command composition with bash-like operators:
+- **Command Chaining**: `&&` (AND), `||` (OR), `;` (sequential)
+- **Variable Expansion**: `$VAR`, `${VAR}`, special variables (`$?`, `$$`, `$PWD`)
+- **Wildcards/Globs**: `*` (any), `?` (single char) patterns
+- **Command Substitution**: `$(command)` and backtick syntax
+- **Path Expansion**: `~` (home), `cd -` (previous directory)
+
+See the [Shell Operators Documentation](SHELL_OPERATORS.md) for complete details.
 
 ## Command Categories
 
@@ -40,8 +54,8 @@ File and directory manipulation commands:
 
 ### Navigation Commands (`/commands/navigation/`)
 Directory navigation and listing:
-- `cd` - Change directory
-- `ls` - List directory contents  
+- `cd` - Change directory (supports `cd -` for previous directory)
+- `ls` - List directory contents (supports wildcards like `*.txt`)
 - `pwd` - Print working directory
 - `tree` - Display directory tree structure
 
@@ -240,4 +254,4 @@ The virtual shell is optimized for:
 - **GitHub Issues**: Report bugs and request features
 - **Documentation**: This guide and API docs
 - **Examples**: See `examples/` directory for demos
-- **Tests**: Comprehensive test suite with 940+ tests
+- **Tests**: Comprehensive test suite with 960+ tests

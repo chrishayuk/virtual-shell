@@ -1,6 +1,11 @@
-# Chuk Virtual Shell
+# Chuk Virtual Shell 🐚
 
-A powerful virtual shell with session management, perfect for AI agents and sandboxed execution environments.
+A powerful virtual shell environment with MCP (Model Context Protocol) integration and AI agents as Unix processes, perfect for AI automation and sandboxed execution environments.
+
+[![Tests](https://img.shields.io/badge/tests-1420%20passing-green)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-yellow)](tests/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ## 🌟 Highlight: AI Agents as Unix Processes
 
@@ -23,24 +28,150 @@ agent -k agent_1  # Kill agent
 
 🎬 **[Watch the Demo](examples/README_AGENTS.md)** | 📖 **[Full Documentation](docs/AGENTS.md)**
 
-## Overview
+## 🌟 Overview
 
-Chuk Virtual Shell provides a complete virtual shell environment with enterprise-grade features:
+Chuk Virtual Shell provides a complete POSIX-like virtual shell environment designed specifically for AI agents and automation:
 
 - **🤖 AI Agents as Shell Processes**: Run AI agents as first-class Unix processes with PIDs, piping, and background execution
-- **Session Management**: Stateful sessions with persistent working directory, environment, and command history
-- **Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
-- **Rich Command Set**: 50+ Unix-like commands including text processing, file operations, and system utilities
-- **Multi-Agent Collaboration**: Agents can work together, communicate via pipes/files, and run in parallel
-- **AI Agent Ready**: Built for multi-step workflows with context preservation
-- **Extensible Architecture**: Easy to add new commands and storage providers
-- **Telnet Server**: Remote access capabilities for distributed systems
+- **🔄 MCP Server Integration**: Full Model Context Protocol support for AI agents like Claude, Cline, and Aider
+- **📊 Persistent Sessions**: Stateful command execution with maintained context across interactions
+- **🔒 User Isolation**: Complete session and task isolation between users
+- **📁 Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
+- **🎯 50+ Built-in Commands**: Comprehensive Unix-like command set
+- **⚡ Advanced I/O**: Full pipeline, redirection, and here-doc support
+- **🏖️ Pre-configured Sandboxes**: Ready-to-use secure environments
+- **🔌 Extensible Architecture**: Easy to add custom commands and storage providers
 
-## Key Features
+## 🚀 Quick Start
+
+### Requirements
+
+- Python 3.11 or higher (tested through Python 3.12)
+- Works on Windows, macOS, and Linux
+- MCP server functionality requires Unix-like OS (Linux/macOS) due to uvloop dependency
+
+### Installation
+
+```bash
+# Install with uv (recommended)
+uv pip install chuk-virtual-shell
+
+# Or with pip
+pip install chuk-virtual-shell
+
+# For MCP server functionality, install optional dependency (Unix/macOS only)
+uv pip install chuk-virtual-shell[mcp-server]
+# Or with pip
+pip install chuk-virtual-shell[mcp-server]
+
+# Note: MCP server requires Unix-like OS (Linux/macOS) due to uvloop dependency
+# Windows users can use WSL or run the shell without MCP server features
+
+# For development (if you cloned the repo)
+cd chuk-virtual-shell
+uv sync
+
+# Or run directly without installation using uvx
+uvx chuk-virtual-shell
+```
+
+### Basic Usage
+
+```bash
+# Start interactive shell
+uv run chuk-virtual-shell
+
+# Use a pre-configured sandbox (recommended)
+uv run chuk-virtual-shell --sandbox ai_sandbox
+
+# Start MCP server for AI agents
+uv run python -m chuk_virtual_shell.mcp_server
+
+# Run with different storage backends
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+
+# Run scripts
+uv run chuk-virtual-shell examples/hello_world.sh
+
+# Start telnet server for remote access
+uv run chuk-virtual-shell --telnet --port 8023
+```
+
+### MCP Integration for AI Agents
+
+```python
+# See examples/mcp_client_demo.py for complete example
+from examples.mcp_client_demo import SimpleMCPClient
+
+client = SimpleMCPClient()
+await client.start_server()
+
+# Create isolated session
+result = await client.call_tool("bash", {"command": "pwd"})
+session_id = result["session_id"]
+
+# Commands share state within session
+await client.call_tool("bash", {
+    "command": "export PROJECT=MyApp && mkdir -p /project/src",
+    "session_id": session_id
+})
+
+# State persists across commands
+result = await client.call_tool("bash", {
+    "command": "echo $PROJECT && ls /project",
+    "session_id": session_id
+})
+# Output: MyApp\nsrc
+```
+
+### Try the Interactive Demo
+
+```bash
+# Run the complete MCP demonstration
+uv run examples/mcp_client_demo.py
+
+# Expected output shows:
+# ✅ User isolation and session management
+# ✅ State persistence across commands  
+# ✅ Background task execution
+# ✅ Multiple concurrent sessions
+# ✅ Complex multi-step workflows
+```
+
+## 📚 Key Features
+
+### 🤖 MCP Server Capabilities
+
+Full Model Context Protocol implementation with user isolation:
+
+```python
+# Available MCP tools:
+- bash           # Execute shell commands with session persistence
+- whoami         # Get user context and session info
+- list_sessions  # List all active sessions for current user
+- get_session_state  # Get session details (pwd, env, lifetime)
+- destroy_session    # Clean up sessions
+- get_task_output    # Get background task results
+- cancel_task        # Cancel running background tasks
+```
+
+**User Isolation Features:**
+- Each user gets isolated sessions and tasks
+- Sessions maintain state (PWD, env vars, files) between commands
+- Background task execution with streaming output
+- Automatic session cleanup on disconnect
+- Per-user resource limits and quotas
+
+**Advanced Shell Features via MCP:**
+- Full stderr redirection (`2>`, `2>>`, `2>&1`)
+- Combined output redirection (`&>`, `&>>`)
+- Complex pipelines and command chaining
+- Quoted filename support with spaces
+- All 50+ built-in shell commands available
 
 ### 🔄 Session Management
 
-Chuk Virtual Shell provides stateful sessions that maintain context across multiple commands - essential for AI agents and complex workflows:
+Stateful sessions that maintain context - essential for AI workflows:
 
 ```python
 from chuk_virtual_shell.session import ShellSessionManager
@@ -49,25 +180,18 @@ from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 # Create session manager
 manager = ShellSessionManager(shell_factory=lambda: ShellInterpreter())
 
-# Create a persistent session
+# Create persistent session
 session_id = await manager.create_session()
 
 # Commands share state
 await manager.run_command(session_id, "cd /project")
 await manager.run_command(session_id, "export API_KEY=secret")
-await manager.run_command(session_id, "echo 'test' > file.txt")
+await manager.run_command(session_id, "echo 'data' > file.txt")
 
-# State persists: working dir, env vars, files
-await manager.run_command(session_id, "pwd")  # Returns: /project
+# State persists
+result = await manager.run_command(session_id, "pwd && echo $API_KEY && cat file.txt")
+# Output: /project\nsecret\ndata
 ```
-
-**Session Features:**
-- **Persistent State**: Working directory, environment variables, and command history maintained across commands
-- **Streaming Output**: Real-time output streaming with sequence IDs for proper ordering
-- **Process Control**: Cancellation support and configurable timeouts (up to 10 minutes)
-- **Multi-Session Isolation**: Run multiple isolated sessions concurrently
-- **Backend Persistence**: Optional persistence with `chuk-sessions` library
-- **PTY Support**: Full pseudo-terminal support for interactive applications
 
 ### 🎯 Built for AI Agents
 
@@ -115,184 +239,223 @@ agent -s agent_123          # Check agent status
 - **Memory Modes**: Session or persistent memory across invocations
 - **LLM Integration**: Supports OpenAI, Anthropic, and other providers via [chuk-llm](https://github.com/chrishayuk/chuk-llm)
 
-### 📁 Virtual Filesystem
+### 📋 Advanced I/O Redirection
 
-Complete filesystem abstraction with multiple storage backends:
-- **Memory**: Fast in-memory storage (default)
-- **SQLite**: Persistent local storage
-- **S3**: Cloud storage for distributed systems
-
-### 🛠️ Rich Command Set
-
-Over 50 Unix-like commands with full implementations:
-- **File Operations**: cp, mv, rm, mkdir, touch, find
-- **Text Processing**: grep, sed, awk, sort, uniq
-- **System Utilities**: which, history, tree, timings
-- **Environment**: export, alias, source (.shellrc support)
-
-## Installation
-
-### Requirements
-
-- Python 3.9 or higher (tested through Python 3.12)
-- Works on Windows, macOS, and Linux
-- No platform-specific dependencies
-
-### Quick Start with uvx (Easiest)
-
-Run directly without installation using uvx:
+Comprehensive redirection support (see [docs/features/redirection.md](docs/features/redirection.md)):
 
 ```bash
-# Install uv if you haven't already
-pip install uv
+# Output redirection
+echo "Hello" > output.txt
+echo "World" >> output.txt
 
-# Run the virtual shell directly
-uvx chuk-virtual-shell
+# Input redirection  
+sort < unsorted.txt > sorted.txt
 
-# Or use the shorter alias
-uvx virtual-shell
+# Pipelines
+cat data.txt | grep "pattern" | sort | uniq > results.txt
+
+# Here-documents (in scripts)
+cat << EOF > config.yaml
+server: localhost
+port: 8080
+EOF
+
+# Advanced redirection
+command 2> errors.txt          # Stderr redirection
+command 2>&1                    # Merge stderr to stdout
+command &> all_output.txt       # Combined output
+command 2>> errors.txt         # Append stderr
+command &>> all.txt            # Append combined output
 ```
 
-### Install with uv (Recommended for Development)
+### 🎭 Quoting and Escaping
+
+Full quoting semantics (see [docs/features/quoting.md](docs/features/quoting.md)):
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/pyodideshell.git
-cd pyodideshell
+# Single quotes - literal
+echo 'Hello $USER'              # Output: Hello $USER
 
-# Install dependencies and run
-uv run virtual-shell
+# Double quotes - with expansion
+echo "Hello $USER"              # Output: Hello alice
+
+# Backslash escaping
+echo "Price: \$100"             # Output: Price: $100
+echo file\ with\ spaces.txt     # Output: file with spaces.txt
+
+# Mixed quoting
+echo "It's"' a nice day'        # Output: It's a nice day
 ```
 
-### Install with pip
+### 🏖️ Pre-configured Sandboxes
 
+Ready-to-use secure environments:
+
+```yaml
+# config/ai_sandbox.yaml - Restricted AI agent environment
+environment:
+  HOME: /sandbox
+  USER: ai
+  PATH: /bin
+  SANDBOX_MODE: restricted
+
+filesystem:
+  provider: memory
+  
+initialization:
+  - mkdir -p /sandbox/workspace
+  - echo "AI Sandbox Ready" > /sandbox/README.txt
+```
+
+Available sandboxes:
+- `ai_sandbox` - Restricted environment for AI code execution
+- `default` - Balanced development environment  
+- `readonly` - Read-only exploration
+- `e2b` - E2B.dev compatible environment
+- `tigris` - Tigris Data S3-compatible storage
+
+## 📊 Feature Matrix
+
+| Feature Category | Feature | Status | Notes |
+|-----------------|---------|--------|-------|
+| **MCP Integration** | MCP Server | ✅ | Full protocol support |
+| | User Isolation | ✅ | Session & task isolation |
+| | Background Tasks | ✅ | Async execution with streaming |
+| | Session Persistence | ✅ | State maintained across commands |
+| **I/O Redirection** | Basic pipes (`\|`) | ✅ | Multi-stage pipelines |
+| | Output redirect (`>`, `>>`) | ✅ | Write and append |
+| | Input redirect (`<`) | ✅ | Read from files |
+| | Stderr redirect (`2>`, `2>>`) | ✅ | Full stderr redirection |
+| | Combined (`2>&1`, `&>`, `&>>`) | ✅ | Merge stdout/stderr |
+| | Here-docs (`<<`) | ⚡ | Works in script runner |
+| **Shell Operators** | Chaining (`&&`, `\|\|`, `;`) | ✅ | Full conditional execution |
+| | Command substitution (`$()`) | ✅ | Both syntaxes supported |
+| | Variable expansion | ✅ | `$VAR`, `${VAR}` |
+| | Glob patterns (`*`, `?`) | ✅ | Full support |
+| **Control Flow** | if/then/else | ✅ | Conditional logic |
+| | for/while loops | ✅ | Full iteration support |
+| | case statements | ✅ | Pattern matching |
+| | Functions | ❌ | Planned |
+| **Commands** | File operations | ✅ | cp, mv, rm, mkdir, touch |
+| | Text processing | ✅ | grep, sed, awk, sort, uniq |
+| | File viewing | ✅ | cat, head, tail, more |
+| | System utilities | ✅ | find, which, tree, date |
+
+**Legend:**
+- ✅ **Full Support**: Complete implementation with tests
+- ⚡ **Partial Support**: Works with limitations
+- 🚧 **In Development**: Parser/infrastructure ready
+- ❌ **Not Supported**: Not yet implemented
+
+## 🛠️ Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│           MCP Client (AI Agent)                 │
+└─────────────────┬───────────────────────────────┘
+                  │ MCP Protocol
+┌─────────────────▼───────────────────────────────┐
+│           MCP Server (chuk_virtual_shell)       │
+│  ┌──────────────────────────────────────────┐  │
+│  │  User Isolation & Session Management     │  │
+│  └──────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────┐  │
+│  │  Shell Interpreter & Command Executor    │  │
+│  └──────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────┐  │
+│  │  Virtual Filesystem (Memory/SQLite/S3)   │  │
+│  └──────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+## 🎯 Shell Operators and Features
+
+### Command Chaining
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/pyodideshell.git
-cd pyodideshell
+# && - Execute next command only if previous succeeds
+mkdir /tmp && cd /tmp && echo "Success"
 
-# Install in development mode
-pip install -e .
+# || - Execute next command only if previous fails
+cd /nonexistent || echo "Directory not found"
 
-# Run the shell
-virtual-shell
+# ; - Execute commands sequentially regardless of status
+echo "First"; echo "Second"; echo "Third"
 ```
 
-### Install from PyPI (When Published)
-
+### Variable Expansion
 ```bash
-# Using pip
-pip install chuk-virtual-shell
+# Set and use environment variables
+export NAME="World"
+echo "Hello $NAME"                    # Output: Hello World
+echo "Path: ${HOME}/documents"        # Output: Path: /home/user/documents
 
-# Using uv
-uv pip install chuk-virtual-shell
-
-# Then run
-virtual-shell
+# Special variables
+echo "Exit code: $?"                  # Last command's exit code
+echo "Current dir: $PWD"              # Current working directory
 ```
 
-## Project Structure
+### Wildcard/Glob Expansion
+```bash
+# * - Match any characters
+ls *.txt                              # List all .txt files
+rm /tmp/*.log                         # Remove all log files
 
-The project is organized in a highly modular way with a clear separation of concerns:
+# ? - Match single character
+ls test?.py                           # Matches test1.py, test2.py, etc.
 
-```
-pyodideshell/
-├── main.py                          # Main entry point
-├── shell_interpreter.py             # Core shell interpreter
-├── telnet_server.py                 # Telnet server implementation
-├── command_base.py                  # Base command class
-├── filesystem/                      # Filesystem module
-│   ├── __init__.py                  # Package initialization
-│   ├── node_base.py                 # Base node class
-│   ├── directory.py                 # Directory implementation
-│   ├── file.py                      # File implementation
-│   ├── fs_manager.py                # Filesystem manager
-│   ├── node_info.py                 # Node metadata for providers
-│   ├── provider_base.py             # Abstract provider interface
-│   └── providers/                   # Storage providers
-│       ├── __init__.py              # Provider registry
-│       ├── memory.py                # In-memory provider
-│       ├── sqlite.py                # SQLite provider
-│       └── s3.py                    # S3 storage provider
-└── commands/                        # Command modules
-    ├── __init__.py                  # Command aggregation
-    ├── navigation/                  # Navigation commands
-    │   ├── __init__.py              # Package initialization
-    │   ├── ls.py                    # List directory contents
-    │   ├── cd.py                    # Change directory
-    │   └── pwd.py                   # Print working directory
-    ├── filesystem/                  # File manipulation commands
-    │   ├── __init__.py              # Package initialization
-    │   ├── cat.py                   # Display file contents
-    │   ├── cp.py                    # Copy files
-    │   ├── df.py                    # Display filesystem usage
-    │   ├── du.py                    # Display disk usage
-    │   ├── echo.py                  # Echo text with redirection
-    │   ├── find.py                  # Find files by criteria
-    │   ├── mkdir.py                 # Make directory
-    │   ├── more.py                  # Display file page by page
-    │   ├── mv.py                    # Move/rename files
-    │   ├── quota.py                 # Display disk quota
-    │   ├── rm.py                    # Remove files
-    │   ├── rmdir.py                 # Remove empty directories
-    │   └── touch.py                 # Create empty file
-    ├── text/                        # Text processing commands
-    │   ├── __init__.py              # Package initialization
-    │   ├── awk.py                   # Pattern scanning and processing
-    │   ├── grep.py                  # Search text patterns
-    │   ├── head.py                  # Display first lines of file
-    │   ├── sed.py                   # Stream editor
-    │   ├── sort.py                  # Sort lines
-    │   ├── tail.py                  # Display last lines of file
-    │   ├── uniq.py                  # Remove duplicate lines
-    │   └── wc.py                    # Word, line, byte count
-    ├── environment/                 # Environment commands
-    │   ├── __init__.py              # Package initialization
-    │   ├── env.py                   # Display environment variables
-    │   └── export.py                # Set environment variables
-    ├── system/                      # System commands
-    │   ├── __init__.py              # Package initialization
-    │   ├── clear.py                 # Clear screen
-    │   ├── exit.py                  # Exit shell
-    │   ├── help.py                  # Display help
-    │   ├── python.py                # Python interpreter
-    │   ├── script.py                # Execute shell scripts
-    │   ├── sh.py                    # Execute shell commands
-    │   ├── time.py                  # Time command execution
-    │   ├── uptime.py                # Display system uptime
-    │   └── whoami.py                # Display current user
-    └── mcp/                         # MCP command support
-        ├── __init__.py              # Package initialization
-        ├── mcp_command_loader.py    # Dynamic MCP command loader
-        ├── mcp_input_formatter.py   # Format inputs for MCP tools
-        └── mcp_output_formatter.py  # Format MCP tool outputs
+# Works with any command
+cp *.txt /backup/                     # Copy all text files
+grep "error" *.log                    # Search in all log files
 ```
 
-## Core Features
+### Command Substitution
+```bash
+# Modern $() syntax
+echo "Current time: $(date)"
+export COUNT=$(ls | wc -l)
+
+# Legacy backtick syntax
+echo "User: `whoami`"
+```
+
+### I/O Redirection and Pipelines
+```bash
+# Output redirection
+echo "Hello" > file.txt               # Write to file
+echo "World" >> file.txt              # Append to file
+
+# Input redirection
+wc < file.txt                         # Read from file
+
+# Stderr redirection
+command 2> errors.txt                 # Redirect stderr
+command 2>&1                          # Merge stderr to stdout
+command &> all_output.txt             # Combined output
+
+# Pipelines
+cat file.txt | grep pattern           # Basic pipe
+cat data.csv | awk -F, '{print $1}' | sort  # Multi-stage pipeline
+```
 
 ### Shell Configuration (.shellrc)
-
-The shell automatically loads configuration from `~/.shellrc` on startup, allowing you to:
-- Set environment variables
-- Define command aliases
-- Enable features like command timing
-- Run initialization commands
-
-Example `.shellrc`:
 ```bash
+# The shell automatically loads ~/.shellrc on startup
+cat > ~/.shellrc << 'EOF'
 # Environment variables
 export EDITOR=nano
-export MY_PROJECT=/home/user/projects
+export PATH=/usr/local/bin:/usr/bin:/bin
 
 # Aliases
 alias ll="ls -la"
 alias ..="cd .."
-alias grep="grep --color"
+alias grep="grep -i"
 
 # Enable command timing
 timings -e
+EOF
 ```
 
+<<<<<<< HEAD
 ### Command Aliases
 
 Create shortcuts for frequently used commands:
@@ -694,9 +857,12 @@ uv run python examples/new_features_demo.sh
 ```
 
 ## Command Examples
+=======
+## 📝 Command Examples
+>>>>>>> main
 
 ### Basic Navigation and File Management
-```
+```bash
 ls /                    # List files in root directory
 cd /home/user           # Change directory
 pwd                     # Show current directory
@@ -708,140 +874,272 @@ cp file.txt backup.txt  # Copy a file
 mv old.txt new.txt      # Move/rename a file
 rm file.txt             # Remove a file
 find . -name "*.txt"    # Find files by pattern
+tree                    # Show directory structure
 ```
 
 ### Text Processing Commands
-```
+```bash
 # grep - Search for patterns in files
 grep "pattern" file.txt         # Search for pattern
 grep -i "pattern" file.txt      # Case-insensitive search
 grep -n "pattern" file.txt      # Show line numbers
-grep -c "pattern" file.txt      # Count matches
-grep -v "pattern" file.txt      # Invert match (lines without pattern)
+grep -v "pattern" file.txt      # Invert match
 
 # awk - Pattern scanning and processing
 awk '{print $1}' file.txt       # Print first field
 awk -F: '{print $2}' file.txt   # Use : as field separator
-awk 'NR==2' file.txt            # Print second line
 awk '{sum+=$1} END {print sum}' # Sum first column
 
-# sed - Stream editor for text transformation
+# sed - Stream editor
 sed 's/old/new/' file.txt       # Replace first occurrence
 sed 's/old/new/g' file.txt      # Replace all occurrences
-sed 's/old/new/i' file.txt      # Case-insensitive replacement
-sed '1d' file.txt               # Delete first line
-sed '$d' file.txt               # Delete last line
-sed '2,4d' file.txt             # Delete lines 2-4
-sed '/pattern/d' file.txt       # Delete lines matching pattern
 sed -i 's/old/new/g' file.txt   # Edit file in-place
-sed -n '/pattern/p' file.txt    # Print only matching lines
-sed -E 's/[0-9]+/NUM/g' file    # Extended regex support
 
-# head/tail - Display beginning/end of files
-head file.txt                   # Show first 10 lines
-head -n 5 file.txt              # Show first 5 lines
-tail file.txt                   # Show last 10 lines
-tail -n 5 file.txt              # Show last 5 lines
-tail -n +5 file.txt             # Show from line 5 to end
+# sort and uniq
+sort file.txt                   # Sort lines
+sort -n numbers.txt             # Numeric sort
+uniq file.txt                   # Remove duplicates
+sort file.txt | uniq -c         # Count occurrences
 
-# sort - Sort lines in files
-sort file.txt                   # Sort alphabetically
-sort -r file.txt                # Reverse sort
-sort -n file.txt                # Numeric sort
-sort -u file.txt                # Sort and remove duplicates
-
-# uniq - Remove duplicate lines
-uniq file.txt                   # Remove consecutive duplicates
-uniq -c file.txt                # Count occurrences
-uniq -d file.txt                # Show only duplicates
-uniq -u file.txt                # Show only unique lines
-
-# wc - Word, line, and byte count
-wc file.txt                     # Show lines, words, bytes
-wc -l file.txt                  # Count lines only
-wc -w file.txt                  # Count words only
-wc -c file.txt                  # Count bytes only
-
-# diff - Compare files line by line
-diff file1.txt file2.txt        # Show differences
-diff -u old.txt new.txt         # Unified diff format
-diff -c old.txt new.txt         # Context diff format
-diff -i file1 file2             # Case-insensitive comparison
-diff -w file1 file2             # Ignore all whitespace
-diff -b file1 file2             # Ignore whitespace changes
-diff -B file1 file2             # Ignore blank lines
-diff -q file1 file2             # Brief - just report if different
-diff --side-by-side f1 f2       # Side-by-side comparison
-
-# patch - Apply diff patches to files
-patch < changes.patch           # Apply patch from stdin
-patch -i changes.patch file.txt # Apply patch from file
-patch -R < changes.patch        # Reverse a patch
-patch -b < changes.patch        # Create backup (.orig)
-patch -o output.txt < patch     # Output to different file
-patch --dry-run < test.patch    # Test without applying
-patch -p1 < patch               # Strip 1 path component
+# head/tail
+head -n 5 file.txt              # First 5 lines
+tail -n 5 file.txt              # Last 5 lines
 ```
 
 ### Environment and System Commands
-```
+```bash
 env                     # Show environment variables
 export VAR=value        # Set environment variable
+alias ll="ls -la"       # Create alias
+history                 # Show command history
+which command           # Find command location
 whoami                  # Display current user
-uptime                  # Show system uptime
-time command            # Time command execution
-clear                   # Clear screen
-help ls                 # Show help for a command
-exit                    # Exit the shell
+date                    # Show current date/time
+timings                 # Show command execution stats
 ```
 
-## Storage Providers
+## 🗂️ Storage Providers
 
-### Memory Provider
-
-In-memory storage that is fast but does not persist data. Ideal for temporary shells:
-
+### Memory Provider (Default)
+In-memory storage that is fast but does not persist data:
 ```bash
-python main.py --fs-provider memory
+uv run chuk-virtual-shell --fs-provider memory
 ```
 
 ### SQLite Provider
-
 Stores the filesystem in a SQLite database for persistence:
-
 ```bash
-# Use file-based database
-python main.py --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+# File-based database
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
 
-# Use in-memory database
-python main.py --fs-provider sqlite --fs-provider-args '{"db_path": ":memory:"}'
+# In-memory database
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=:memory:'
 ```
 
 ### S3 Provider
-
-Stores the filesystem in an Amazon S3 bucket or compatible service:
-
+Stores the filesystem in Amazon S3 or compatible service:
 ```bash
-python main.py --fs-provider s3 --fs-provider-args '{
-  "bucket_name": "my-shell-bucket",
-  "prefix": "user1",
-  "region_name": "us-west-2"
-}'
+# Set up credentials in .env file
+cat > .env << EOF
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=us-east-1
+S3_BUCKET_NAME=my-shell-bucket
+EOF
+
+# Use S3 storage (automatically loads .env)
+uv run chuk-virtual-shell --fs-provider s3
+
+# Or specify bucket explicitly
+uv run chuk-virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket"}'
 ```
 
-## Extending PyodideShell
+## 📋 Running Examples
+
+The `examples/` directory contains demonstration scripts showing the virtual shell's capabilities:
+
+### MCP Client Demo
+```bash
+# Run the complete MCP demonstration
+uv run examples/mcp_client_demo.py
+
+# Shows:
+# ✅ User isolation and session management
+# ✅ State persistence across commands  
+# ✅ Background task execution
+# ✅ Multiple concurrent sessions
+# ✅ Complex multi-step workflows
+```
+
+### Shell Script Examples
+```bash
+# Basic shell operations
+uv run chuk-virtual-shell examples/hello_world.sh
+
+# File operations and manipulation
+uv run chuk-virtual-shell examples/file_operations.sh
+
+# Text processing with grep, awk, sed
+uv run chuk-virtual-shell examples/text_processing.sh
+
+# Advanced redirection and pipelines
+uv run chuk-virtual-shell examples/redirection_pipeline_demo.sh
+
+# Shell control flow (if/for/while/case)
+uv run chuk-virtual-shell examples/control_flow.sh
+
+# Working demo of all features
+uv run chuk-virtual-shell examples/working_demo.sh
+```
+
+### Session Management Demo
+```bash
+# Run session demo to see persistence features
+uv run python examples/session_demo.py
+
+# Demonstrates:
+# - Stateful command execution
+# - Working directory persistence
+# - Environment variable persistence
+# - Command history tracking
+# - Multi-session isolation
+```
+
+### Running Scripts in Different Ways
+```bash
+# Method 1: As command-line argument
+uv run chuk-virtual-shell examples/text_processing.sh
+
+# Method 2: From within interactive shell
+uv run chuk-virtual-shell
+$ script examples/hello_world.sh
+
+# Method 3: With specific sandbox
+uv run chuk-virtual-shell --sandbox ai_sandbox examples/secure_script.sh
+
+# Method 4: With persistent storage
+uv run chuk-virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=session.db' examples/data_processing.sh
+```
+
+## 📖 Documentation
+
+- [POSIX Compatibility Matrix](docs/POSIX_COMPATIBILITY.md) - Detailed POSIX.1-2017 compliance
+- [MCP Integration Guide](docs/mcp_integration.md)
+- [Session Management](docs/session_management.md)
+- [Redirection Guide](docs/features/redirection.md)
+- [Quoting Guide](docs/features/quoting.md)
+- [Command Reference](docs/commands/)
+- [Sandbox Configuration](docs/sandbox_configuration.md)
+- [API Documentation](docs/api/)
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=chuk_virtual_shell
+
+# Run specific test categories
+uv run pytest tests/test_mcp_server.py
+uv run pytest tests/test_quoting_comprehensive.py
+uv run pytest tests/test_advanced_redirection.py
+```
+
+Current test status: **1398 tests passing** (9 skipped)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/chrishayuk/chuk-virtual-shell.git
+cd chuk-virtual-shell
+
+# Install with dev dependencies
+uv pip install -e ".[dev]"
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+
+# Run type checking
+uv run mypy chuk_virtual_shell
+```
+
+## 🔧 Troubleshooting
+
+### MCP Server Issues
+
+**Problem**: `ModuleNotFoundError: No module named 'chuk_mcp_server'`
+
+**Solution**: Install the MCP server optional dependency:
+```bash
+uv pip install chuk-virtual-shell[mcp-server]
+# or with pip
+pip install chuk-virtual-shell[mcp-server]
+```
+
+**Problem**: `RuntimeError: uvloop does not support Windows at the moment`
+
+**Solution**: MCP server functionality requires Unix-like OS due to uvloop dependency:
+- **Linux/macOS**: Install normally with `[mcp-server]` extra
+- **Windows**: Use WSL (Windows Subsystem for Linux) or run without MCP features
+- **Alternative**: Use the shell directly without MCP server integration
+
+**Problem**: MCP demo fails with JSON decode error
+
+**Solution**: Ensure the MCP server dependency is installed and the server is accessible:
+```bash
+# Test MCP server directly
+uv run python -m chuk_virtual_shell.mcp_server
+
+# Run the interactive demo
+uv run examples/mcp_client_demo.py
+```
+
+### General Issues
+
+**Problem**: Command not found errors
+
+**Solution**: Ensure you're using the correct command syntax. Check available commands:
+```bash
+# In interactive mode
+help
+
+# Check specific command help
+help ls
+```
+
+**Problem**: File permission errors
+
+**Solution**: The virtual filesystem has simulated permissions. Use appropriate commands:
+```bash
+# Create directories with proper paths
+mkdir -p /path/to/directory
+
+# Check current working directory
+pwd
+```
+
+## 🔧 Extending Chuk Virtual Shell
 
 ### Adding New Commands
 
-1. Create a new Python file in the appropriate category subfolder under `commands/`
+1. Create a new Python file in the appropriate category subfolder under `chuk_virtual_shell/commands/`
 2. Implement a class that extends `ShellCommand`
-3. Register the command in the `commands/__init__.py` file
+3. Register the command in the module's `__init__.py`
 
 Example:
-
 ```python
-# commands/file/example.py
-from command_base import ShellCommand
+# chuk_virtual_shell/commands/system/example.py
+from chuk_virtual_shell.commands.command_base import ShellCommand
 
 class ExampleCommand(ShellCommand):
     name = "example"
@@ -854,16 +1152,14 @@ class ExampleCommand(ShellCommand):
 
 ### Creating Custom Storage Providers
 
-1. Create a new Python file in the `filesystem/providers/` directory
+1. Create a new Python file in the `chuk_virtual_fs/providers/` directory
 2. Implement a class that extends `StorageProvider`
-3. Register the provider in the `filesystem/providers/__init__.py` file
+3. Register the provider in the providers registry
 
 Example:
-
 ```python
-# filesystem/providers/custom.py
-from chuk_virtual_shell.provider_base import StorageProvider
-from chuk_virtual_shell.node_info import FSNodeInfo
+# chuk_virtual_fs/providers/custom.py
+from chuk_virtual_fs.provider_base import StorageProvider
 
 class CustomStorageProvider(StorageProvider):
     """Custom storage provider implementation"""
@@ -879,94 +1175,97 @@ class CustomStorageProvider(StorageProvider):
     # Implement other required methods...
 ```
 
-Then register in `providers/__init__.py`:
+### Custom Sandbox Configurations
 
-```python
-from chuk_virtual_shell.providers.custom import CustomStorageProvider
-register_provider("custom", CustomStorageProvider)
+Create custom sandbox configurations by creating YAML files:
+```yaml
+# config/my_sandbox.yaml
+environment:
+  HOME: /my_home
+  USER: myuser
+  PATH: /usr/local/bin:/usr/bin:/bin
+  CUSTOM_VAR: custom_value
+
+filesystem:
+  provider: memory
+
+security_policy:
+  allowed_paths:
+    - /my_home
+    - /tmp
+  denied_patterns:
+    - "*.secret"
+
+initialization:
+  - mkdir -p /my_home/workspace
+  - echo "Welcome to My Sandbox" > /my_home/README.txt
 ```
 
-## Security Considerations
-
-- PyodideShell runs with no access to the host system by default (memory provider)
-- Commands are limited to predefined functionality
-- Provider access can be controlled through appropriate credentials
-- Telnet server can be configured with access controls
-
-## Development
-
-### Setting Up Development Environment
-
+Then use it:
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/chuk-virtual-shell.git
-cd chuk-virtual-shell
-
-# Install development dependencies
-make install
-
-# Run tests
-make test
-
-# Run with coverage
-make coverage
-
-# Run linting and formatting
-make lint
-make format
+uv run chuk-virtual-shell --sandbox config/my_sandbox.yaml
 ```
 
-### Building and Publishing
+## 🚀 Cross-Platform Compatibility
 
-#### Prerequisites
+Chuk Virtual Shell is fully compatible across multiple operating systems:
 
-1. Create a PyPI account at https://pypi.org
-2. Generate an API token at https://pypi.org/manage/account/token/
-3. Configure twine with your PyPI credentials:
+- **Windows** - Full shell functionality with native path handling
+- **macOS** - Complete functionality on Apple Silicon and Intel Macs  
+- **Linux** - Tested on Ubuntu, Debian, and other distributions
 
-```bash
-# Option 1: Use keyring (recommended)
-pip install keyring
-keyring set https://upload.pypi.org/legacy/ __token__
-# Enter your PyPI token when prompted
+**Platform-Specific Notes:**
+- MCP server functionality requires Unix-like OS (Linux/macOS) due to uvloop dependency
+- Windows users can use WSL or run the shell without MCP server features
+- Virtual filesystem uses forward slashes (`/`) internally for consistent behavior
+- CI/CD pipeline tests on all platforms with Python 3.11+
 
-# Option 2: Create ~/.pypirc file
-cat > ~/.pypirc << EOF
-[pypi]
-username = __token__
-password = pypi-your-token-here
-EOF
-chmod 600 ~/.pypirc
+## 🧩 Modular Architecture
+
+The project follows a highly modular design:
+
+```
+chuk_virtual_shell/
+├── shell_interpreter.py           # Core shell interpreter
+├── session/                       # Session management
+├── core/                          # Core shell functionality
+│   ├── executor.py                # Command execution engine
+│   ├── redirection.py             # I/O redirection parser
+│   └── control_flow_executor.py   # Control flow (if/for/while)
+├── commands/                      # Command modules
+│   ├── filesystem/                # File operations (cp, mv, rm, etc.)
+│   ├── navigation/                # Directory navigation (ls, cd, pwd)
+│   ├── text/                      # Text processing (grep, sed, awk)
+│   ├── system/                    # System utilities (which, history, etc.)
+│   └── mcp/                       # Dynamic MCP command loading
+├── sandbox/                       # Sandbox configuration and loading
+└── mcp_server.py                  # MCP server implementation
 ```
 
-#### Publishing Process
+Each component is designed to be:
+- **Independent**: Minimal cross-dependencies
+- **Testable**: Comprehensive unit and integration tests
+- **Extensible**: Easy to add new functionality
+- **Maintainable**: Clear separation of concerns
 
-```bash
-# Check current version
-make version
+## 📄 License
 
-# Bump version as needed
-make bump-patch  # 0.1.1 -> 0.1.2
-make bump-minor  # 0.1.1 -> 0.2.0
-make bump-major  # 0.1.1 -> 1.0.0
+MIT License - see [LICENSE](LICENSE) for details.
 
-# Build the package
-make build
+## 🙏 Acknowledgments
 
-# Test on TestPyPI first (optional)
-make publish-test
+- Built for AI agents using [Model Context Protocol](https://modelcontextprotocol.io)
+- Inspired by Unix shell design principles
+- Virtual filesystem powered by [chuk-virtual-fs](https://github.com/chrishayuk/chuk-virtual-fs)
 
-# Publish to PyPI
-make publish
+## 📮 Contact
 
-# Or use the release shortcuts
-make release-patch  # Bump, test, and build
-make release-minor  # Bump, test, and build
-make release-major  # Bump, test, and build
-```
+- GitHub: [@chrishayuk](https://github.com/chrishayuk)
+- Issues: [GitHub Issues](https://github.com/chrishayuk/chuk-virtual-shell/issues)
 
-### Makefile Targets
+---
 
+<<<<<<< HEAD
 Run `make help` to see all available targets:
 
 - **Testing**: `test`, `coverage`, `coverage-html`
@@ -1058,3 +1357,7 @@ pip install chuk-llm
   - Visual agent pipeline builder
   - Agent resource limits and quotas
   - Event-triggered agent activation
+
+---
+
+**Ready to give your AI agents a powerful shell environment? Get started with `uv pip install chuk-virtual-shell`!** 🚀

@@ -32,8 +32,8 @@ class MvCommand(ShellCommand):
             if self._is_directory(destination):
                 # If destination is a directory, put the file inside the directory
                 # Use portable path operations
-                src_basename = src.split('/')[-1] if '/' in src else src
-                dest_path = destination.rstrip('/') + '/' + src_basename
+                src_basename = src.split("/")[-1] if "/" in src else src
+                dest_path = destination.rstrip("/") + "/" + src_basename
             else:
                 dest_path = destination
 

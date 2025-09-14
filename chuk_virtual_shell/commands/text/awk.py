@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/awk.py
 """
 chuk_virtual_shell/commands/text/awk.py - Pattern scanning and processing language
 """

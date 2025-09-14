@@ -1,3 +1,4 @@
+# src/chuk_virtual_shell/commands/text/diff.py
 """
 chuk_virtual_shell/commands/text/diff.py - Compare files line by line
 """
