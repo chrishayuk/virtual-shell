@@ -69,7 +69,7 @@ class CodingAgent:
                     for line in lines[:3]:  # Show first 3 lines
                         print(f"    {line}")
                     if len(lines) > 3:
-                        print(f"    ... ({len(lines)-3} more lines)")
+                        print(f"    ... ({len(lines) - 3} more lines)")
                     output_lines.extend(lines)
             task.output.append(output_lines)
 

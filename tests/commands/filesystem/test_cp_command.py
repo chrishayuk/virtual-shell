@@ -3,7 +3,6 @@ Comprehensive test suite for the cp (copy) command.
 Tests all cp functionality including recursive copying, flags, and edge cases.
 """
 
-import pytest
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.filesystem.cp import CpCommand
 
@@ -105,7 +104,7 @@ class TestCpRecursive:
 
     def test_cp_recursive_basic(self):
         """Test basic recursive copy"""
-        result = self.cmd.execute(["-r", "/src", "/dest"])
+        self.cmd.execute(["-r", "/src", "/dest"])
 
         # Check structure was copied
         assert self.shell.fs.is_directory("/dest")
@@ -119,7 +118,7 @@ class TestCpRecursive:
 
     def test_cp_R_flag(self):
         """Test -R flag (uppercase) for recursive copy"""
-        result = self.cmd.execute(["-R", "/src", "/dest"])
+        self.cmd.execute(["-R", "/src", "/dest"])
 
         # Should work same as -r
         assert self.shell.fs.is_directory("/dest")
@@ -152,19 +151,19 @@ class TestCpRecursive:
     def test_cp_recursive_with_symlinks(self):
         """Test recursive copy with symbolic links (if supported)"""
         # Create a symlink if supported
-        result = self.cmd.execute(["-r", "/src", "/dest"])
+        self.cmd.execute(["-r", "/src", "/dest"])
         assert self.shell.fs.is_directory("/dest")
 
     def test_cp_recursive_without_copy_dir_method(self):
         """Test recursive copy when filesystem doesn't have copy_dir method"""
         # Remove copy_dir method if it exists (DummyFileSystem doesn't have it by default)
         try:
-            delattr(self.shell.fs, 'copy_dir')
+            delattr(self.shell.fs, "copy_dir")
         except AttributeError:
             pass  # Method doesn't exist, which is what we want
-        
-        result = self.cmd.execute(["-r", "/src", "/dest"])
-        
+
+        self.cmd.execute(["-r", "/src", "/dest"])
+
         # Should still work using manual recursion
         assert self.shell.fs.is_directory("/dest")
         assert self.shell.fs.read_file("/dest/file.txt") == "Root file"
@@ -173,54 +172,60 @@ class TestCpRecursive:
     def test_cp_recursive_manual_write_failure(self):
         """Test recursive copy with write failure during manual recursion"""
         # Make copy_dir fail to force manual recursion
-        original_copy_dir = self.shell.fs.copy_dir
+
         def failing_copy_dir(src, dst):
             return False  # Force manual recursion
+
         self.shell.fs.copy_dir = failing_copy_dir
-        
+
         # Make write_file fail for specific file
         original_write = self.shell.fs.write_file
+
         def failing_write(path, content):
             if "fail" in path:
                 return False
             return original_write(path, content)
-        
+
         self.shell.fs.write_file("/src/fail.txt", "This will fail")
         self.shell.fs.write_file = failing_write
-        
+
         result = self.cmd.execute(["-r", "/src", "/dest"])
-        
+
         # Should show error but continue with other files
         assert "error" in result.lower() or "failed" in result.lower()
-        
+
         # Other files should still be copied
         assert self.shell.fs.read_file("/dest/file.txt") == "Root file"
 
     def test_cp_recursive_manual_subdirectory_failure(self):
         """Test recursive copy with subdirectory creation failure"""
         # Make copy_dir fail to force manual recursion
-        original_copy_dir = self.shell.fs.copy_dir
+
         def failing_copy_dir(src, dst):
             return False  # Force manual recursion
+
         self.shell.fs.copy_dir = failing_copy_dir
-        
+
         # Make mkdir fail for specific directory
         original_mkdir = self.shell.fs.mkdir
+
         def failing_mkdir(path):
             if "faildir" in path:
                 return False
             return original_mkdir(path)
-        
+
         # Create faildir and ensure it appears in parent directory listing
         self.shell.fs.mkdir("/src/faildir")
         # Manually add to parent directory structure for DummyFileSystem
-        if "/src" in self.shell.fs.files and isinstance(self.shell.fs.files["/src"], dict):
+        if "/src" in self.shell.fs.files and isinstance(
+            self.shell.fs.files["/src"], dict
+        ):
             self.shell.fs.files["/src"]["faildir"] = {}
-        
+
         self.shell.fs.mkdir = failing_mkdir
-        
+
         result = self.cmd.execute(["-r", "/src", "/dest"])
-        
+
         # Should show error for failed directory
         assert "error" in result.lower() or "failed" in result.lower()
 
@@ -240,17 +245,17 @@ class TestCpWithFlags:
         """Test -i flag for interactive mode"""
         # Note: Interactive mode is hard to test without user input
         # Should prompt before overwrite
-        result = self.cmd.execute(["-i", "/source.txt", "/existing.txt"])
+        self.cmd.execute(["-i", "/source.txt", "/existing.txt"])
         # Behavior depends on implementation
 
     def test_cp_f_force(self):
         """Test -f flag for force"""
-        result = self.cmd.execute(["-f", "/source.txt", "/existing.txt"])
+        self.cmd.execute(["-f", "/source.txt", "/existing.txt"])
         assert self.shell.fs.read_file("/existing.txt") == "Content"
 
     def test_cp_n_no_clobber(self):
         """Test -n flag for no-clobber"""
-        result = self.cmd.execute(["-n", "/source.txt", "/existing.txt"])
+        self.cmd.execute(["-n", "/source.txt", "/existing.txt"])
         # Should not overwrite
         assert self.shell.fs.read_file("/existing.txt") == "Old content"
 
@@ -262,13 +267,13 @@ class TestCpWithFlags:
 
     def test_cp_p_preserve(self):
         """Test -p flag for preserving attributes"""
-        result = self.cmd.execute(["-p", "/source.txt", "/dest.txt"])
+        self.cmd.execute(["-p", "/source.txt", "/dest.txt"])
         assert self.shell.fs.read_file("/dest.txt") == "Content"
         # Attributes preservation depends on filesystem support
 
     def test_cp_multiple_flags(self):
         """Test combining multiple flags"""
-        result = self.cmd.execute(["-r", "-v", "-f", "/source.txt", "/dest.txt"])
+        self.cmd.execute(["-r", "-v", "-f", "/source.txt", "/dest.txt"])
         assert self.shell.fs.read_file("/dest.txt") == "Content"
 
     def test_cp_invalid_flag(self):
@@ -297,7 +302,7 @@ class TestCpSpecialCases:
         binary_content = b"\x00\x01\x02\x03\x04\x05"
         self.shell.fs.write_file("/binary.bin", binary_content)
         self.cmd.execute(["/binary.bin", "/copy.bin"])
-        
+
         # Binary content should be preserved
         assert self.shell.fs.read_file("/copy.bin") == binary_content
 
@@ -306,7 +311,7 @@ class TestCpSpecialCases:
         unicode_content = "Hello 世界 🌍 مرحبا"
         self.shell.fs.write_file("/unicode.txt", unicode_content)
         self.cmd.execute(["/unicode.txt", "/copy.txt"])
-        
+
         assert self.shell.fs.read_file("/copy.txt") == unicode_content
 
     def test_cp_large_file(self):
@@ -314,14 +319,14 @@ class TestCpSpecialCases:
         large_content = "X" * (1024 * 1024)  # 1MB
         self.shell.fs.write_file("/large.txt", large_content)
         self.cmd.execute(["/large.txt", "/copy.txt"])
-        
+
         assert self.shell.fs.read_file("/copy.txt") == large_content
 
     def test_cp_empty_file(self):
         """Test copying empty file"""
         self.shell.fs.write_file("/empty.txt", "")
         self.cmd.execute(["/empty.txt", "/copy.txt"])
-        
+
         assert self.shell.fs.exists("/copy.txt")
         assert self.shell.fs.read_file("/copy.txt") == ""
 
@@ -329,7 +334,7 @@ class TestCpSpecialCases:
         """Test copying files with special characters in name"""
         self.shell.fs.write_file("/file with spaces.txt", "Content")
         self.cmd.execute(["/file with spaces.txt", "/copy.txt"])
-        
+
         assert self.shell.fs.read_file("/copy.txt") == "Content"
 
     def test_cp_deep_nesting(self):
@@ -340,9 +345,9 @@ class TestCpSpecialCases:
             path = f"{path}/level{i}"
             self.shell.fs.mkdir(path)
             self.shell.fs.write_file(f"{path}/file.txt", f"Level {i}")
-        
+
         self.cmd.execute(["-r", "/deep", "/copy"])
-        
+
         # Verify deep structure was copied
         path = "/copy"
         for i in range(10):
@@ -355,18 +360,18 @@ class TestCpSpecialCases:
         self.shell.fs.write_file("/file1.txt", "1")
         self.shell.fs.write_file("/file2.txt", "2")
         self.shell.fs.write_file("/file3.log", "3")
-        
+
         # Note: Wildcard expansion is typically done by shell
-        result = self.cmd.execute(["*.txt", "/dest/"])
+        self.cmd.execute(["*.txt", "/dest/"])
         # Behavior depends on shell expansion
 
     def test_cp_preserve_directory_structure(self):
         """Test preserving directory structure during copy"""
         self.shell.fs.mkdir("/src/a/b/c")
         self.shell.fs.write_file("/src/a/b/c/file.txt", "Deep")
-        
+
         self.cmd.execute(["-r", "/src", "/dest"])
-        
+
         assert self.shell.fs.is_directory("/dest/a/b/c")
         assert self.shell.fs.read_file("/dest/a/b/c/file.txt") == "Deep"
 
@@ -375,7 +380,7 @@ class TestCpSpecialCases:
         self.shell.fs.write_file("/file1.txt", "1")
         self.shell.fs.write_file("/file2.txt", "2")
         self.shell.fs.write_file("/dest.txt", "dest")
-        
+
         result = self.cmd.execute(["/file1.txt", "/file2.txt", "/dest.txt"])
         assert "not a directory" in result.lower() or "error" in result.lower()
 
@@ -403,17 +408,18 @@ class TestCpErrorHandling:
     def test_cp_permission_denied_simulation(self):
         """Test permission denied scenario (simulated)"""
         self.shell.fs.write_file("/source.txt", "Content")
-        
+
         # Override write_file to simulate permission denied
         original_write = self.shell.fs.write_file
+
         def fail_write(path, content):
             if path == "/protected/dest.txt":
                 return False
             return original_write(path, content)
-        
+
         self.shell.fs.mkdir("/protected")
         self.shell.fs.write_file = fail_write
-        
+
         result = self.cmd.execute(["/source.txt", "/protected/dest.txt"])
         assert "error" in result.lower() or "failed" in result.lower()
 
@@ -421,7 +427,7 @@ class TestCpErrorHandling:
         """Test circular copy (copying parent to child)"""
         self.shell.fs.mkdir("/parent")
         self.shell.fs.mkdir("/parent/child")
-        
+
         result = self.cmd.execute(["-r", "/parent", "/parent/child"])
         # Should detect and prevent circular copy
         assert "cannot" in result.lower() or "error" in result.lower()
@@ -430,19 +436,20 @@ class TestCpErrorHandling:
         """Test disk full scenario (simulated)"""
         huge_content = "X" * (10 * 1024 * 1024)  # 10MB
         self.shell.fs.write_file("/huge.txt", huge_content)
-        
+
         # Simulate disk full by making write fail
         write_count = [0]
         original_write = self.shell.fs.write_file
+
         def limited_write(path, content):
             write_count[0] += 1
             if write_count[0] > 5:  # Fail after 5 writes
                 return False
             return original_write(path, content)
-        
+
         self.shell.fs.write_file = limited_write
-        
-        result = self.cmd.execute(["/huge.txt", "/dest.txt"])
+
+        self.cmd.execute(["/huge.txt", "/dest.txt"])
         # Should handle write failure gracefully
 
 
@@ -458,7 +465,7 @@ class TestCpRealWorldScenarios:
         """Test creating backup of file"""
         self.shell.fs.write_file("/important.conf", "Config data")
         self.cmd.execute(["/important.conf", "/important.conf.backup"])
-        
+
         assert self.shell.fs.read_file("/important.conf") == "Config data"
         assert self.shell.fs.read_file("/important.conf.backup") == "Config data"
 
@@ -472,9 +479,9 @@ class TestCpRealWorldScenarios:
         self.shell.fs.write_file("/project/README.md", "# Project")
         self.shell.fs.write_file("/project/src/main.py", "print('Hello')")
         self.shell.fs.write_file("/project/tests/test_main.py", "assert True")
-        
+
         self.cmd.execute(["-r", "/project", "/backup"])
-        
+
         # Verify structure
         assert self.shell.fs.is_directory("/backup")
         assert self.shell.fs.read_file("/backup/README.md") == "# Project"
@@ -486,11 +493,11 @@ class TestCpRealWorldScenarios:
         # Create log files
         self.shell.fs.write_file("/app.log", "Current log")
         self.shell.fs.write_file("/app.log.1", "Old log 1")
-        
+
         # Rotate logs
         self.cmd.execute(["/app.log.1", "/app.log.2"])
         self.cmd.execute(["/app.log", "/app.log.1"])
-        
+
         assert self.shell.fs.read_file("/app.log.1") == "Current log"
         assert self.shell.fs.read_file("/app.log.2") == "Old log 1"
 
@@ -499,13 +506,13 @@ class TestCpRealWorldScenarios:
         # Create template
         self.shell.fs.mkdir("/templates")
         self.shell.fs.write_file("/templates/config.template", "HOST={{host}}")
-        
+
         # Create destination directory
         self.shell.fs.mkdir("/etc")
-        
+
         # Deploy template
         self.cmd.execute(["/templates/config.template", "/etc/config"])
-        
+
         assert self.shell.fs.read_file("/etc/config") == "HOST={{host}}"
 
     def test_cp_data_migration(self):
@@ -514,11 +521,11 @@ class TestCpRealWorldScenarios:
         self.shell.fs.mkdir("/old_data")
         self.shell.fs.write_file("/old_data/users.db", "User data")
         self.shell.fs.write_file("/old_data/settings.conf", "Settings")
-        
+
         # Migrate to new structure
         self.shell.fs.mkdir("/new_data")
         self.cmd.execute(["/old_data/users.db", "/new_data/users.db"])
         self.cmd.execute(["/old_data/settings.conf", "/new_data/config.conf"])
-        
+
         assert self.shell.fs.read_file("/new_data/users.db") == "User data"
         assert self.shell.fs.read_file("/new_data/config.conf") == "Settings"

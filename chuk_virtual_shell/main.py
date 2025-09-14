@@ -46,10 +46,10 @@ def parse_provider_args(provider_args_str):
             if "=" in arg_pair:
                 key, value = arg_pair.split("=", 1)
                 args[key.strip()] = value.strip()
-    
+
     # Note: S3-specific environment variable handling moved to main() function
     # to avoid adding S3 args to non-S3 providers
-    
+
     return args
 
 
@@ -153,14 +153,13 @@ def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
         logger.exception("Uncaught error in interactive shell")
 
 
-async def run_telnet_server(provider=None, provider_args=None, sandbox_yaml=None, host="0.0.0.0", port=8023):
+async def run_telnet_server(
+    provider=None, provider_args=None, sandbox_yaml=None, host="0.0.0.0", port=8023
+):
     """Run PyodideShell in telnet server mode"""
     # Create and start telnet server (it will create its own shell instances per connection)
     server = TelnetServer(
-        host=host, 
-        port=port, 
-        fs_provider=provider, 
-        fs_provider_args=provider_args
+        host=host, port=port, fs_provider=provider, fs_provider_args=provider_args
     )
     await server.start()
 
@@ -198,7 +197,9 @@ def main():
     )
 
     parser.add_argument("--telnet", action="store_true", help="Run as telnet server")
-    parser.add_argument("--port", type=int, default=8023, help="Port for telnet server (default: 8023)")
+    parser.add_argument(
+        "--port", type=int, default=8023, help="Port for telnet server (default: 8023)"
+    )
     parser.add_argument("--script", type=str, help="Script file to run")
 
     # Sandbox configuration
@@ -277,26 +278,32 @@ def main():
     provider_args = (
         parse_provider_args(args.fs_provider_args) if args.fs_provider_args else {}
     )
-    
-    # For S3 provider, auto-populate from environment if no args provided  
-    if args.fs_provider == 's3' and not provider_args:
-        if 'S3_BUCKET_NAME' in os.environ:
-            provider_args['bucket_name'] = os.environ['S3_BUCKET_NAME'].strip('"')
-            
+
+    # For S3 provider, auto-populate from environment if no args provided
+    if args.fs_provider == "s3" and not provider_args:
+        if "S3_BUCKET_NAME" in os.environ:
+            provider_args["bucket_name"] = os.environ["S3_BUCKET_NAME"].strip('"')
+
             # Auto-detect region
-            if 'AWS_DEFAULT_REGION' in os.environ:
-                provider_args['region_name'] = os.environ['AWS_DEFAULT_REGION']
-            elif 'AWS_REGION' in os.environ:
-                provider_args['region_name'] = os.environ['AWS_REGION']
-                
+            if "AWS_DEFAULT_REGION" in os.environ:
+                provider_args["region_name"] = os.environ["AWS_DEFAULT_REGION"]
+            elif "AWS_REGION" in os.environ:
+                provider_args["region_name"] = os.environ["AWS_REGION"]
+
             # Auto-detect S3 endpoint URL (for S3-compatible services like Tigris)
-            if 'AWS_ENDPOINT_URL_S3' in os.environ:
-                provider_args['endpoint_url'] = os.environ['AWS_ENDPOINT_URL_S3']
-                logger.info(f"Using S3-compatible endpoint: {provider_args['endpoint_url']}")
-                
-            logger.info(f"Using S3 bucket from environment: {provider_args['bucket_name']}")
+            if "AWS_ENDPOINT_URL_S3" in os.environ:
+                provider_args["endpoint_url"] = os.environ["AWS_ENDPOINT_URL_S3"]
+                logger.info(
+                    f"Using S3-compatible endpoint: {provider_args['endpoint_url']}"
+                )
+
+            logger.info(
+                f"Using S3 bucket from environment: {provider_args['bucket_name']}"
+            )
         else:
-            logger.error("S3 provider requires bucket_name. Set S3_BUCKET_NAME environment variable or use --fs-provider-args")
+            logger.error(
+                "S3 provider requires bucket_name. Set S3_BUCKET_NAME environment variable or use --fs-provider-args"
+            )
             return
 
     if args.fs_provider == "list":
@@ -333,7 +340,11 @@ def main():
     # Determine operation mode
     if args.telnet:
         logger.info(f"Starting telnet server on port {args.port}...")
-        asyncio.run(run_telnet_server(args.fs_provider, provider_args, args.sandbox, port=args.port))
+        asyncio.run(
+            run_telnet_server(
+                args.fs_provider, provider_args, args.sandbox, port=args.port
+            )
+        )
     elif args.script or args.script_path:
         script = args.script or args.script_path
         logger.info(f"Running script: {script}")

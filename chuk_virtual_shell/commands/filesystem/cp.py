@@ -81,7 +81,7 @@ Options:
             # Check if copying to self
             if src_resolved == dest_resolved:
                 return f"cp: '{src}' and '{destination}' are the same file"
-            
+
             # Check for circular copy (parent to child)
             if src_info.is_dir and dest_resolved.startswith(src_resolved + "/"):
                 return f"cp: cannot copy directory '{src}' into itself '{destination}'"
@@ -111,14 +111,18 @@ Options:
                             results.append(f"'{src}' -> '{dest_path}'")
                     else:
                         # copy_dir failed, try manual recursion
-                        copy_errors = self._copy_directory_recursive(src_resolved, dest_path, verbose)
+                        copy_errors = self._copy_directory_recursive(
+                            src_resolved, dest_path, verbose
+                        )
                         if copy_errors:
                             return "\n".join(copy_errors)
                         if verbose:
                             results.append(f"'{src}' -> '{dest_path}'")
                 else:
                     # Manual recursive copy
-                    copy_errors = self._copy_directory_recursive(src_resolved, dest_path, verbose)
+                    copy_errors = self._copy_directory_recursive(
+                        src_resolved, dest_path, verbose
+                    )
                     if copy_errors:
                         return "\n".join(copy_errors)
                     if verbose:
@@ -128,15 +132,21 @@ Options:
                 # Check for no-clobber (don't overwrite existing files)
                 if no_clobber and self.shell.fs.exists(dest_path):
                     continue
-                
+
                 # Check for interactive overwrite
                 if interactive and self.shell.fs.exists(dest_path):
                     # In non-interactive mode, skip
                     continue
 
                 # Check if destination parent directory exists
-                dest_parent = "/".join(dest_path.split("/")[:-1]) if "/" in dest_path else ""
-                if dest_parent and dest_parent != "" and not self.shell.fs.exists(dest_parent):
+                dest_parent = (
+                    "/".join(dest_path.split("/")[:-1]) if "/" in dest_path else ""
+                )
+                if (
+                    dest_parent
+                    and dest_parent != ""
+                    and not self.shell.fs.exists(dest_parent)
+                ):
                     return f"cp: cannot create '{dest_path}': No such file or directory"
 
                 content = self.shell.fs.read_file(src_resolved)
@@ -156,7 +166,7 @@ Options:
     def _copy_directory_recursive(self, src, dst, verbose=False):
         """Recursively copy a directory"""
         errors = []
-        
+
         # Create destination directory
         if not self.shell.fs.exists(dst):
             if not self.shell.fs.mkdir(dst):

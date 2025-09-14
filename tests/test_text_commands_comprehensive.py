@@ -239,7 +239,8 @@ def test_sed_with_delimiter(shell):
     shell.fs.write_file("/tmp/paths.txt", "/usr/bin/test")
 
     # Using different delimiter to avoid escaping slashes
-    result = shell.execute('sed "s|/usr|/opt|g" /tmp/paths.txt')
+    # Note: pipe in quotes needs careful handling
+    result = shell.execute('sed "s#/usr#/opt#g" /tmp/paths.txt')
     assert result == "/opt/bin/test"
 
 

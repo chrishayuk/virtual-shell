@@ -28,7 +28,7 @@ def list_available_configs() -> List[str]:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
     project_config_dir = os.path.join(project_root, "config")
-    
+
     if os.path.exists(project_config_dir):
         for file in os.listdir(project_config_dir):
             if file.endswith((".yaml", ".yml", ".json")):

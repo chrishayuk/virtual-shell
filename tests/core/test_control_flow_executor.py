@@ -3,7 +3,6 @@ Test cases for the ControlFlowExecutor class.
 Tests control flow structures (if/for/while) in the new architecture.
 """
 
-import pytest
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 from chuk_virtual_shell.core.control_flow_executor import ControlFlowExecutor
 
@@ -15,7 +14,7 @@ class TestControlFlowExecutor:
         """Set up test environment."""
         self.shell = ShellInterpreter()
         self.executor = self.shell._control_flow_executor
-        
+
         # Set up test files
         self.shell.execute("mkdir -p /test")
         self.shell.execute("echo 'content' > /test/file.txt")
@@ -46,7 +45,7 @@ class TestIfStatements:
         # First verify that false command works correctly
         self.shell.execute("false")
         assert self.shell.return_code == 1
-        
+
         # Now test in if statement
         result = self.shell.execute("if false; then echo success; fi")
         assert result == "" or "success" not in result
@@ -55,10 +54,10 @@ class TestIfStatements:
         """Test if statement with test command."""
         result = self.shell.execute("if test -e /test/file.txt; then echo exists; fi")
         assert "exists" in result
-        
+
         result = self.shell.execute("if [ -e /test/file.txt ]; then echo exists; fi")
         assert "exists" in result
-        
+
         result = self.shell.execute("if [ -e /nonexistent ]; then echo exists; fi")
         assert result == "" or "exists" not in result
 
@@ -67,7 +66,7 @@ class TestIfStatements:
         result = self.shell.execute("if true; then echo yes; else echo no; fi")
         assert "yes" in result
         assert "no" not in result
-        
+
         result = self.shell.execute("if false; then echo yes; else echo no; fi")
         assert "yes" not in result or result.count("no") > result.count("yes")
         assert "no" in result
@@ -80,7 +79,7 @@ class TestIfStatements:
         assert "first" not in result or result.count("second") > result.count("first")
         assert "second" in result
         assert "third" not in result
-        
+
         result = self.shell.execute(
             "if false; then echo first; elif false; then echo second; else echo third; fi"
         )
@@ -100,18 +99,15 @@ class TestIfStatements:
     def test_if_with_variable(self):
         """Test if statement with variable expansion."""
         self.shell.execute("export VAR=hello")
-        result = self.shell.execute(
-            "if [ '$VAR' = 'hello' ]; then echo match; fi"
-        )
+        # Use double quotes to allow variable expansion
+        result = self.shell.execute('if [ "$VAR" = "hello" ]; then echo match; fi')
         assert "match" in result
 
     def test_nested_if(self):
         """Test nested if statements."""
-        result = self.shell.execute(
-            "if true; then if true; then echo nested; fi; fi"
-        )
+        result = self.shell.execute("if true; then if true; then echo nested; fi; fi")
         assert "nested" in result
-        
+
         result = self.shell.execute(
             "if true; then if false; then echo nested; else echo outer; fi; fi"
         )
@@ -136,7 +132,9 @@ class TestForLoops:
 
     def test_for_with_variable(self):
         """Test for loop with variable."""
-        result = self.shell.execute("for name in alice bob charlie; do echo Hello $name; done")
+        result = self.shell.execute(
+            "for name in alice bob charlie; do echo Hello $name; done"
+        )
         assert "Hello alice" in result
         assert "Hello bob" in result
         assert "Hello charlie" in result
@@ -153,7 +151,9 @@ class TestForLoops:
         """Test for loop with command substitution."""
         # Note: echo -e is not fully supported, creates "-e 1\n2\n3"
         self.shell.execute("echo '1 2 3' > /test/numbers.txt")
-        result = self.shell.execute("for n in $(cat /test/numbers.txt); do echo Number: $n; done")
+        result = self.shell.execute(
+            "for n in $(cat /test/numbers.txt); do echo Number: $n; done"
+        )
         assert "Number: 1" in result
         assert "Number: 2" in result
         assert "Number: 3" in result
@@ -180,7 +180,7 @@ class TestForLoops:
             "for i in 1 2 3 4 5; do if [ $i -gt 3 ]; then echo $i; fi; done"
         )
         assert "1" not in result or result.count("4") > result.count("1")
-        assert "2" not in result or result.count("4") > result.count("2") 
+        assert "2" not in result or result.count("4") > result.count("2")
         assert "3" not in result or result.count("4") > result.count("3")
         assert "4" in result
         assert "5" in result
@@ -204,9 +204,7 @@ class TestWhileLoops:
 
     def test_while_false_condition(self):
         """Test while loop that never executes."""
-        result = self.shell.execute(
-            "while false; do echo should_not_appear; done"
-        )
+        result = self.shell.execute("while false; do echo should_not_appear; done")
         assert "should_not_appear" not in result
         assert result == ""
 
@@ -215,10 +213,10 @@ class TestWhileLoops:
         # Simplified test without arithmetic
         self.shell.execute("echo yes > /flag.txt")
         result = self.shell.execute(
-            "while [ $(cat /flag.txt) = yes ]; do " +
-            "echo Running; " +
-            "echo no > /flag.txt; " +
-            "done"
+            "while [ $(cat /flag.txt) = yes ]; do "
+            + "echo Running; "
+            + "echo no > /flag.txt; "
+            + "done"
         )
         assert "Running" in result
 
@@ -227,10 +225,10 @@ class TestWhileLoops:
         # Simplified test without arithmetic
         self.shell.execute("echo no > /done.txt")
         result = self.shell.execute(
-            "until [ $(cat /done.txt) = yes ]; do " +
-            "echo Working; " +
-            "echo yes > /done.txt; " +
-            "done"
+            "until [ $(cat /done.txt) = yes ]; do "
+            + "echo Working; "
+            + "echo yes > /done.txt; "
+            + "done"
         )
         assert "Working" in result
 
@@ -246,10 +244,10 @@ class TestControlFlowIntegration:
     def test_if_in_for_loop(self):
         """Test if statement inside for loop."""
         result = self.shell.execute(
-            'for i in 1 2 3 4 5; do ' +
-            'if [ $i -eq 3 ]; then echo "Found three"; ' +
-            'else echo "Number $i"; fi; ' +
-            'done'
+            "for i in 1 2 3 4 5; do "
+            + 'if [ $i -eq 3 ]; then echo "Found three"; '
+            + 'else echo "Number $i"; fi; '
+            + "done"
         )
         assert "Number 1" in result
         assert "Number 2" in result
@@ -261,11 +259,11 @@ class TestControlFlowIntegration:
         """Test nested for loops (simpler than for+while)."""
         # Simplified to work with current limitations
         result = self.shell.execute(
-            'for i in 1 2; do ' +
-            'for j in a b; do ' +
-            'echo "$j"; ' +
-            'done; ' +
-            'done'
+            "for i in 1 2; do "
+            + "for j in a b; do "
+            + 'echo "$j"; '
+            + "done; "
+            + "done"
         )
         # Should see inner loop values repeated for each outer iteration
         assert result.count("a") >= 1
@@ -276,11 +274,11 @@ class TestControlFlowIntegration:
         self.shell.execute("touch /test/a.txt /test/b.txt /test/c.txt")
         # Simplified version without arithmetic in loop
         result = self.shell.execute(
-            'for file in /test/*.txt; do ' +
-            'if [ -f "$file" ]; then ' +
-            'echo "Processing: $file"; ' +
-            'fi; ' +
-            'done'
+            "for file in /test/*.txt; do "
+            + 'if [ -f "$file" ]; then '
+            + 'echo "Processing: $file"; '
+            + "fi; "
+            + "done"
         )
         assert "Processing: /test/a.txt" in result
         assert "Processing: /test/b.txt" in result
@@ -290,23 +288,23 @@ class TestControlFlowIntegration:
         """Test break and continue in loops."""
         # Test break
         result = self.shell.execute(
-            'for i in 1 2 3 4 5; do ' +
-            'if [ $i -eq 3 ]; then break; fi; ' +
-            'echo $i; ' +
-            'done'
+            "for i in 1 2 3 4 5; do "
+            + "if [ $i -eq 3 ]; then break; fi; "
+            + "echo $i; "
+            + "done"
         )
         assert "1" in result
         assert "2" in result
         assert "3" not in result
         assert "4" not in result
         assert "5" not in result
-        
+
         # Test continue
         result = self.shell.execute(
-            'for i in 1 2 3 4 5; do ' +
-            'if [ $i -eq 3 ]; then continue; fi; ' +
-            'echo $i; ' +
-            'done'
+            "for i in 1 2 3 4 5; do "
+            + "if [ $i -eq 3 ]; then continue; fi; "
+            + "echo $i; "
+            + "done"
         )
         assert "1" in result
         assert "2" in result

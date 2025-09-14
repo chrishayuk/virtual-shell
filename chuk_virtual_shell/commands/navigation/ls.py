@@ -50,23 +50,25 @@ class LsCommand(ShellCommand):
         for path in paths:
             # Resolve the path
             resolved_path = self.shell.resolve_path(path)
-            
+
             # Check if it's a file or directory
             try:
                 node_info = self.shell.fs.get_node_info(resolved_path)
             except Exception:
                 # If get_node_info fails, assume doesn't exist
                 node_info = None
-                
+
             if not node_info:
                 results.append(f"ls: cannot access '{path}': No such file or directory")
                 continue
-            
+
             if node_info.is_dir:
                 # List directory contents
                 if len(paths) > 1:
                     results.append(f"{path}:")
-                result = self._list_directory(resolved_path, parsed_args.long, parsed_args.all)
+                result = self._list_directory(
+                    resolved_path, parsed_args.long, parsed_args.all
+                )
                 results.append(result)
                 if len(paths) > 1:
                     results.append("")  # Empty line between directories
@@ -77,7 +79,7 @@ class LsCommand(ShellCommand):
                 else:
                     result = path
                 results.append(result)
-        
+
         return "\n".join(results).strip()
 
     def _list_directory(self, resolved_dir, long_format, show_all):
@@ -180,7 +182,7 @@ class LsCommand(ShellCommand):
                     content = self.shell.fs.read_file(full_path)
                     if content is not None:
                         size = len(content)
-            except:
+            except Exception:
                 size = 0
             mod_date = time.strftime("%b %d %H:%M", time.localtime())
             lines.append(f"{mode} {nlink} {owner} {group} {size:>5} {mod_date} {f}")

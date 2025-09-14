@@ -111,7 +111,7 @@ class TestEscapeSequences:
     def test_newline_escape(self, echo_command):
         """Test \\n newline escape."""
         output = echo_command.execute(["-e", "First\\nSecond"])
-        lines = output.strip().split('\n')
+        lines = output.strip().split("\n")
         assert len(lines) == 2 or "First" in output
 
     def test_tab_escape(self, echo_command):
@@ -228,6 +228,7 @@ class TestRedirection:
 
     def test_echo_redirect_write_error(self, echo_command):
         """Test echo redirection error when write fails."""
+
         def fail_write_file(path, content):
             return False
 

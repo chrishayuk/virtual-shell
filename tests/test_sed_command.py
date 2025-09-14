@@ -159,9 +159,9 @@ def test_sed_last_line_operations(shell):
     shell.fs.write_file("/tmp/test.txt", "Line 1\nLine 2\nLine 3")
 
     # Delete last line
-    result = shell.execute('sed "$d" /tmp/test.txt')
+    result = shell.execute('sed "\\$d" /tmp/test.txt')
     assert result == "Line 1\nLine 2"
 
     # Modify last line
-    result = shell.execute('sed "$s/3/THREE/" /tmp/test.txt')
+    result = shell.execute('sed "\\$s/3/THREE/" /tmp/test.txt')
     assert "Line THREE" in result

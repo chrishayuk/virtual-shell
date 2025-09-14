@@ -31,7 +31,7 @@ def run_example(shell, runner, script_name, description):
     Returns:
         True if successful, False otherwise
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing: {description}")
     print(f"Script: {script_name}")
     print("-" * 60)
@@ -148,8 +148,8 @@ def main():
     failed = total - passed
 
     print(f"\nTotal tests: {total}")
-    print(f"Passed: {passed} ({passed*100/total:.0f}%)")
-    print(f"Failed: {failed} ({failed*100/total:.0f}%)")
+    print(f"Passed: {passed} ({passed * 100 / total:.0f}%)")
+    print(f"Failed: {failed} ({failed * 100 / total:.0f}%)")
 
     print("\nDetailed Results:")
     for script_name, description, success in results:

@@ -157,7 +157,6 @@ async def test_load_mcp_tools_for_server():
             autospec=True,
         ) as mock_send_tools_list,
     ):
-
         # Create config object
         config = {"server_name": "test_server", "config_path": "test_config.json"}
 
@@ -195,7 +194,6 @@ async def test_load_mcp_tools_initialization_failure():
         ),
         patch("chuk_mcp.mcp_client.send_initialize", return_value=False, autospec=True),
     ):  # Initialize fails
-
         # Create config object
         config = {"server_name": "test_server", "config_path": "test_config.json"}
 
@@ -259,7 +257,6 @@ async def test_register_mcp_commands():
             side_effect=mock_create_command,
         ) as mock_create,
     ):
-
         # Call the function under test
         await register_mcp_commands(shell)
 
@@ -355,7 +352,6 @@ async def test_register_mcp_commands_with_server_error():
             side_effect=mock_create_command,
         ),
     ):
-
         # Call the function under test
         await register_mcp_commands(shell)
 
@@ -403,15 +399,15 @@ async def test_mcp_command_async_execution_import_success():
     )
 
     # Set up module mocks
-    mock_modules["chuk_mcp.mcp_client.transport.stdio.stdio_client"].stdio_client = (
-        mock_stdio_client
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.transport.stdio.stdio_client"
+    ].stdio_client = mock_stdio_client
     mock_modules[
         "chuk_mcp.mcp_client.messages.initialize.send_messages"
     ].send_initialize = mock_send_initialize
-    mock_modules["chuk_mcp.mcp_client.messages.ping.send_messages"].send_ping = (
-        mock_send_ping
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.messages.ping.send_messages"
+    ].send_ping = mock_send_ping
 
     with (
         patch.dict("sys.modules", mock_modules),
@@ -420,7 +416,6 @@ async def test_mcp_command_async_execution_import_success():
             mock_send_tools_call,
         ),
     ):
-
         result = await cmd.execute_async(["test"])
         assert "Success!" in result
         mock_send_initialize.assert_awaited_once()
@@ -459,9 +454,9 @@ async def test_mcp_command_async_execution_init_failure():
     mock_stdio_client = MagicMock(return_value=mock_stdio_context)
     mock_send_initialize = AsyncMock(return_value=False)  # Init fails
 
-    mock_modules["chuk_mcp.mcp_client.transport.stdio.stdio_client"].stdio_client = (
-        mock_stdio_client
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.transport.stdio.stdio_client"
+    ].stdio_client = mock_stdio_client
     mock_modules[
         "chuk_mcp.mcp_client.messages.initialize.send_messages"
     ].send_initialize = mock_send_initialize
@@ -504,15 +499,15 @@ async def test_mcp_command_async_execution_ping_failure():
     mock_send_initialize = AsyncMock(return_value=True)
     mock_send_ping = AsyncMock(return_value=False)  # Ping fails
 
-    mock_modules["chuk_mcp.mcp_client.transport.stdio.stdio_client"].stdio_client = (
-        mock_stdio_client
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.transport.stdio.stdio_client"
+    ].stdio_client = mock_stdio_client
     mock_modules[
         "chuk_mcp.mcp_client.messages.initialize.send_messages"
     ].send_initialize = mock_send_initialize
-    mock_modules["chuk_mcp.mcp_client.messages.ping.send_messages"].send_ping = (
-        mock_send_ping
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.messages.ping.send_messages"
+    ].send_ping = mock_send_ping
 
     with patch.dict("sys.modules", mock_modules):
         result = await cmd.execute_async(["test"])
@@ -553,15 +548,15 @@ async def test_mcp_command_async_execution_no_response():
     mock_send_ping = AsyncMock(return_value=True)
     mock_send_tools_call = AsyncMock(return_value=None)  # No response
 
-    mock_modules["chuk_mcp.mcp_client.transport.stdio.stdio_client"].stdio_client = (
-        mock_stdio_client
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.transport.stdio.stdio_client"
+    ].stdio_client = mock_stdio_client
     mock_modules[
         "chuk_mcp.mcp_client.messages.initialize.send_messages"
     ].send_initialize = mock_send_initialize
-    mock_modules["chuk_mcp.mcp_client.messages.ping.send_messages"].send_ping = (
-        mock_send_ping
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.messages.ping.send_messages"
+    ].send_ping = mock_send_ping
 
     with (
         patch.dict("sys.modules", mock_modules),
@@ -570,7 +565,6 @@ async def test_mcp_command_async_execution_no_response():
             mock_send_tools_call,
         ),
     ):
-
         result = await cmd.execute_async(["test"])
         assert "Failed to execute tool 'test_tool' - no response received" in result
 
@@ -610,15 +604,15 @@ async def test_mcp_command_async_execution_error_response():
         return_value={"error": {"message": "Tool execution failed"}}
     )
 
-    mock_modules["chuk_mcp.mcp_client.transport.stdio.stdio_client"].stdio_client = (
-        mock_stdio_client
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.transport.stdio.stdio_client"
+    ].stdio_client = mock_stdio_client
     mock_modules[
         "chuk_mcp.mcp_client.messages.initialize.send_messages"
     ].send_initialize = mock_send_initialize
-    mock_modules["chuk_mcp.mcp_client.messages.ping.send_messages"].send_ping = (
-        mock_send_ping
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.messages.ping.send_messages"
+    ].send_ping = mock_send_ping
 
     with (
         patch.dict("sys.modules", mock_modules),
@@ -627,7 +621,6 @@ async def test_mcp_command_async_execution_error_response():
             mock_send_tools_call,
         ),
     ):
-
         result = await cmd.execute_async(["test"])
         assert "Error executing tool 'test_tool': Tool execution failed" in result
 
@@ -666,15 +659,15 @@ async def test_mcp_command_async_execution_error_without_message():
     error_dict = {"code": 500}
     mock_send_tools_call = AsyncMock(return_value={"error": error_dict})
 
-    mock_modules["chuk_mcp.mcp_client.transport.stdio.stdio_client"].stdio_client = (
-        mock_stdio_client
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.transport.stdio.stdio_client"
+    ].stdio_client = mock_stdio_client
     mock_modules[
         "chuk_mcp.mcp_client.messages.initialize.send_messages"
     ].send_initialize = mock_send_initialize
-    mock_modules["chuk_mcp.mcp_client.messages.ping.send_messages"].send_ping = (
-        mock_send_ping
-    )
+    mock_modules[
+        "chuk_mcp.mcp_client.messages.ping.send_messages"
+    ].send_ping = mock_send_ping
 
     with (
         patch.dict("sys.modules", mock_modules),
@@ -683,7 +676,6 @@ async def test_mcp_command_async_execution_error_without_message():
             mock_send_tools_call,
         ),
     ):
-
         result = await cmd.execute_async(["test"])
         assert "Error executing tool 'test_tool'" in result
         assert str(error_dict) in result
@@ -847,7 +839,6 @@ async def test_register_mcp_commands_with_object_config():
             side_effect=mock_create_command,
         ),
     ):
-
         await register_mcp_commands(shell)
         assert len(shell.commands) == 1
         assert "object_tool" in shell.commands
@@ -890,7 +881,6 @@ async def test_register_mcp_commands_tool_without_name():
             side_effect=mock_create_command,
         ),
     ):
-
         await register_mcp_commands(shell)
         # Only the valid tool should be registered
         assert len(shell.commands) == 1
@@ -938,7 +928,6 @@ async def test_register_mcp_commands_command_creation_error():
             side_effect=mock_create_command,
         ),
     ):
-
         await register_mcp_commands(shell)
         # Only the good tool should be registered
         assert len(shell.commands) == 1

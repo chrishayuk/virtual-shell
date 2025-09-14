@@ -99,10 +99,12 @@ class TestCatWithFlags:
     def test_cat_s_flag_squeeze_blank(self, cat_command):
         """Test -s flag for squeezing blank lines."""
         # Create file with multiple blank lines
-        cat_command.shell.fs.write_file("multiple_blanks.txt", "Line 1\n\n\n\nLine 2\n\n\nLine 3")
+        cat_command.shell.fs.write_file(
+            "multiple_blanks.txt", "Line 1\n\n\n\nLine 2\n\n\nLine 3"
+        )
         output = cat_command.execute(["-s", "multiple_blanks.txt"])
         # Should reduce multiple blank lines to single
-        lines = output.split('\n')
+        lines = output.split("\n")
         blank_count = sum(1 for line in lines if line == "")
         assert blank_count <= 2  # At most one blank between content lines
 
@@ -169,7 +171,7 @@ class TestMultilineContent:
         output = cat_command.execute(["manylines.txt"])
         assert "Line 0" in output
         assert "Line 999" in output
-        assert len(output.split('\n')) >= 999
+        assert len(output.split("\n")) >= 999
 
 
 class TestSpecialCharacters:
@@ -219,7 +221,7 @@ class TestConcatenation:
         cat_command.shell.fs.write_file("c.txt", "CCC")
         output = cat_command.execute(["a.txt", "b.txt", "c.txt"])
         assert output == "AAABBBCCC"
-        
+
         # Test different order
         output = cat_command.execute(["c.txt", "a.txt", "b.txt"])
         assert output == "CCCAAABBB"
@@ -248,10 +250,10 @@ class TestConcatenation:
         # Create many small files
         for i in range(20):
             cat_command.shell.fs.write_file(f"part{i}.txt", f"Part{i}\n")
-        
+
         files = [f"part{i}.txt" for i in range(20)]
         output = cat_command.execute(files)
-        
+
         for i in range(20):
             assert f"Part{i}" in output
 
@@ -267,19 +269,20 @@ class TestErrorHandling:
 
     def test_cat_permission_denied(self, cat_command):
         """Test cat with permission denied (simulated)."""
+
         # Override read_file to simulate permission error
         def fail_read(path):
             if path == "protected.txt":
                 return None
             return cat_command.shell.fs._files.get(path, None)
-        
+
         cat_command.shell.fs.write_file("protected.txt", "secret")
         original_read = cat_command.shell.fs.read_file
         cat_command.shell.fs.read_file = fail_read
-        
+
         output = cat_command.execute(["protected.txt"])
         assert "No such file" in output or "error" in output.lower()
-        
+
         cat_command.shell.fs.read_file = original_read
 
     def test_cat_mixed_valid_invalid(self, cat_command):
@@ -326,10 +329,10 @@ class TestPerformance:
         # Create 100 small files
         for i in range(100):
             cat_command.shell.fs.write_file(f"small{i}.txt", f"{i}")
-        
+
         files = [f"small{i}.txt" for i in range(100)]
         output = cat_command.execute(files)
-        
+
         # Check all numbers are present
         for i in range(100):
             assert str(i) in output

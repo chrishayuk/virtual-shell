@@ -2,7 +2,6 @@
 Test cases for the true and false commands.
 """
 
-import pytest
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 
@@ -18,7 +17,7 @@ class TestBooleanCommands:
         result = self.shell.execute("true")
         assert result == ""
         assert self.shell.return_code == 0
-        
+
         # Test with arguments (should be ignored)
         result = self.shell.execute("true arg1 arg2")
         assert result == ""
@@ -29,7 +28,7 @@ class TestBooleanCommands:
         result = self.shell.execute("false")
         assert result == ""
         assert self.shell.return_code == 1
-        
+
         # Test with arguments (should be ignored)
         result = self.shell.execute("false arg1 arg2")
         assert result == ""
@@ -40,7 +39,7 @@ class TestBooleanCommands:
         # true && command should execute command
         result = self.shell.execute("true && echo success")
         assert "success" in result
-        
+
         # true || command should not execute command
         result = self.shell.execute("true || echo failure")
         assert "failure" not in result
@@ -50,7 +49,7 @@ class TestBooleanCommands:
         # false && command should not execute command
         result = self.shell.execute("false && echo success")
         assert "success" not in result
-        
+
         # false || command should execute command
         result = self.shell.execute("false || echo failure")
         assert "failure" in result
@@ -61,6 +60,6 @@ class TestBooleanCommands:
         result = self.shell.execute("true && echo first && false || echo second")
         assert "first" in result
         assert "second" in result
-        
+
         result = self.shell.execute("false || true && echo success")
         assert "success" in result

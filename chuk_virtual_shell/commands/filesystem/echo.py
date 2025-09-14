@@ -26,29 +26,28 @@ Options:
             return self.help_text
 
         # Parse flags
-        suppress_newline = False
         enable_escapes = False
         arg_start = 0
-        
+
         # Process flags at the beginning
         for i, arg in enumerate(args):
-            if arg == '--':
+            if arg == "--":
                 # Stop processing flags, everything after -- is text
                 arg_start = i + 1
                 break
-            elif not arg.startswith('-'):
+            elif not arg.startswith("-"):
                 # First non-flag argument
                 arg_start = i
                 break
-            
+
             # Handle combined flags like -ne or individual flags
-            if arg.startswith('-') and len(arg) > 1:
+            if arg.startswith("-") and len(arg) > 1:
                 for flag in arg[1:]:
-                    if flag == 'n':
-                        suppress_newline = True
-                    elif flag == 'e':
+                    if flag == "n":
+                        pass  # -n flag handled but not needed (output already has no newline)
+                    elif flag == "e":
                         enable_escapes = True
-                    elif flag == 'E':
+                    elif flag == "E":
                         enable_escapes = False
                     # Ignore unknown flags silently (like real echo)
         else:
@@ -57,7 +56,7 @@ Options:
 
         # Get the remaining arguments (text to echo)
         text_args = args[arg_start:]
-        
+
         # Handle redirection
         output = ""
         redirection = None
@@ -89,7 +88,7 @@ Options:
             # Check if trying to redirect to a directory
             if self.shell.fs.is_directory(redirection):
                 return f"echo: cannot write to '{redirection}': Is a directory"
-            
+
             if redirect_mode == ">>":
                 # Append mode
                 current = self.shell.fs.read_file(redirection) or ""
@@ -97,7 +96,7 @@ Options:
             else:
                 # Overwrite mode
                 final_output = output
-            
+
             if not self.shell.fs.write_file(redirection, final_output):
                 return f"echo: cannot write to '{redirection}'"
             return ""
@@ -109,22 +108,22 @@ Options:
         """Process backslash escape sequences when -e flag is enabled."""
         # Define escape sequence mappings
         escape_map = {
-            '\\n': '\n',    # newline
-            '\\t': '\t',    # tab
-            '\\r': '\r',    # carriage return
-            '\\b': '\b',    # backspace
-            '\\f': '\f',    # form feed
-            '\\v': '\v',    # vertical tab
-            '\\a': '\a',    # alert (bell)
-            '\\\\': '\\',   # backslash
-            '\\"': '"',     # double quote
-            "\\'": "'",     # single quote
+            "\\n": "\n",  # newline
+            "\\t": "\t",  # tab
+            "\\r": "\r",  # carriage return
+            "\\b": "\b",  # backspace
+            "\\f": "\f",  # form feed
+            "\\v": "\v",  # vertical tab
+            "\\a": "\a",  # alert (bell)
+            "\\\\": "\\",  # backslash
+            '\\"': '"',  # double quote
+            "\\'": "'",  # single quote
         }
-        
+
         # Replace basic escape sequences
         for escape, replacement in escape_map.items():
             text = text.replace(escape, replacement)
-        
+
         # Handle octal escape sequences (\0NNN, \NNN)
         def replace_octal(match):
             octal_str = match.group(1)
@@ -139,10 +138,10 @@ Options:
                 return match.group(0)  # Return original if invalid
 
         # Match \0NNN (up to 3 octal digits after \0)
-        text = re.sub(r'\\0([0-7]{1,3})', replace_octal, text)
+        text = re.sub(r"\\0([0-7]{1,3})", replace_octal, text)
         # Match \NNN (up to 3 octal digits, but not starting with 0)
-        text = re.sub(r'\\([1-7][0-7]{0,2})', replace_octal, text)
-        
+        text = re.sub(r"\\([1-7][0-7]{0,2})", replace_octal, text)
+
         # Handle hexadecimal escape sequences (\xHH)
         def replace_hex(match):
             hex_str = match.group(1)
@@ -155,8 +154,8 @@ Options:
             except ValueError:
                 return match.group(0)  # Return original if invalid
 
-        text = re.sub(r'\\x([0-9a-fA-F]{1,2})', replace_hex, text)
-        
+        text = re.sub(r"\\x([0-9a-fA-F]{1,2})", replace_hex, text)
+
         # Handle Unicode escape sequences (\uHHHH, \UHHHHHHHH)
         def replace_unicode(match):
             hex_str = match.group(1)
@@ -167,8 +166,8 @@ Options:
                 return match.group(0)  # Return original if invalid
 
         # \uHHHH (4 hex digits)
-        text = re.sub(r'\\u([0-9a-fA-F]{4})', replace_unicode, text)
+        text = re.sub(r"\\u([0-9a-fA-F]{4})", replace_unicode, text)
         # \UHHHHHHHH (8 hex digits)
-        text = re.sub(r'\\U([0-9a-fA-F]{8})', replace_unicode, text)
-        
+        text = re.sub(r"\\U([0-9a-fA-F]{8})", replace_unicode, text)
+
         return text

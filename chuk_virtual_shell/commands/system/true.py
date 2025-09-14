@@ -13,7 +13,7 @@ class TrueCommand(ShellCommand):
     """
     True command - always returns success (exit code 0).
     """
-    
+
     name = "true"
     help_text = "true - Always returns success (exit code 0)"
     category = "system"
@@ -25,10 +25,10 @@ class TrueCommand(ShellCommand):
     def execute(self, args):
         """
         Execute the true command.
-        
+
         Args:
             args: Arguments (ignored)
-            
+
         Returns:
             Empty string (sets return code to 0)
         """

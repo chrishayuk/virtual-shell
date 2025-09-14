@@ -23,7 +23,9 @@ class TestForLoops:
 
     def test_for_loop_with_strings(self):
         """Test for loop with string values."""
-        result = self.shell.execute("for name in Alice Bob Charlie; do echo Hello $name; done")
+        result = self.shell.execute(
+            "for name in Alice Bob Charlie; do echo Hello $name; done"
+        )
         assert "Hello Alice" in result
         assert "Hello Bob" in result
         assert "Hello Charlie" in result
@@ -40,7 +42,9 @@ class TestForLoops:
         """Test for loop with command substitution."""
         self.shell.execute("mkdir /testdir")
         self.shell.execute("touch /testdir/a.txt /testdir/b.txt")
-        result = self.shell.execute("for f in $(ls /testdir); do echo Processing $f; done")
+        result = self.shell.execute(
+            "for f in $(ls /testdir); do echo Processing $f; done"
+        )
         assert "Processing a.txt" in result
         assert "Processing b.txt" in result
 
@@ -178,7 +182,7 @@ class TestIfStatements:
         """Test basic if statement."""
         result = self.shell.execute("if true; then echo Success; fi")
         assert "Success" in result
-        
+
         result = self.shell.execute("if false; then echo Should not appear; fi")
         assert "Should not appear" not in result
 
@@ -187,7 +191,7 @@ class TestIfStatements:
         result = self.shell.execute("if true; then echo Yes; else echo No; fi")
         assert "Yes" in result
         assert "No" not in result
-        
+
         result = self.shell.execute("if false; then echo Yes; else echo No; fi")
         assert "Yes" not in result
         assert "No" in result
@@ -233,10 +237,14 @@ class TestIfStatements:
     def test_if_with_command(self):
         """Test if with command as condition."""
         self.shell.execute("touch /exists.txt")
-        result = self.shell.execute("if ls /exists.txt > /dev/null 2>&1; then echo Found; fi")
+        result = self.shell.execute(
+            "if ls /exists.txt > /dev/null 2>&1; then echo Found; fi"
+        )
         assert "Found" in result
-        
-        result = self.shell.execute("if ls /notexist.txt > /dev/null 2>&1; then echo Found; else echo Not found; fi")
+
+        result = self.shell.execute(
+            "if ls /notexist.txt > /dev/null 2>&1; then echo Found; else echo Not found; fi"
+        )
         assert "Not found" in result
 
     def test_if_with_test_command(self):
@@ -244,45 +252,45 @@ class TestIfStatements:
         # File tests
         self.shell.execute("touch /file.txt")
         self.shell.execute("mkdir /dir")
-        
+
         result = self.shell.execute("if [ -f /file.txt ]; then echo Is file; fi")
         assert "Is file" in result
-        
+
         result = self.shell.execute("if [ -d /dir ]; then echo Is directory; fi")
         assert "Is directory" in result
-        
+
         result = self.shell.execute("if [ -e /file.txt ]; then echo Exists; fi")
         assert "Exists" in result
-        
+
         # String tests
         result = self.shell.execute('if [ "abc" = "abc" ]; then echo Equal; fi')
         assert "Equal" in result
-        
+
         result = self.shell.execute('if [ "abc" != "def" ]; then echo Not equal; fi')
         assert "Not equal" in result
-        
+
         result = self.shell.execute('if [ -z "" ]; then echo Empty; fi')
         assert "Empty" in result
-        
+
         result = self.shell.execute('if [ -n "text" ]; then echo Not empty; fi')
         assert "Not empty" in result
-        
+
         # Numeric tests
         result = self.shell.execute("if [ 5 -gt 3 ]; then echo Greater; fi")
         assert "Greater" in result
-        
+
         result = self.shell.execute("if [ 2 -lt 4 ]; then echo Less; fi")
         assert "Less" in result
-        
+
         result = self.shell.execute("if [ 3 -eq 3 ]; then echo Equal; fi")
         assert "Equal" in result
-        
+
         result = self.shell.execute("if [ 3 -ne 4 ]; then echo Not equal; fi")
         assert "Not equal" in result
-        
+
         result = self.shell.execute("if [ 5 -ge 5 ]; then echo Greater or equal; fi")
         assert "Greater or equal" in result
-        
+
         result = self.shell.execute("if [ 3 -le 5 ]; then echo Less or equal; fi")
         assert "Less or equal" in result
 
@@ -290,11 +298,13 @@ class TestIfStatements:
         """Test if with && and || operators."""
         result = self.shell.execute("if true && true; then echo Both true; fi")
         assert "Both true" in result
-        
+
         result = self.shell.execute("if true || false; then echo At least one true; fi")
         assert "At least one true" in result
-        
-        result = self.shell.execute("if false && true; then echo Should not appear; else echo Failed; fi")
+
+        result = self.shell.execute(
+            "if false && true; then echo Should not appear; else echo Failed; fi"
+        )
         assert "Failed" in result
 
 
@@ -308,7 +318,7 @@ class TestCaseStatements:
     def test_simple_case(self):
         """Test basic case statement."""
         result = self.shell.execute(
-            'x=2; case $x in 1) echo One;; 2) echo Two;; 3) echo Three;; esac'
+            "x=2; case $x in 1) echo One;; 2) echo Two;; 3) echo Three;; esac"
         )
         assert "Two" in result
         assert "One" not in result
@@ -317,55 +327,51 @@ class TestCaseStatements:
     def test_case_with_strings(self):
         """Test case with string matching."""
         result = self.shell.execute(
-            'fruit=apple; case $fruit in '
-            'apple) echo Red;; '
-            'banana) echo Yellow;; '
-            'orange) echo Orange;; '
-            'esac'
+            "fruit=apple; case $fruit in "
+            "apple) echo Red;; "
+            "banana) echo Yellow;; "
+            "orange) echo Orange;; "
+            "esac"
         )
         assert "Red" in result
 
     def test_case_with_patterns(self):
         """Test case with pattern matching."""
         result = self.shell.execute(
-            'file=test.txt; case $file in '
-            '*.txt) echo Text file;; '
-            '*.jpg|*.png) echo Image file;; '
-            '*) echo Unknown;; '
-            'esac'
+            "file=test.txt; case $file in "
+            "*.txt) echo Text file;; "
+            "*.jpg|*.png) echo Image file;; "
+            "*) echo Unknown;; "
+            "esac"
         )
         assert "Text file" in result
 
     def test_case_with_default(self):
         """Test case with default branch."""
         result = self.shell.execute(
-            'x=99; case $x in '
-            '1) echo One;; '
-            '2) echo Two;; '
-            '*) echo Other;; '
-            'esac'
+            "x=99; case $x in 1) echo One;; 2) echo Two;; *) echo Other;; esac"
         )
         assert "Other" in result
 
     def test_case_with_multiple_patterns(self):
         """Test case with multiple patterns per branch."""
         result = self.shell.execute(
-            'x=b; case $x in '
-            'a|b|c) echo First group;; '
-            'd|e|f) echo Second group;; '
-            '*) echo Other;; '
-            'esac'
+            "x=b; case $x in "
+            "a|b|c) echo First group;; "
+            "d|e|f) echo Second group;; "
+            "*) echo Other;; "
+            "esac"
         )
         assert "First group" in result
 
     def test_case_with_complex_commands(self):
         """Test case with complex commands in branches."""
         result = self.shell.execute(
-            'action=create; case $action in '
-            'create) echo Creating...; touch /newfile.txt; echo Done;; '
-            'delete) echo Deleting...; rm /newfile.txt 2>/dev/null; echo Done;; '
-            '*) echo Unknown action;; '
-            'esac'
+            "action=create; case $action in "
+            "create) echo Creating...; touch /newfile.txt; echo Done;; "
+            "delete) echo Deleting...; rm /newfile.txt 2>/dev/null; echo Done;; "
+            "*) echo Unknown action;; "
+            "esac"
         )
         assert "Creating..." in result
         assert "Done" in result
@@ -408,11 +414,13 @@ class TestFunctions:
 
     def test_function_return_value(self):
         """Test function return value."""
-        self.shell.execute("check() { if [ $1 -gt 5 ]; then return 0; else return 1; fi; }")
+        self.shell.execute(
+            "check() { if [ $1 -gt 5 ]; then return 0; else return 1; fi; }"
+        )
         self.shell.execute("check 10")
         result = self.shell.execute("echo $?")
         assert "0" in result
-        
+
         self.shell.execute("check 3")
         result = self.shell.execute("echo $?")
         assert "1" in result
@@ -606,7 +614,7 @@ class TestControlFlowCombinations:
         # When i=2 and j=b, inner loop breaks
         assert "Outer: 1" in result
         assert "Inner: a" in result
-        lines = result.split('\n')
+        lines = result.split("\n")
         # Count how many times "Inner: b" appears
         inner_b_count = sum(1 for line in lines if "Inner: b" in line)
         assert inner_b_count == 2  # Only for i=1 and i=3, not i=2
@@ -628,16 +636,16 @@ class TestArithmeticEvaluation:
         """Test arithmetic expansion $(())."""
         result = self.shell.execute("echo $((10 + 5))")
         assert "15" in result
-        
+
         result = self.shell.execute("echo $((10 - 5))")
         assert "5" in result
-        
+
         result = self.shell.execute("echo $((10 * 5))")
         assert "50" in result
-        
+
         result = self.shell.execute("echo $((10 / 5))")
         assert "2" in result
-        
+
         result = self.shell.execute("echo $((10 % 3))")
         assert "1" in result
 
@@ -661,7 +669,7 @@ class TestArithmeticEvaluation:
         self.shell.execute("x=$((x + 1))")
         result = self.shell.execute("echo $x")
         assert "6" in result
-        
+
         self.shell.execute("x=$((x - 1))")
         result = self.shell.execute("echo $x")
         assert "5" in result
@@ -683,11 +691,11 @@ class TestEdgeCases:
     def test_malformed_if(self):
         """Test malformed if statements."""
         # Missing then
-        result = self.shell.execute("if true echo test; fi")
+        self.shell.execute("if true echo test; fi")
         # Should handle gracefully
-        
+
         # Missing fi
-        result = self.shell.execute("if true; then echo test")
+        self.shell.execute("if true; then echo test")
         # Should handle gracefully
 
     def test_infinite_loop_protection(self):
@@ -725,7 +733,9 @@ class TestEdgeCases:
 
     def test_loop_with_empty_list(self):
         """Test loops with empty lists."""
-        result = self.shell.execute("for i in $(cat /nonexistent 2>/dev/null); do echo Item: $i; done")
+        result = self.shell.execute(
+            "for i in $(cat /nonexistent 2>/dev/null); do echo Item: $i; done"
+        )
         assert "Item:" not in result  # Should not execute
 
     def test_conditional_with_command_substitution(self):

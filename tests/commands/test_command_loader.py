@@ -39,9 +39,9 @@ def test_discover_commands():
     # Verify that each expected command is present and is an instance of ShellCommand.
     for cmd_name in expected_commands:
         assert cmd_name in commands, f"Missing command: {cmd_name}"
-        assert isinstance(
-            commands[cmd_name], ShellCommand
-        ), f"{cmd_name} is not an instance of ShellCommand"
+        assert isinstance(commands[cmd_name], ShellCommand), (
+            f"{cmd_name} is not an instance of ShellCommand"
+        )
 
 
 # Test for load_commands_from_path with non-existent path
@@ -75,7 +75,6 @@ def test_discover_commands_with_import_error():
         patch("os.walk") as mock_walk,
         patch("importlib.import_module", side_effect=mock_import_module),
     ):
-
         # Set up mock walk to return a structure with our failing module
         mock_walk.return_value = [
             ("/mock/commands", ["system"], ["failing_module.py", "working_module.py"])
@@ -120,7 +119,6 @@ def test_discover_commands_with_instantiation_error():
         patch("importlib.import_module", return_value=mock_module),
         patch("inspect.getmembers", side_effect=mock_getmembers),
     ):
-
         mock_walk.return_value = [("/mock/commands", [], ["failing_command.py"])]
 
         # This should handle the instantiation error gracefully
@@ -169,7 +167,6 @@ def test_load_commands_from_path_with_files():
         patch("importlib.import_module", return_value=mock_module),
         patch("inspect.getmembers", side_effect=mock_getmembers),
     ):
-
         commands = CommandLoader.load_commands_from_path(dummy_shell, "/mock/path")
         assert "test_load_cmd" in commands
         assert isinstance(commands["test_load_cmd"], TestLoadCommand)
@@ -187,7 +184,6 @@ def test_load_commands_from_path_import_error():
         patch("os.listdir", return_value=["failing_command.py"]),
         patch("importlib.import_module", side_effect=ImportError("Module not found")),
     ):
-
         # Should handle import error gracefully
         commands = CommandLoader.load_commands_from_path(dummy_shell, "/mock/path")
         assert commands == {}
@@ -225,7 +221,6 @@ def test_load_commands_from_path_instantiation_error():
         patch("importlib.import_module", return_value=mock_module),
         patch("inspect.getmembers", side_effect=mock_getmembers),
     ):
-
         # Should handle instantiation error gracefully
         commands = CommandLoader.load_commands_from_path(dummy_shell, "/mock/path")
         assert commands == {}

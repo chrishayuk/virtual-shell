@@ -32,7 +32,7 @@ class CdCommand(ShellCommand):
             return self.get_help()
 
         target = parsed_args.directory
-        
+
         # Handle cd - (previous directory)
         if target == "-":
             # Get the previous directory from OLDPWD

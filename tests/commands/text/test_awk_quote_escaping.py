@@ -87,7 +87,7 @@ class TestAwkQuoteEscaping:
         """Test edge cases with nested quote handling"""
         # Test that we don't break on complex nested quotes
         result = self.awk.execute(
-            ['BEGIN { s="He said ' "'" "Hello" "'" '"; printf "Quote: %s", s }']
+            ['BEGIN { s="He said \'Hello\'"; printf "Quote: %s", s }']
         )
         # This may not work perfectly but shouldn't crash
         assert result is not None

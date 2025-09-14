@@ -13,7 +13,7 @@ class FalseCommand(ShellCommand):
     """
     False command - always returns failure (exit code 1).
     """
-    
+
     name = "false"
     help_text = "false - Always returns failure (exit code 1)"
     category = "system"
@@ -25,10 +25,10 @@ class FalseCommand(ShellCommand):
     def execute(self, args):
         """
         Execute the false command.
-        
+
         Args:
             args: Arguments (ignored)
-            
+
         Returns:
             Empty string (sets return code to 1)
         """

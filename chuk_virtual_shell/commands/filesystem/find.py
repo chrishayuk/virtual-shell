@@ -2,11 +2,9 @@
 chuk_virtual_shell/commands/filesystem/find.py - Find files and directories
 """
 
-import argparse
 import fnmatch
 import re
-import time
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
 
@@ -44,107 +42,133 @@ class FindCommand(ShellCommand):
         # Handle help first
         if "--help" in args:
             return self.get_help()
-        
+
         # Determine paths to search - collect all non-option arguments at the beginning
         paths = []
         option_start = len(args)
-        
+
         for i, arg in enumerate(args):
-            if arg.startswith('-'):
+            if arg.startswith("-"):
                 option_start = i
                 break
             else:
                 paths.append(arg)
-        
+
         # Default to current directory if no paths specified
         if not paths:
             paths = ["."]
-        
+
         # Parse the remaining arguments as options
         option_args = args[option_start:]
-        
+
         # Manual parsing for options that can have values starting with '-'
-        parsed_options = {
-            'name': None, 'iname': None, 'path': None, 'type': None,
-            'maxdepth': None, 'mindepth': 0, 'regex': None, 'size': None,
-            'empty': False, 'mtime': None, 'newer': None, 'exec': None,
-            'print': False, 'print0': False, 'delete': False, 'prune': False
+        parsed_options: Dict[str, Any] = {
+            "name": None,
+            "iname": None,
+            "path": None,
+            "type": None,
+            "maxdepth": None,
+            "mindepth": 0,
+            "regex": None,
+            "size": None,
+            "empty": False,
+            "mtime": None,
+            "newer": None,
+            "exec": None,
+            "print": False,
+            "print0": False,
+            "delete": False,
+            "prune": False,
         }
-        
+
         i = 0
         while i < len(option_args):
             arg = option_args[i]
-            
-            if arg == '-name' and i + 1 < len(option_args):
-                parsed_options['name'] = option_args[i + 1]
+
+            if arg == "-name" and i + 1 < len(option_args):
+                parsed_options["name"] = option_args[i + 1]
                 i += 2
-            elif arg == '-iname' and i + 1 < len(option_args):
-                parsed_options['iname'] = option_args[i + 1]
+            elif arg == "-iname" and i + 1 < len(option_args):
+                parsed_options["iname"] = option_args[i + 1]
                 i += 2
-            elif arg == '-path' and i + 1 < len(option_args):
-                parsed_options['path'] = option_args[i + 1]
+            elif arg == "-path" and i + 1 < len(option_args):
+                parsed_options["path"] = option_args[i + 1]
                 i += 2
-            elif arg == '-type' and i + 1 < len(option_args):
-                if option_args[i + 1] in ['d', 'f']:
-                    parsed_options['type'] = option_args[i + 1]
+            elif arg == "-type" and i + 1 < len(option_args):
+                if option_args[i + 1] in ["d", "f"]:
+                    parsed_options["type"] = option_args[i + 1]
                 i += 2
-            elif arg == '-maxdepth' and i + 1 < len(option_args):
+            elif arg == "-maxdepth" and i + 1 < len(option_args):
                 try:
-                    parsed_options['maxdepth'] = int(option_args[i + 1])
+                    parsed_options["maxdepth"] = int(option_args[i + 1])
                 except ValueError:
                     pass
                 i += 2
-            elif arg == '-mindepth' and i + 1 < len(option_args):
+            elif arg == "-mindepth" and i + 1 < len(option_args):
                 try:
-                    parsed_options['mindepth'] = int(option_args[i + 1])
+                    parsed_options["mindepth"] = int(option_args[i + 1])
                 except ValueError:
                     pass
                 i += 2
-            elif arg == '-regex' and i + 1 < len(option_args):
-                parsed_options['regex'] = option_args[i + 1]
+            elif arg == "-regex" and i + 1 < len(option_args):
+                parsed_options["regex"] = option_args[i + 1]
                 i += 2
-            elif arg == '-size' and i + 1 < len(option_args):
-                parsed_options['size'] = option_args[i + 1]
+            elif arg == "-size" and i + 1 < len(option_args):
+                parsed_options["size"] = option_args[i + 1]
                 i += 2
-            elif arg == '-mtime' and i + 1 < len(option_args):
-                parsed_options['mtime'] = option_args[i + 1]
+            elif arg == "-mtime" and i + 1 < len(option_args):
+                parsed_options["mtime"] = option_args[i + 1]
                 i += 2
-            elif arg == '-newer' and i + 1 < len(option_args):
-                parsed_options['newer'] = option_args[i + 1]
+            elif arg == "-newer" and i + 1 < len(option_args):
+                parsed_options["newer"] = option_args[i + 1]
                 i += 2
-            elif arg == '-exec':
+            elif arg == "-exec":
                 # Collect all arguments until ';'
                 exec_args = []
                 i += 1
-                while i < len(option_args) and option_args[i] != ';':
+                while i < len(option_args) and option_args[i] != ";":
                     exec_args.append(option_args[i])
                     i += 1
-                parsed_options['exec'] = exec_args
+                parsed_options["exec"] = exec_args
                 i += 1
-            elif arg == '-empty':
-                parsed_options['empty'] = True
+            elif arg == "-empty":
+                parsed_options["empty"] = True
                 i += 1
-            elif arg == '-print':
-                parsed_options['print'] = True
+            elif arg == "-print":
+                parsed_options["print"] = True
                 i += 1
-            elif arg == '-print0':
-                parsed_options['print0'] = True
+            elif arg == "-print0":
+                parsed_options["print0"] = True
                 i += 1
-            elif arg == '-delete':
-                parsed_options['delete'] = True
+            elif arg == "-delete":
+                parsed_options["delete"] = True
                 i += 1
-            elif arg == '-prune':
-                parsed_options['prune'] = True
+            elif arg == "-prune":
+                parsed_options["prune"] = True
                 i += 1
             else:
                 i += 1
-        
+
         # Convert to namespace for compatibility
         class ParsedArgs:
-            def __init__(self, options):
-                for key, value in options.items():
-                    setattr(self, key, value)
-        
+            def __init__(self, options: Dict[str, Any]):
+                self.name: Optional[str] = options.get("name")
+                self.iname: Optional[str] = options.get("iname")
+                self.path: Optional[str] = options.get("path")
+                self.type: Optional[str] = options.get("type")
+                self.maxdepth: Optional[int] = options.get("maxdepth")
+                self.mindepth: int = options.get("mindepth", 0)
+                self.regex: Optional[str] = options.get("regex")
+                self.size: Optional[str] = options.get("size")
+                self.empty: bool = options.get("empty", False)
+                self.mtime: Optional[str] = options.get("mtime")
+                self.newer: Optional[str] = options.get("newer")
+                self.exec: Optional[List[str]] = options.get("exec")
+                self.print: bool = options.get("print", False)
+                self.print0: bool = options.get("print0", False)
+                self.delete: bool = options.get("delete", False)
+                self.prune: bool = options.get("prune", False)
+
         parsed_args = ParsedArgs(parsed_options)
 
         results = []
@@ -185,7 +209,7 @@ class FindCommand(ShellCommand):
                 parsed_args.empty,
                 parsed_args.mtime,
                 parsed_args.newer,
-                parsed_args.prune
+                parsed_args.prune,
             )
 
             # Process found paths
@@ -193,22 +217,24 @@ class FindCommand(ShellCommand):
                 # Execute command if -exec specified
                 if parsed_args.exec:
                     self._execute_command(found_path, parsed_args.exec)
-                    
+
                 # Delete if -delete specified
                 elif parsed_args.delete:
                     self._delete_path(found_path)
-                    
+
                 # Otherwise print the path
                 else:
                     # Format output based on options
                     if parsed_args.name and not parsed_args.path:
                         # Show only the matching file's basename
                         display_path = (
-                            found_path.split("/")[-1] if "/" in found_path else found_path
+                            found_path.split("/")[-1]
+                            if "/" in found_path
+                            else found_path
                         )
                     else:
                         display_path = found_path
-                    
+
                     if parsed_args.print0:
                         results.append(display_path + "\0")
                     else:
@@ -234,7 +260,7 @@ class FindCommand(ShellCommand):
         empty_filter: bool,
         mtime_filter: Optional[str],
         newer_file: Optional[str],
-        prune: bool
+        prune: bool,
     ) -> List[str]:
         """
         Recursively find files and directories that match the given criteria.
@@ -322,11 +348,11 @@ class FindCommand(ShellCommand):
                             empty_filter,
                             mtime_filter,
                             newer_file,
-                            False  # Don't propagate prune to children
+                            False,  # Don't propagate prune to children
                         )
                     )
             except Exception as e:
-                if hasattr(self.shell, 'error_log'):
+                if hasattr(self.shell, "error_log"):
                     self.shell.error_log.append(f"find: '{path}': {str(e)}")
 
         return results
@@ -336,54 +362,59 @@ class FindCommand(ShellCommand):
         # Parse size filter (e.g., +10k, -5M, 100c)
         if not size_filter:
             return True
-            
-        comparison = '='
-        if size_filter[0] == '+':
-            comparison = '>'
+
+        comparison = "="
+        if size_filter[0] == "+":
+            comparison = ">"
             size_filter = size_filter[1:]
-        elif size_filter[0] == '-':
-            comparison = '<'
+        elif size_filter[0] == "-":
+            comparison = "<"
             size_filter = size_filter[1:]
-        
+
         # Parse unit
-        unit = 'c'  # Default to bytes
-        if size_filter and size_filter[-1] in 'cwbkMG':
+        unit = "c"  # Default to bytes
+        if size_filter and size_filter[-1] in "cwbkMG":
             unit = size_filter[-1]
             size_filter = size_filter[:-1]
-        
+
         try:
             size_value = int(size_filter)
         except ValueError:
             return False
-        
+
         # Convert to bytes
         multipliers = {
-            'c': 1,           # bytes
-            'w': 2,           # 2-byte words
-            'b': 512,         # 512-byte blocks
-            'k': 1024,        # kilobytes
-            'M': 1024*1024,   # megabytes
-            'G': 1024*1024*1024  # gigabytes
+            "c": 1,  # bytes
+            "w": 2,  # 2-byte words
+            "b": 512,  # 512-byte blocks
+            "k": 1024,  # kilobytes
+            "M": 1024 * 1024,  # megabytes
+            "G": 1024 * 1024 * 1024,  # gigabytes
         }
         size_bytes = size_value * multipliers.get(unit, 1)
-        
+
         # Get actual file size
         try:
-            if hasattr(self.shell.fs, 'get_size'):
+            if (
+                hasattr(self.shell.fs, "get_size")
+                and self.shell.fs.get_size is not None
+            ):
                 actual_size = self.shell.fs.get_size(path)
             else:
                 content = self.shell.fs.read_file(path)
                 if content is not None:
-                    actual_size = len(content) if isinstance(content, (str, bytes)) else 0
+                    actual_size = (
+                        len(content) if isinstance(content, (str, bytes)) else 0
+                    )
                 else:
                     actual_size = 0
-        except:
+        except Exception:
             return False
-        
+
         # Compare
-        if comparison == '>':
+        if comparison == ">":
             return actual_size > size_bytes
-        elif comparison == '<':
+        elif comparison == "<":
             return actual_size < size_bytes
         else:
             return actual_size == size_bytes
@@ -393,23 +424,26 @@ class FindCommand(ShellCommand):
         node_info = self.shell.fs.get_node_info(path)
         if not node_info:
             return False
-            
+
         if node_info.is_dir:
             # Check if directory is empty
             try:
                 contents = self.shell.fs.ls(path)
                 return len(contents) == 0
-            except:
+            except Exception:
                 return False
         else:
             # Check if file is empty
             try:
-                if hasattr(self.shell.fs, 'get_size'):
+                if (
+                    hasattr(self.shell.fs, "get_size")
+                    and self.shell.fs.get_size is not None
+                ):
                     return self.shell.fs.get_size(path) == 0
                 else:
                     content = self.shell.fs.read_file(path)
                     return content is None or len(content) == 0
-            except:
+            except Exception:
                 return False
 
     def _check_mtime_filter(self, path: str, mtime_filter: str) -> bool:
@@ -427,10 +461,10 @@ class FindCommand(ShellCommand):
     def _execute_command(self, path: str, exec_args: List[str]):
         """Execute command for matched path."""
         # Replace {} with the path
-        cmd_args = [arg.replace('{}', path) for arg in exec_args if arg != ';']
+        cmd_args = [arg.replace("{}", path) for arg in exec_args if arg != ";"]
         # Execute the command (simplified)
-        if cmd_args and hasattr(self.shell, 'execute'):
-            self.shell.execute(' '.join(cmd_args))
+        if cmd_args and hasattr(self.shell, "execute"):
+            self.shell.execute(" ".join(cmd_args))
 
     def _delete_path(self, path: str):
         """Delete matched path."""

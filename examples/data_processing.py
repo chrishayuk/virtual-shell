@@ -85,7 +85,7 @@ def analyze_logs():
         f.write(f"INFO: {levels['INFO']}\n")
         f.write(f"WARNING: {levels['WARNING']}\n")
         f.write(f"ERROR: {levels['ERROR']}\n")
-        f.write(f"\nError rate: {levels['ERROR']/len(lines)*100:.1f}%\n")
+        f.write(f"\nError rate: {levels['ERROR'] / len(lines) * 100:.1f}%\n")
 
     print("\n  Report saved to log_analysis.txt\n")
 

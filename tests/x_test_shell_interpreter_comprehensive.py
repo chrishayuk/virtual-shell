@@ -3,12 +3,7 @@ Comprehensive test suite for the ShellInterpreter class.
 Tests all core functionality, edge cases, and integration points.
 """
 
-import pytest
-import os
-import time
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
-from chuk_virtual_fs import VirtualFileSystem
-from chuk_virtual_shell.filesystem_compat import FileSystemCompat
 
 
 class TestShellInterpreterCore:
@@ -37,7 +32,7 @@ class TestShellInterpreterCore:
         required_vars = ["HOME", "PATH", "USER", "PWD", "SHELL", "OLDPWD"]
         for var in required_vars:
             assert var in self.shell.environ, f"Missing environment variable: {var}"
-        
+
         # Check PATH contains expected directories
         path = self.shell.environ["PATH"]
         assert "/bin" in path
@@ -46,7 +41,16 @@ class TestShellInterpreterCore:
     def test_command_loading(self):
         """Test that commands are loaded properly."""
         # Check some essential commands are loaded
-        essential_commands = ["echo", "ls", "cd", "pwd", "cat", "grep", "mkdir", "touch"]
+        essential_commands = [
+            "echo",
+            "ls",
+            "cd",
+            "pwd",
+            "cat",
+            "grep",
+            "mkdir",
+            "touch",
+        ]
         for cmd in essential_commands:
             assert cmd in self.shell.commands, f"Missing command: {cmd}"
 
@@ -54,20 +58,20 @@ class TestShellInterpreterCore:
         """Test path resolution."""
         # Test absolute path
         assert self.shell.resolve_path("/test") == "/test"
-        
+
         # Test relative path from root
         self.shell.execute("cd /")
         assert self.shell.resolve_path("test") == "/test"
-        
+
         # Test relative path from subdirectory
         self.shell.execute("mkdir -p /dir/subdir")
         self.shell.execute("cd /dir")
         assert self.shell.resolve_path("subdir") == "/dir/subdir"
-        
+
         # Test . and ..
         assert self.shell.resolve_path(".") == "/dir"
         assert self.shell.resolve_path("..") == "/"
-        
+
         # Test home directory
         home = self.shell.environ["HOME"]
         assert self.shell.resolve_path("~") == home
@@ -87,12 +91,12 @@ class TestCommandExecution:
         result = self.shell.execute("echo Hello World")
         assert result == "Hello World"
         assert self.shell.return_code == 0
-        
+
         # PWD command
         result = self.shell.execute("pwd")
         assert result == "/"
         assert self.shell.return_code == 0
-        
+
         # Touch and ls
         self.shell.execute("touch test.txt")
         result = self.shell.execute("ls")
@@ -110,13 +114,13 @@ class TestCommandExecution:
         # Test 'true' command (should succeed)
         self.shell.execute("true")
         assert self.shell.return_code == 0
-        
+
         # Test 'false' command (should fail)
         self.shell.execute("false")
         assert self.shell.return_code == 1
-        
+
         # Test command with error
-        result = self.shell.execute("cat /nonexistent/file")
+        self.shell.execute("cat /nonexistent/file")
         assert self.shell.return_code != 0
 
     def test_empty_command(self):
@@ -124,7 +128,7 @@ class TestCommandExecution:
         result = self.shell.execute("")
         assert result == ""
         assert self.shell.return_code == 0
-        
+
         result = self.shell.execute("   ")
         assert result == ""
         assert self.shell.return_code == 0
@@ -134,17 +138,17 @@ class TestCommandExecution:
         # Single argument
         result = self.shell.execute("echo test")
         assert result == "test"
-        
+
         # Multiple arguments
         result = self.shell.execute("echo one two three")
         assert result == "one two three"
-        
+
         # Quoted arguments
         result = self.shell.execute('echo "hello world"')
         assert result == "hello world"
-        
+
         # Mixed quotes
-        result = self.shell.execute('''echo "double" 'single' unquoted''')
+        result = self.shell.execute("""echo "double" 'single' unquoted""")
         assert "double" in result
         assert "single" in result
         assert "unquoted" in result
@@ -180,19 +184,19 @@ class TestVariableExpansion:
         self.shell.execute("true")
         result = self.shell.execute("echo $?")
         assert result == "0"
-        
+
         self.shell.execute("false")
         result = self.shell.execute("echo $?")
         assert result == "1"
-        
+
         # $$ - process ID (simulated)
         result = self.shell.execute("echo $$")
         assert result.isdigit()
-        
+
         # $HOME
         result = self.shell.execute("echo $HOME")
         assert result == self.shell.environ["HOME"]
-        
+
         # $PWD
         result = self.shell.execute("echo $PWD")
         assert result == self.shell.environ["PWD"]
@@ -200,11 +204,11 @@ class TestVariableExpansion:
     def test_variable_in_strings(self):
         """Test variable expansion in quoted strings."""
         self.shell.execute("export NAME=World")
-        
+
         # Double quotes - should expand
         result = self.shell.execute('echo "Hello $NAME"')
         assert result == "Hello World"
-        
+
         # Single quotes - should not expand
         result = self.shell.execute("echo 'Hello $NAME'")
         assert result == "Hello $NAME"
@@ -277,7 +281,7 @@ class TestGlobExpansion:
         result = self.shell.execute("ls /test")
         assert "file3.log" not in result
         assert "file1.txt" in result  # Should still exist
-        
+
         # With cp
         self.shell.execute("cp /test/*.txt /test/dir/")
         result = self.shell.execute("ls /test/dir")
@@ -314,7 +318,9 @@ class TestCommandSubstitution:
     def test_substitution_with_pipes(self):
         """Test command substitution with pipes."""
         self.shell.execute("echo -e 'one\\ntwo\\nthree' > /lines.txt")
-        result = self.shell.execute("echo Lines with 'e': $(cat /lines.txt | grep e | wc -l)")
+        result = self.shell.execute(
+            "echo Lines with 'e': $(cat /lines.txt | grep e | wc -l)"
+        )
         assert "2" in result  # 'one' and 'three' contain 'e'
 
     def test_substitution_in_variables(self):
@@ -350,7 +356,7 @@ class TestPipesAndRedirection:
         self.shell.execute("echo test > /out.txt")
         result = self.shell.execute("cat /out.txt")
         assert result.strip() == "test"
-        
+
         # Overwrite test
         self.shell.execute("echo new > /out.txt")
         result = self.shell.execute("cat /out.txt")
@@ -377,7 +383,7 @@ class TestPipesAndRedirection:
         self.shell.execute("echo -e 'a\\nb\\nc' | grep b > /result.txt")
         result = self.shell.execute("cat /result.txt")
         assert "b" in result
-        
+
         # File to pipe to file
         self.shell.execute("echo -e 'x\\ny\\nz' > /source.txt")
         self.shell.execute("cat /source.txt | grep y > /dest.txt")
@@ -387,7 +393,7 @@ class TestPipesAndRedirection:
     def test_stderr_redirection(self):
         """Test stderr redirection."""
         # Command that produces an error
-        result = self.shell.execute("cat /nonexistent 2> /error.txt")
+        self.shell.execute("cat /nonexistent 2> /error.txt")
         error_content = self.shell.fs.read_file("/error.txt")
         assert "not found" in error_content.lower() or "error" in error_content.lower()
 
@@ -405,11 +411,11 @@ class TestCommandChaining:
         result = self.shell.execute("echo first && echo second")
         assert "first" in result
         assert "second" in result
-        
+
         # First fails
         result = self.shell.execute("false && echo should_not_appear")
         assert "should_not_appear" not in result
-        
+
         # First succeeds, second fails
         result = self.shell.execute("true && false")
         assert self.shell.return_code != 0
@@ -420,11 +426,11 @@ class TestCommandChaining:
         result = self.shell.execute("echo success || echo fallback")
         assert "success" in result
         assert "fallback" not in result
-        
+
         # First fails
         result = self.shell.execute("false || echo fallback")
         assert "fallback" in result
-        
+
         # Both fail
         self.shell.execute("false || false")
         assert self.shell.return_code != 0
@@ -435,7 +441,7 @@ class TestCommandChaining:
         assert "one" in result
         assert "two" in result
         assert "three" in result
-        
+
         # With failed command
         result = self.shell.execute("echo before; false; echo after")
         assert "before" in result
@@ -443,12 +449,14 @@ class TestCommandChaining:
 
     def test_mixed_operators(self):
         """Test combinations of operators."""
-        result = self.shell.execute("echo start && echo middle || echo fallback; echo end")
+        result = self.shell.execute(
+            "echo start && echo middle || echo fallback; echo end"
+        )
         assert "start" in result
         assert "middle" in result
         assert "fallback" not in result
         assert "end" in result
-        
+
         result = self.shell.execute("false && echo skip || echo shown; echo always")
         assert "skip" not in result
         assert "shown" in result
@@ -457,7 +465,9 @@ class TestCommandChaining:
     def test_operators_with_pipes(self):
         """Test operators combined with pipes."""
         self.shell.execute("echo 'test' > /test.txt")
-        result = self.shell.execute("cat /test.txt | grep test && echo found || echo not_found")
+        result = self.shell.execute(
+            "cat /test.txt | grep test && echo found || echo not_found"
+        )
         assert "test" in result
         assert "found" in result
         assert "not_found" not in result
@@ -531,7 +541,7 @@ class TestWorkingDirectory:
         self.shell.execute("cd /test")
         result = self.shell.execute("pwd")
         assert result.strip() == "/test"
-        
+
         self.shell.execute("cd /test/subdir")
         result = self.shell.execute("pwd")
         assert result.strip() == "/test/subdir"
@@ -543,7 +553,7 @@ class TestWorkingDirectory:
         self.shell.execute("cd b")
         result = self.shell.execute("pwd")
         assert result.strip() == "/a/b"
-        
+
         self.shell.execute("cd c")
         result = self.shell.execute("pwd")
         assert result.strip() == "/a/b/c"
@@ -555,7 +565,7 @@ class TestWorkingDirectory:
         self.shell.execute("cd ..")
         result = self.shell.execute("pwd")
         assert result.strip() == "/one/two"
-        
+
         self.shell.execute("cd ../..")
         result = self.shell.execute("pwd")
         assert result.strip() == "/"
@@ -567,7 +577,7 @@ class TestWorkingDirectory:
         self.shell.execute("cd ~")
         result = self.shell.execute("pwd")
         assert result.strip() == home
-        
+
         self.shell.execute("cd")  # cd with no args should go home
         result = self.shell.execute("pwd")
         assert result.strip() == home
@@ -602,7 +612,7 @@ class TestCommandHistory:
         commands = ["echo first", "echo second", "echo third"]
         for cmd in commands:
             self.shell.execute(cmd)
-        
+
         for cmd in commands:
             assert cmd in self.shell.history
 
@@ -611,7 +621,7 @@ class TestCommandHistory:
         self.shell.execute("echo one")
         self.shell.execute("echo two")
         self.shell.execute("echo three")
-        
+
         result = self.shell.execute("history")
         assert "echo one" in result
         assert "echo two" in result
@@ -621,9 +631,9 @@ class TestCommandHistory:
         """Test history with limit."""
         for i in range(10):
             self.shell.execute(f"echo {i}")
-        
+
         result = self.shell.execute("history 3")
-        lines = result.strip().split('\n')
+        lines = result.strip().split("\n")
         assert len(lines) <= 3
 
     def test_history_search(self):
@@ -631,7 +641,7 @@ class TestCommandHistory:
         self.shell.execute("echo test")
         self.shell.execute("ls /")
         self.shell.execute("echo another")
-        
+
         result = self.shell.execute("history echo")
         assert "echo test" in result
         assert "echo another" in result
@@ -663,7 +673,7 @@ class TestCommandTiming:
         self.shell.execute("ls /")
         self.shell.execute("pwd")
         self.shell.execute("echo test")  # Run echo twice
-        
+
         result = self.shell.execute("timings")
         # Should show timing stats
         assert "echo" in result or "Command" in result
@@ -690,18 +700,18 @@ class TestShellrcLoading:
         shellrc_content = """export TEST_RC=loaded
 alias rctest="echo RC Test"
 timings -e"""
-        
+
         self.shell.fs.write_file("/home/user/.shellrc", shellrc_content)
-        
+
         # Create new shell to trigger loading
         new_shell = ShellInterpreter()
-        
+
         # Check environment variable
         assert new_shell.environ.get("TEST_RC") == "loaded"
-        
+
         # Check alias
         assert "rctest" in new_shell.aliases
-        
+
         # Check timing enabled
         assert new_shell.enable_timing is True
 
@@ -710,9 +720,9 @@ timings -e"""
         shellrc_content = """export VALID=yes
 invalid_command
 alias valid="echo valid" """
-        
+
         self.shell.fs.write_file("/home/user/.shellrc", shellrc_content)
-        
+
         # Should not crash on invalid commands
         new_shell = ShellInterpreter()
         assert new_shell.environ.get("VALID") == "yes"
@@ -732,11 +742,11 @@ class TestErrorHandling:
         result = self.shell.execute('echo "unclosed')
         # Should handle gracefully
         assert "unclosed" in result or "error" in result.lower()
-        
+
         # Empty pipes
         result = self.shell.execute("echo test |")
         # Should handle gracefully
-        
+
         # Invalid redirections
         result = self.shell.execute("echo test >")
         # Should handle gracefully
@@ -759,7 +769,7 @@ class TestErrorHandling:
         # Create many files
         for i in range(100):
             self.shell.execute(f"touch /file{i}.txt")
-        
+
         # Should handle large ls output
         result = self.shell.execute("ls /")
         assert "file0.txt" in result
@@ -771,7 +781,7 @@ class TestErrorHandling:
         self.shell.execute('touch "/file with spaces.txt"')
         result = self.shell.execute("ls /")
         assert "file with spaces.txt" in result
-        
+
         # Special characters in echo
         result = self.shell.execute('echo "!@#$%^&*()"')
         assert "!@#$%^&*()" in result
@@ -790,7 +800,7 @@ class TestIntegration:
         self.shell.execute("mkdir -p /data")
         for i in range(10):
             self.shell.execute(f"echo 'Line {i}' > /data/file{i}.txt")
-        
+
         # Complex pipeline
         result = self.shell.execute("ls /data | grep file | head -5 | wc -l")
         assert "5" in result.strip()
@@ -804,12 +814,12 @@ class TestIntegration:
             "cd src",
             "echo 'print(\"Hello\")' > main.py",
             "cd ..",
-            "ls -la"
+            "ls -la",
         ]
-        
+
         for cmd in commands:
             self.shell.execute(cmd)
-        
+
         # Verify final state
         assert self.shell.environ["PWD"] == "/project"
         assert self.shell.fs.exists("/project/README.md")
@@ -821,7 +831,7 @@ class TestIntegration:
         self.shell.execute("export VAR2=value2")
         self.shell.execute("cd /home")
         self.shell.execute('alias myls="ls -la"')
-        
+
         # All changes should persist
         assert self.shell.environ["VAR1"] == "value1"
         assert self.shell.environ["VAR2"] == "value2"
@@ -836,13 +846,13 @@ class TestIntegration:
         self.shell.execute("echo '# MyApp' > README.md")
         self.shell.execute("echo 'def main(): pass' > src/main.py")
         self.shell.execute("echo 'def test(): pass' > tests/test_main.py")
-        
+
         # Check project structure
         result = self.shell.execute("find . -type f")
         assert "./README.md" in result
         assert "./src/main.py" in result
         assert "./tests/test_main.py" in result
-        
+
         # Use grep to find functions
         result = self.shell.execute("grep -r 'def' .")
         assert "main" in result

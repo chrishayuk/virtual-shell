@@ -2,7 +2,6 @@
 Test cases for the sleep command.
 """
 
-import pytest
 import time
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
@@ -19,19 +18,19 @@ class TestSleepCommand:
         start = time.time()
         result = self.shell.execute("sleep 0.1")
         elapsed = time.time() - start
-        
+
         assert result == ""
         assert self.shell.return_code == 0
         # Allow some tolerance for timing
         assert elapsed >= 0.09  # Should sleep at least 0.09 seconds
-        assert elapsed < 0.3    # But not too long
+        assert elapsed < 0.3  # But not too long
 
     def test_sleep_integer(self):
         """Test sleep with integer seconds."""
         start = time.time()
         result = self.shell.execute("sleep 1")
         elapsed = time.time() - start
-        
+
         assert result == ""
         assert self.shell.return_code == 0
         assert elapsed >= 0.9
@@ -42,7 +41,7 @@ class TestSleepCommand:
         start = time.time()
         result = self.shell.execute("sleep 0.5")
         elapsed = time.time() - start
-        
+
         assert result == ""
         assert self.shell.return_code == 0
         assert elapsed >= 0.4
@@ -53,7 +52,7 @@ class TestSleepCommand:
         start = time.time()
         result = self.shell.execute("sleep 0")
         elapsed = time.time() - start
-        
+
         assert result == ""
         assert self.shell.return_code == 0
         assert elapsed < 0.1  # Should return immediately
@@ -67,7 +66,7 @@ class TestSleepCommand:
         """Test sleep with invalid argument."""
         result = self.shell.execute("sleep abc")
         assert "invalid time interval" in result
-        
+
         result = self.shell.execute("sleep -5")
         assert "invalid time interval" in result
 
@@ -76,7 +75,7 @@ class TestSleepCommand:
         start = time.time()
         result = self.shell.execute("echo start && sleep 0.2 && echo end")
         elapsed = time.time() - start
-        
+
         assert "start" in result
         assert "end" in result
         assert elapsed >= 0.15  # Should have slept
@@ -84,10 +83,10 @@ class TestSleepCommand:
     def test_sleep_with_timing(self):
         """Test sleep with command timing enabled."""
         self.shell.execute("timings -e")
-        
+
         # Execute sleep
         self.shell.execute("sleep 0.1")
-        
+
         # Check timing was recorded
         if "sleep" in self.shell.command_timing:
             stats = self.shell.command_timing["sleep"]

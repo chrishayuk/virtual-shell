@@ -13,13 +13,13 @@ def more_setup():
     """Set up test environment with various files."""
     # Create test content
     short_content = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
-    
+
     # Long content (100 lines)
     long_content = "\n".join([f"Line {i}" for i in range(1, 101)])
-    
+
     # Content with blank lines for squeeze testing
     blank_content = "Line 1\n\n\nLine 2\n\n\n\n\nLine 3\nLine 4\n\n\nLine 5"
-    
+
     # Content with pattern
     pattern_content = (
         "Header line\n"
@@ -29,21 +29,19 @@ def more_setup():
         "Another line\n"
         "Final line"
     )
-    
+
     # Binary-like content
     binary_content = "Normal\x00\x01\x02\nBinary\xff\xfe\nContent"
-    
+
     # Unicode content
     unicode_content = "Hello 世界\n🎉 Emoji line\nÄccëntéd tëxt\nСирилица\nالعربية"
-    
+
     # Very long lines
-    long_lines = "\n".join([
-        f"Line {i}: " + "x" * 200 for i in range(1, 21)
-    ])
-    
+    long_lines = "\n".join([f"Line {i}: " + "x" * 200 for i in range(1, 21)])
+
     # Tab content
     tab_content = "Col1\tCol2\tCol3\nData1\tData2\tData3\nRow1\tRow2\tRow3"
-    
+
     files = {
         "/": {
             "short.txt": None,
@@ -55,7 +53,7 @@ def more_setup():
             "longlines.txt": None,
             "tabs.txt": None,
             "empty.txt": None,
-            "testdir": None
+            "testdir": None,
         },
         "/short.txt": short_content,
         "/long.txt": long_content,
@@ -66,20 +64,20 @@ def more_setup():
         "/longlines.txt": long_lines,
         "/tabs.txt": tab_content,
         "/empty.txt": "",
-        "/testdir": {}
+        "/testdir": {},
     }
-    
+
     shell = DummyShell(files)
     shell.fs.current_directory = "/"
     shell.environ = {"PWD": "/"}
-    
+
     cmd = MoreCommand(shell)
     return shell, cmd
 
 
 class TestMoreBasic:
     """Test basic more functionality."""
-    
+
     def test_more_single_file(self, more_setup):
         """Test displaying a single file."""
         shell, cmd = more_setup
@@ -87,7 +85,7 @@ class TestMoreBasic:
         assert "Line 1" in result
         assert "Line 2" in result
         assert "Line 5" in result
-    
+
     def test_more_multiple_files(self, more_setup):
         """Test displaying multiple files."""
         shell, cmd = more_setup
@@ -95,26 +93,26 @@ class TestMoreBasic:
         # Should show file headers
         assert "short.txt" in result or "Line 1" in result
         assert "::::::" in result  # File separator
-    
+
     def test_more_nonexistent_file(self, more_setup):
         """Test with non-existent file."""
         shell, cmd = more_setup
         result = cmd.execute(["/nonexistent.txt"])
         assert "No such file or directory" in result
-    
+
     def test_more_directory(self, more_setup):
         """Test trying to display a directory."""
         shell, cmd = more_setup
         result = cmd.execute(["/testdir"])
         assert "Is a directory" in result
-    
+
     def test_more_empty_file(self, more_setup):
         """Test displaying empty file."""
         shell, cmd = more_setup
         result = cmd.execute(["/empty.txt"])
         # Should handle empty file gracefully
         assert result == "" or "--More--" not in result
-    
+
     def test_more_no_arguments(self, more_setup):
         """Test more with no arguments."""
         shell, cmd = more_setup
@@ -124,7 +122,7 @@ class TestMoreBasic:
 
 class TestMorePaging:
     """Test paging functionality."""
-    
+
     def test_more_long_file_pagination(self, more_setup):
         """Test pagination with long file."""
         shell, cmd = more_setup
@@ -132,17 +130,17 @@ class TestMorePaging:
         # Should show pagination markers
         assert "--More--" in result
         assert "%" in result  # Percentage indicator
-    
+
     def test_more_custom_page_size(self, more_setup):
         """Test custom page size with -n option."""
         shell, cmd = more_setup
         result = cmd.execute(["-n", "10", "/long.txt"])
         # Should paginate with 10 lines per page
-        lines = result.split("\n")
+        result.split("\n")
         # Check for more frequent pagination markers
         more_count = result.count("--More--")
         assert more_count > 5  # Should have many pages with only 10 lines each
-    
+
     def test_more_numeric_page_size(self, more_setup):
         """Test -NUM syntax for page size."""
         shell, cmd = more_setup
@@ -154,7 +152,7 @@ class TestMorePaging:
 
 class TestMoreStartPosition:
     """Test start position options."""
-    
+
     def test_more_start_at_line(self, more_setup):
         """Test +NUM to start at specific line."""
         shell, cmd = more_setup
@@ -167,7 +165,7 @@ class TestMoreStartPosition:
         line1_pos = result.find("Line 1")
         if line1_pos != -1:
             assert line3_pos < line1_pos
-    
+
     def test_more_start_at_pattern(self, more_setup):
         """Test +/PATTERN to start at pattern."""
         shell, cmd = more_setup
@@ -184,7 +182,7 @@ class TestMoreStartPosition:
 
 class TestMoreSqueezeBlank:
     """Test squeeze blank lines functionality."""
-    
+
     def test_more_squeeze_blanks(self, more_setup):
         """Test -s flag to squeeze blank lines."""
         shell, cmd = more_setup
@@ -201,7 +199,7 @@ class TestMoreSqueezeBlank:
                 consecutive_blanks = 0
         # Should not have more than 1 consecutive blank
         assert max_consecutive <= 1
-    
+
     def test_more_no_squeeze(self, more_setup):
         """Test without squeeze shows multiple blanks."""
         shell, cmd = more_setup
@@ -212,19 +210,19 @@ class TestMoreSqueezeBlank:
 
 class TestMoreDisplayOptions:
     """Test display options."""
-    
+
     def test_more_clear_screen(self, more_setup):
         """Test -p flag to clear screen."""
         shell, cmd = more_setup
         result = cmd.execute(["-p", "/short.txt"])
         assert "[Screen cleared]" in result or "Line 1" in result
-    
+
     def test_more_clean_print(self, more_setup):
         """Test -c flag for clean printing."""
         shell, cmd = more_setup
         result = cmd.execute(["-c", "/short.txt"])
         assert "[Screen cleared]" in result or "Line 1" in result
-    
+
     def test_more_silent_mode(self, more_setup):
         """Test -d flag for helpful prompts."""
         shell, cmd = more_setup
@@ -236,7 +234,7 @@ class TestMoreDisplayOptions:
 
 class TestMoreStdin:
     """Test reading from stdin."""
-    
+
     def test_more_from_stdin(self, more_setup):
         """Test reading from stdin buffer."""
         shell, cmd = more_setup
@@ -244,7 +242,7 @@ class TestMoreStdin:
         result = cmd.execute([])
         assert "Stdin line 1" in result
         assert "Stdin line 2" in result
-    
+
     def test_more_no_stdin_no_files(self, more_setup):
         """Test with no stdin and no files."""
         shell, cmd = more_setup
@@ -254,28 +252,28 @@ class TestMoreStdin:
 
 class TestMoreSpecialContent:
     """Test handling of special content."""
-    
+
     def test_more_binary_content(self, more_setup):
         """Test displaying binary content."""
         shell, cmd = more_setup
         result = cmd.execute(["/binary.bin"])
         # Should handle binary content somehow
         assert "Normal" in result or "Binary" in result
-    
+
     def test_more_unicode_content(self, more_setup):
         """Test displaying unicode content."""
         shell, cmd = more_setup
         result = cmd.execute(["/unicode.txt"])
         # Should handle unicode
         assert result  # At minimum should not crash
-    
+
     def test_more_long_lines(self, more_setup):
         """Test handling very long lines."""
         shell, cmd = more_setup
         result = cmd.execute(["/longlines.txt"])
         assert "Line 1:" in result
         assert "xxx" in result  # Part of the long line
-    
+
     def test_more_tab_content(self, more_setup):
         """Test handling tab characters."""
         shell, cmd = more_setup
@@ -286,7 +284,7 @@ class TestMoreSpecialContent:
 
 class TestMoreOptions:
     """Test various command options."""
-    
+
     def test_more_help(self, more_setup):
         """Test --help flag."""
         shell, cmd = more_setup
@@ -295,26 +293,26 @@ class TestMoreOptions:
         assert "Usage:" in result
         assert "-s" in result
         assert "+NUM" in result
-    
+
     def test_more_version(self, more_setup):
         """Test --version flag."""
         shell, cmd = more_setup
         result = cmd.execute(["--version"])
         assert "more version" in result
-    
+
     def test_more_invalid_lines(self, more_setup):
         """Test invalid number of lines."""
         shell, cmd = more_setup
         result = cmd.execute(["-n", "abc", "/short.txt"])
         assert "invalid number" in result
-    
+
     def test_more_logical_lines(self, more_setup):
         """Test -f flag for logical lines."""
         shell, cmd = more_setup
         result = cmd.execute(["-f", "/short.txt"])
         # Should count logical lines
         assert "Line 1" in result
-    
+
     def test_more_plain_mode(self, more_setup):
         """Test -u flag for plain mode."""
         shell, cmd = more_setup
@@ -325,7 +323,7 @@ class TestMoreOptions:
 
 class TestMoreCombinations:
     """Test combining multiple options."""
-    
+
     def test_more_squeeze_and_start(self, more_setup):
         """Test combining squeeze and start position."""
         shell, cmd = more_setup
@@ -340,7 +338,7 @@ class TestMoreCombinations:
             else:
                 consecutive_blanks = 0
         assert max_consecutive <= 1
-    
+
     def test_more_page_size_and_clear(self, more_setup):
         """Test combining page size and clear screen."""
         shell, cmd = more_setup
@@ -349,7 +347,7 @@ class TestMoreCombinations:
         assert "[Screen cleared]" in result or "--More--" in result
         more_count = result.count("--More--")
         assert more_count > 10
-    
+
     def test_more_multiple_files_with_options(self, more_setup):
         """Test multiple files with various options."""
         shell, cmd = more_setup
@@ -361,7 +359,7 @@ class TestMoreCombinations:
 
 class TestMoreErrorHandling:
     """Test error handling."""
-    
+
     def test_more_mixed_valid_invalid(self, more_setup):
         """Test mix of valid and invalid files."""
         shell, cmd = more_setup
@@ -369,7 +367,7 @@ class TestMoreErrorHandling:
         # Should show error for nonexistent but continue
         assert "No such file or directory" in result
         assert "Line 1" in result  # From short.txt
-    
+
     def test_more_all_invalid_files(self, more_setup):
         """Test all invalid files."""
         shell, cmd = more_setup
@@ -380,22 +378,21 @@ class TestMoreErrorHandling:
 
 class TestMoreRealWorldScenarios:
     """Test real-world usage scenarios."""
-    
+
     def test_more_log_file_viewing(self, more_setup):
         """Test viewing a log file with pagination."""
         shell, cmd = more_setup
         # Create a log file
-        log_content = "\n".join([
-            f"2024-01-01 12:00:{i:02d} INFO: Log entry {i}"
-            for i in range(100)
-        ])
+        log_content = "\n".join(
+            [f"2024-01-01 12:00:{i:02d} INFO: Log entry {i}" for i in range(100)]
+        )
         shell.fs.write_file("/app.log", log_content)
-        
+
         result = cmd.execute(["-20", "/app.log"])
         assert "2024-01-01" in result
         assert "INFO: Log entry" in result
         assert "--More--" in result
-    
+
     def test_more_config_file_viewing(self, more_setup):
         """Test viewing configuration files."""
         shell, cmd = more_setup
@@ -413,7 +410,7 @@ db.name=myapp
 log.level=INFO
 log.file=/var/log/app.log"""
         shell.fs.write_file("/config.ini", config)
-        
+
         result = cmd.execute(["-s", "/config.ini"])
         assert "server.host" in result
         assert "db.name" in result
@@ -426,18 +423,18 @@ log.file=/var/log/app.log"""
                 assert consecutive_blanks <= 1
             else:
                 consecutive_blanks = 0
-    
+
     def test_more_search_in_file(self, more_setup):
         """Test searching for pattern in file."""
         shell, cmd = more_setup
         # Create file with specific content
-        content = "\n".join([
-            f"Line {i}" for i in range(1, 50)
-        ] + ["ERROR: Something went wrong"] + [
-            f"Line {i}" for i in range(51, 100)
-        ])
+        content = "\n".join(
+            [f"Line {i}" for i in range(1, 50)]
+            + ["ERROR: Something went wrong"]
+            + [f"Line {i}" for i in range(51, 100)]
+        )
         shell.fs.write_file("/debug.log", content)
-        
+
         result = cmd.execute(["+/ERROR", "/debug.log"])
         # Should start at or near the ERROR line
         lines = result.split("\n")

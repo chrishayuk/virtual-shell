@@ -28,7 +28,7 @@ def rm_command_with_dirs():
         "/dir1/subdir": {},
         "/dir1/subdir/deep.txt": "Deep file",
         "/dir2": {},
-        "/emptydir": {}
+        "/emptydir": {},
     }
     dummy_shell = DummyShell(files)
     command = RmCommand(shell_context=dummy_shell)
@@ -104,7 +104,7 @@ def test_rm_verbose_recursive(rm_command_with_dirs):
     # Should show each file/dir removed
     assert "removed" in output
     # Should mention multiple items
-    lines = output.strip().split('\n')
+    lines = output.strip().split("\n")
     assert len(lines) > 1  # Multiple items removed
 
 

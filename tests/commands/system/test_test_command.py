@@ -2,7 +2,6 @@
 Test cases for the test/[ command.
 """
 
-import pytest
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 
@@ -22,14 +21,14 @@ class TestTestCommand:
         # Test with test command
         self.shell.execute("test -e /test/file.txt")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test -e /nonexistent")
         assert self.shell.return_code == 1
-        
+
         # Test with [ ] syntax
         self.shell.execute("[ -e /test/file.txt ]")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("[ -e /nonexistent ]")
         assert self.shell.return_code == 1
 
@@ -37,10 +36,10 @@ class TestTestCommand:
         """Test -f flag for regular file."""
         self.shell.execute("test -f /test/file.txt")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test -f /test/dir")
         assert self.shell.return_code == 1
-        
+
         self.shell.execute("test -f /nonexistent")
         assert self.shell.return_code == 1
 
@@ -48,10 +47,10 @@ class TestTestCommand:
         """Test -d flag for directory."""
         self.shell.execute("test -d /test/dir")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test -d /test/file.txt")
         assert self.shell.return_code == 1
-        
+
         self.shell.execute("test -d /nonexistent")
         assert self.shell.return_code == 1
 
@@ -59,10 +58,10 @@ class TestTestCommand:
         """Test -s flag for file with size > 0."""
         self.shell.execute("test -s /test/file.txt")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test -s /test/empty.txt")
         assert self.shell.return_code == 1
-        
+
         self.shell.execute("test -s /nonexistent")
         assert self.shell.return_code == 1
 
@@ -70,7 +69,7 @@ class TestTestCommand:
         """Test -z flag for empty string."""
         self.shell.execute("test -z ''")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test -z 'hello'")
         assert self.shell.return_code == 1
 
@@ -78,7 +77,7 @@ class TestTestCommand:
         """Test -n flag for non-empty string."""
         self.shell.execute("test -n 'hello'")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test -n ''")
         assert self.shell.return_code == 1
 
@@ -86,10 +85,10 @@ class TestTestCommand:
         """Test string equality with =."""
         self.shell.execute("test 'hello' = 'hello'")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test 'hello' = 'world'")
         assert self.shell.return_code == 1
-        
+
         # Test with [ ] syntax
         self.shell.execute("[ 'hello' = 'hello' ]")
         assert self.shell.return_code == 0
@@ -98,7 +97,7 @@ class TestTestCommand:
         """Test string inequality with !=."""
         self.shell.execute("test 'hello' != 'world'")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test 'hello' != 'hello'")
         assert self.shell.return_code == 1
 
@@ -106,7 +105,7 @@ class TestTestCommand:
         """Test numeric equality with -eq."""
         self.shell.execute("test 5 -eq 5")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test 5 -eq 10")
         assert self.shell.return_code == 1
 
@@ -114,7 +113,7 @@ class TestTestCommand:
         """Test numeric inequality with -ne."""
         self.shell.execute("test 5 -ne 10")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test 5 -ne 5")
         assert self.shell.return_code == 1
 
@@ -122,10 +121,10 @@ class TestTestCommand:
         """Test numeric less than with -lt."""
         self.shell.execute("test 5 -lt 10")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test 10 -lt 5")
         assert self.shell.return_code == 1
-        
+
         self.shell.execute("test 5 -lt 5")
         assert self.shell.return_code == 1
 
@@ -133,10 +132,10 @@ class TestTestCommand:
         """Test numeric greater than with -gt."""
         self.shell.execute("test 10 -gt 5")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test 5 -gt 10")
         assert self.shell.return_code == 1
-        
+
         self.shell.execute("test 5 -gt 5")
         assert self.shell.return_code == 1
 
@@ -144,7 +143,7 @@ class TestTestCommand:
         """Test negation with !."""
         self.shell.execute("test ! -e /nonexistent")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test ! -e /test/file.txt")
         assert self.shell.return_code == 1
 
@@ -152,7 +151,7 @@ class TestTestCommand:
         """Test single argument (non-empty string test)."""
         self.shell.execute("test hello")
         assert self.shell.return_code == 0
-        
+
         self.shell.execute("test ''")
         assert self.shell.return_code == 1
 
@@ -161,6 +160,6 @@ class TestTestCommand:
         # Valid syntax
         self.shell.execute("[ -e /test/file.txt ]")
         assert self.shell.return_code == 0
-        
+
         # The actual [ command implementation should handle missing ]
         # but for now we just test the valid case

@@ -63,7 +63,10 @@ async def test_load_mcp_tools_for_server():
             {"name": "toolA"},
             {"name": "toolB"},
         ], "Expected the mocked list of tools to be returned."
-        mock_send_tools_list.assert_awaited_once(), "send_tools_list should be called exactly once."
+        (
+            mock_send_tools_list.assert_awaited_once(),
+            "send_tools_list should be called exactly once.",
+        )
     finally:
         # Stop all patches
         stdio_client_patch.stop()
@@ -186,7 +189,6 @@ async def test_register_mcp_commands():
             side_effect=fake_create_command,
         ),
     ):
-
         # Run the function we're testing
         await register_mcp_commands(shell)
 

@@ -45,9 +45,7 @@ class DfCommand(ShellCommand):
         parser.add_argument(
             "-k", action="store_true", help="Use 1024-byte blocks (default)"
         )
-        parser.add_argument(
-            "-B", "--block-size", type=str, help="Use SIZE-byte blocks"
-        )
+        parser.add_argument("-B", "--block-size", type=str, help="Use SIZE-byte blocks")
         parser.add_argument(
             "-P", "--portability", action="store_true", help="Use POSIX output format"
         )
@@ -63,16 +61,14 @@ class DfCommand(ShellCommand):
         parser.add_argument(
             "--total", action="store_true", help="Produce a grand total"
         )
-        parser.add_argument(
-            "--help", action="store_true", help="Display help and exit"
-        )
+        parser.add_argument("--help", action="store_true", help="Display help and exit")
         parser.add_argument("paths", nargs="*", help="Paths to show disk space for")
 
         try:
             parsed_args = parser.parse_args(args)
         except SystemExit:
             return self.get_help()
-        
+
         # Handle help flag
         if parsed_args.help:
             return self.get_help()
@@ -95,11 +91,11 @@ class DfCommand(ShellCommand):
             # Parse block size (e.g., "1K", "1M", "512")
             size_str = parsed_args.block_size.upper()
             try:
-                if size_str.endswith('K'):
+                if size_str.endswith("K"):
                     block_size = int(size_str[:-1]) * 1024
-                elif size_str.endswith('M'):
+                elif size_str.endswith("M"):
                     block_size = int(size_str[:-1]) * 1024 * 1024
-                elif size_str.endswith('G'):
+                elif size_str.endswith("G"):
                     block_size = int(size_str[:-1]) * 1024 * 1024 * 1024
                 else:
                     block_size = int(size_str)
@@ -109,15 +105,23 @@ class DfCommand(ShellCommand):
         # Display header
         if parsed_args.inodes:
             if parsed_args.print_type:
-                results.append("Filesystem     Type       Inodes  IUsed    IFree IUse% Mounted on")
+                results.append(
+                    "Filesystem     Type       Inodes  IUsed    IFree IUse% Mounted on"
+                )
             else:
-                results.append("Filesystem      Inodes  IUsed    IFree IUse% Mounted on")
+                results.append(
+                    "Filesystem      Inodes  IUsed    IFree IUse% Mounted on"
+                )
         elif parsed_args.portability:
             # POSIX format
             if parsed_args.print_type:
-                results.append("Filesystem     Type      512-blocks      Used Available Capacity Mounted on")
+                results.append(
+                    "Filesystem     Type      512-blocks      Used Available Capacity Mounted on"
+                )
             else:
-                results.append("Filesystem     512-blocks      Used Available Capacity Mounted on")
+                results.append(
+                    "Filesystem     512-blocks      Used Available Capacity Mounted on"
+                )
         else:
             # Format block label based on size
             if block_size >= 1024 * 1024 * 1024:
@@ -128,17 +132,21 @@ class DfCommand(ShellCommand):
                 block_label = f"{block_size // 1024}K-blocks"
             else:
                 block_label = f"{block_size}-blocks"
-                
+
             if parsed_args.print_type:
-                results.append(f"Filesystem     Type      {block_label:>10}    Used    Available Use% Mounted on")
+                results.append(
+                    f"Filesystem     Type      {block_label:>10}    Used    Available Use% Mounted on"
+                )
             else:
-                results.append(f"Filesystem     {block_label:>10}    Used    Available Use% Mounted on")
+                results.append(
+                    f"Filesystem     {block_label:>10}    Used    Available Use% Mounted on"
+                )
 
         # Track totals if requested
         total_total = 0
         total_used = 0
         total_available = 0
-        
+
         for path in paths:
             # Resolve path to absolute
             abs_path = self.shell.fs.resolve_path(path)
@@ -147,10 +155,10 @@ class DfCommand(ShellCommand):
             if not self.shell.fs.get_node_info(abs_path):
                 results.append(f"df: {path}: No such file or directory")
                 continue
-                
+
             # Get filesystem type
             fs_type = storage_stats.get("fs_type", "vfs")
-            
+
             # Check type filters
             if parsed_args.type and fs_type != parsed_args.type:
                 continue
@@ -184,10 +192,12 @@ class DfCommand(ShellCommand):
 
             else:
                 # Get block sizes
-                total_size = storage_stats.get("max_total_size", 104857600)  # Default 100MB
+                total_size = storage_stats.get(
+                    "max_total_size", 104857600
+                )  # Default 100MB
                 used_size = storage_stats.get("total_size_bytes", 0)
                 free_size = max(0, total_size - used_size)
-                
+
                 # Update totals
                 if parsed_args.total:
                     total_total += total_size
@@ -241,9 +251,11 @@ class DfCommand(ShellCommand):
                 total_str = f"{total_total // block_size:10d}"
                 used_str = f"{total_used // block_size:10d}"
                 avail_str = f"{total_available // block_size:10d}"
-            
-            use_percent = int((total_used / total_total) * 100) if total_total > 0 else 0
-            
+
+            use_percent = (
+                int((total_used / total_total) * 100) if total_total > 0 else 0
+            )
+
             if parsed_args.print_type:
                 results.append(
                     f"{'total':<14} {'-':<10} {total_str:>10} {used_str:>10} {avail_str:>10} {use_percent:>3}% -"
@@ -252,22 +264,22 @@ class DfCommand(ShellCommand):
                 results.append(
                     f"{'total':<14} {total_str:>10} {used_str:>10} {avail_str:>10} {use_percent:>3}% -"
                 )
-        
+
         return "\n".join(results)
 
     def _format_size(self, size_bytes: int) -> str:
         """Convert a size in bytes into a human-readable string."""
         if size_bytes == 0:
             return "0"
-        
+
         # Handle negative sizes (shouldn't happen but be safe)
         negative = size_bytes < 0
         size_bytes = abs(size_bytes)
-        
-        units = ['B', 'K', 'M', 'G', 'T', 'P', 'E']
+
+        units = ["B", "K", "M", "G", "T", "P", "E"]
         unit_index = 0
         size_float = float(size_bytes)
-        
+
         # For bytes, don't divide
         if size_float < 1024:
             result = f"{int(size_float)}{units[unit_index]}"
@@ -276,7 +288,7 @@ class DfCommand(ShellCommand):
             while size_float >= 1024 and unit_index < len(units) - 1:
                 size_float /= 1024.0
                 unit_index += 1
-            
+
             # Format based on size
             if size_float >= 100:
                 result = f"{int(size_float)}{units[unit_index]}"
@@ -284,5 +296,5 @@ class DfCommand(ShellCommand):
                 result = f"{size_float:.1f}{units[unit_index]}"
             else:
                 result = f"{size_float:.2f}{units[unit_index]}"
-        
+
         return f"-{result}" if negative else result

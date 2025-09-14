@@ -26,7 +26,7 @@ Options:
         force = False
         interactive = False
         verbose = False
-        
+
         files = []
         i = 0
         while i < len(args):
@@ -35,18 +35,18 @@ Options:
                 if arg == "--help":
                     return self.help_text
                 elif arg == "--":
-                    files.extend(args[i+1:])
+                    files.extend(args[i + 1 :])
                     break
                 else:
                     # Process flags (can be combined like -rf)
                     for flag in arg[1:]:
-                        if flag in ['r', 'R']:
+                        if flag in ["r", "R"]:
                             recursive = True
-                        elif flag == 'f':
+                        elif flag == "f":
                             force = True
-                        elif flag == 'i':
+                        elif flag == "i":
                             interactive = True
-                        elif flag == 'v':
+                        elif flag == "v":
                             verbose = True
                         else:
                             if not force:
@@ -60,20 +60,22 @@ Options:
 
         results = []
         errors = []
-        
+
         for path in files:
             # Check if path exists
             if not self.shell.fs.exists(path):
                 if not force:
-                    errors.append(f"rm: cannot remove '{path}': No such file or directory")
+                    errors.append(
+                        f"rm: cannot remove '{path}': No such file or directory"
+                    )
                 continue
-            
+
             # Check if it's a directory
             if self.shell.fs.is_dir(path):
                 if not recursive:
                     errors.append(f"rm: cannot remove '{path}': Is a directory")
                     continue
-                    
+
                 # Remove directory recursively
                 if not self._remove_recursive(path, force, verbose, results, errors):
                     if not force:
@@ -83,7 +85,7 @@ Options:
                 if interactive:
                     # In non-interactive shell, skip interactive prompts
                     continue
-                    
+
                 if self.shell.fs.rm(path):
                     if verbose:
                         results.append(f"removed '{path}'")
@@ -97,31 +99,31 @@ Options:
             output.extend(results)
         if errors:
             output.extend(errors)
-            
+
         return "\n".join(output) if output else ""
-    
+
     def _remove_recursive(self, path, force, verbose, results, errors):
         """Recursively remove a directory and its contents"""
         # First, find all files/dirs that start with this path
         # This handles the flat structure of DummyFileSystem
         to_remove = []
-        
+
         # Collect all paths that are under this directory
         for fs_path in list(self.shell.fs.files.keys()):
             if fs_path == path or fs_path.startswith(path + "/"):
                 to_remove.append(fs_path)
-        
+
         # Sort in reverse order so we remove deepest items first
         to_remove.sort(reverse=True)
-        
+
         # Remove files and empty directories
         for item_path in to_remove:
             if item_path == path:
                 continue  # Handle the parent directory last
-                
+
             if self.shell.fs.is_dir(item_path):
                 # Remove empty directory
-                if hasattr(self.shell.fs, 'rmdir'):
+                if hasattr(self.shell.fs, "rmdir"):
                     if self.shell.fs.rmdir(item_path):
                         if verbose:
                             results.append(f"removed directory '{item_path}'")
@@ -136,9 +138,9 @@ Options:
                 elif not force:
                     errors.append(f"rm: cannot remove '{item_path}'")
                     return False
-        
+
         # Now remove the parent directory itself
-        if hasattr(self.shell.fs, 'rmdir'):
+        if hasattr(self.shell.fs, "rmdir"):
             # First try to remove it as empty dir
             if self.shell.fs.rmdir(path):
                 if verbose:
@@ -151,5 +153,5 @@ Options:
                     if verbose:
                         results.append(f"removed directory '{path}'")
                     return True
-        
+
         return False

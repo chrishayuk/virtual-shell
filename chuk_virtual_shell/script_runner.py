@@ -137,16 +137,16 @@ class ScriptRunner:
     def _process_control_flow_block(self, lines, start_line):
         """
         Process a control flow block (if/for/while/until)
-        
+
         Args:
             lines: All script lines
             start_line: Index of the line containing control flow keyword
-            
+
         Returns:
             Tuple of (result, end_line)
         """
         first_line = lines[start_line].strip()
-        
+
         # Determine the type of control flow
         if first_line.startswith("if "):
             return self._process_if_block(lines, start_line)
@@ -160,17 +160,17 @@ class ScriptRunner:
             # Shouldn't happen, but fallback to single line execution
             result = self.shell.execute(first_line)
             return result if result else "", start_line
-    
+
     def _process_loop_block(self, lines, start_line, loop_type, end_keyword):
         """
         Process a loop block (for/while/until)
-        
+
         Args:
             lines: All script lines
             start_line: Index of the line containing loop keyword
             loop_type: "for", "while", or "until"
             end_keyword: "done"
-            
+
         Returns:
             Tuple of (result, end_line)
         """
@@ -178,10 +178,10 @@ class ScriptRunner:
         loop_lines = []
         current = start_line
         nesting_level = 0
-        
+
         while current < len(lines):
             line = lines[current].strip()
-            
+
             # Track nesting
             if any(line.startswith(kw + " ") for kw in ["for", "while", "until"]):
                 nesting_level += 1
@@ -206,21 +206,21 @@ class ScriptRunner:
                     if loop_lines[-1] not in ["do", "then", "else"]:
                         loop_lines[-1] += ";"
                 loop_lines.append(line)
-            
+
             current += 1
-        
+
         # End keyword not found, execute what we have
         loop_command = self._join_control_flow_lines(loop_lines)
         result = self.shell.execute(loop_command)
         return result if result else "", current - 1
-    
+
     def _join_control_flow_lines(self, lines):
         """
         Join control flow lines with proper syntax.
-        
+
         Args:
             lines: List of lines to join
-            
+
         Returns:
             Single command string
         """
@@ -231,16 +231,18 @@ class ScriptRunner:
             if i < len(lines) - 1:
                 next_line = lines[i + 1]
                 # Add semicolon if current line is a command and next is a keyword or command
-                if (not line.endswith(";") and 
-                    line not in ["do", "then", "else", "elif"] and
-                    not line.startswith("if ") and
-                    not line.startswith("for ") and
-                    not line.startswith("while ") and
-                    not line.startswith("until ")):
+                if (
+                    not line.endswith(";")
+                    and line not in ["do", "then", "else", "elif"]
+                    and not line.startswith("if ")
+                    and not line.startswith("for ")
+                    and not line.startswith("while ")
+                    and not line.startswith("until ")
+                ):
                     # This is a regular command, add semicolon if next is not 'do' or 'then'
                     if next_line not in ["do", "then"]:
                         result[-1] += ";"
-        
+
         return " ".join(result)
 
     def _process_if_block(self, lines, start_line):
@@ -258,10 +260,10 @@ class ScriptRunner:
         if_lines = []
         current = start_line
         nesting_level = 0
-        
+
         while current < len(lines):
             line = lines[current].strip()
-            
+
             # Track nesting and add lines
             if line.startswith("if "):
                 nesting_level += 1
@@ -283,9 +285,9 @@ class ScriptRunner:
                     if if_lines[-1] not in ["do", "then", "else"]:
                         if_lines[-1] += ";"
                 if_lines.append(line)
-            
+
             current += 1
-        
+
         # fi not found, execute what we have
         if_command = self._join_control_flow_lines(if_lines)
         result = self.shell.execute(if_command)

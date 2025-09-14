@@ -67,9 +67,9 @@ def test_ls_long_flag(ls_command):
         assert matching, f"Expected a line for {filename} in long listing format"
         # Check that the line starts with either a file or directory permission pattern.
         # (These are dummy values; adjust based on your _is_directory implementation.)
-        assert matching[0].startswith("-rw") or matching[0].startswith(
-            "drwx"
-        ), f"Line for {filename} does not have expected permission string: {matching[0]}"
+        assert matching[0].startswith("-rw") or matching[0].startswith("drwx"), (
+            f"Line for {filename} does not have expected permission string: {matching[0]}"
+        )
 
 
 def test_ls_long_all_flags(ls_command):
@@ -80,9 +80,9 @@ def test_ls_long_all_flags(ls_command):
     output = ls_command.execute(["-la"])
     lines = output.split("\n")
     found_hidden = any(".hidden" in line for line in lines)
-    assert (
-        found_hidden
-    ), "Expected hidden file '.hidden' to appear in long listing with -a flag"
+    assert found_hidden, (
+        "Expected hidden file '.hidden' to appear in long listing with -a flag"
+    )
 
 
 def test_ls_help_via_argparse_error():

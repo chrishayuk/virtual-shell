@@ -2,7 +2,6 @@
 Test shell operators and variable expansion functionality
 """
 
-import pytest
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
 

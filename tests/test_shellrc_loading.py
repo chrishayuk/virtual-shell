@@ -10,24 +10,24 @@ def create_shell_with_custom_fs(fs):
     """Helper function to create a shell with a custom filesystem."""
     # Create shell without initialization
     shell = ShellInterpreter.__new__(ShellInterpreter)
-    
+
     # Set the filesystem
     shell.fs = fs
-    
+
     # Initialize components manually
     from chuk_virtual_shell.core.environment import EnvironmentManager
     from chuk_virtual_shell.core.parser import CommandParser
     from chuk_virtual_shell.core.expansion import ExpansionHandler
     from chuk_virtual_shell.core.executor import CommandExecutor
     from chuk_virtual_shell.core.control_flow_executor import ControlFlowExecutor
-    
+
     shell.env_manager = EnvironmentManager(shell)
     shell.environ = shell.env_manager.environ
     shell.parser = CommandParser()
     shell.expansion = ExpansionHandler(shell)
     shell.executor = CommandExecutor(shell)
     shell._control_flow_executor = ControlFlowExecutor(shell)
-    
+
     # Initialize shell state
     shell.history = []
     shell.running = True
@@ -37,18 +37,18 @@ def create_shell_with_custom_fs(fs):
     shell.enable_timing = False
     shell.current_user = shell.environ.get("USER", "user")
     shell.resolve_path = lambda path: shell.fs.resolve_path(path)
-    
+
     # Load commands
     shell.commands = {}
     shell._load_commands()
-    
+
     # Initialize aliases
     shell.aliases = {}
     shell.mcp_servers = []
-    
+
     # Now load shellrc
     shell.env_manager.load_shellrc()
-    
+
     return shell
 
 

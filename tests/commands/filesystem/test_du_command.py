@@ -12,9 +12,18 @@ from tests.dummy_shell import DummyShell
 def du_setup():
     """Set up test environment with various files and directories."""
     files = {
-        "/": {"file1.txt": None, "file2.txt": None, "large.txt": None, "empty.txt": None, 
-              "dir1": None, "dir2": None, "empty_dir": None, "unicode.txt": None, 
-              "binary.bin": None, ".hidden": None},  # Root directory with contents
+        "/": {
+            "file1.txt": None,
+            "file2.txt": None,
+            "large.txt": None,
+            "empty.txt": None,
+            "dir1": None,
+            "dir2": None,
+            "empty_dir": None,
+            "unicode.txt": None,
+            "binary.bin": None,
+            ".hidden": None,
+        },  # Root directory with contents
         "/file1.txt": "a" * 1024,  # 1KB
         "/file2.txt": "b" * 2048,  # 2KB
         "/large.txt": "x" * 10240,  # 10KB
@@ -35,22 +44,22 @@ def du_setup():
         "/.hidden": {"secret.txt": None},
         "/.hidden/secret.txt": "secret" * 100,  # Hidden dir with file
     }
-    
+
     shell = DummyShell(files)
     # Set current directory
     shell.fs.current_directory = "/"
     shell.environ = {"PWD": "/"}
-    
+
     # Add exists method for compatibility
     shell.exists = lambda path: path in files
-    
+
     cmd = DuCommand(shell)
     return shell, cmd
 
 
 class TestDuBasic:
     """Test basic du functionality."""
-    
+
     def test_du_no_args(self, du_setup):
         """Test du with no arguments (current directory)."""
         shell, cmd = du_setup
@@ -61,21 +70,21 @@ class TestDuBasic:
         assert any("dir2" in line for line in lines)
         # Last line should be current directory total (. or /)
         assert lines[-1].endswith(".") or lines[-1].endswith("/")
-    
+
     def test_du_specific_path(self, du_setup):
         """Test du with specific path."""
         shell, cmd = du_setup
         result = cmd.execute(["/dir1"])
         assert "/dir1/subdir" in result
         assert "/dir1" in result
-    
+
     def test_du_multiple_paths(self, du_setup):
         """Test du with multiple paths."""
         shell, cmd = du_setup
         result = cmd.execute(["/dir1", "/dir2"])
         assert "/dir1" in result
         assert "/dir2" in result
-    
+
     def test_du_file_path(self, du_setup):
         """Test du with file path."""
         shell, cmd = du_setup
@@ -85,13 +94,13 @@ class TestDuBasic:
         assert "/file1.txt" in result
         # Should show 1KB (1024 bytes / 1024)
         assert "1\t" in result
-    
+
     def test_du_nonexistent_path(self, du_setup):
         """Test du with non-existent path."""
         shell, cmd = du_setup
         result = cmd.execute(["/nonexistent"])
         assert "No such file or directory" in result
-    
+
     def test_du_empty_directory(self, du_setup):
         """Test du with empty directory."""
         shell, cmd = du_setup
@@ -103,20 +112,20 @@ class TestDuBasic:
 
 class TestDuHumanReadable:
     """Test human-readable output format."""
-    
+
     def test_du_h_flag(self, du_setup):
         """Test -h flag for human-readable output."""
         shell, cmd = du_setup
         result = cmd.execute(["-h"])
         # Should contain human-readable sizes
         assert any(unit in result for unit in ["B", "K", "M"]) or "0" in result
-    
+
     def test_du_human_readable_long(self, du_setup):
         """Test --human-readable flag."""
         shell, cmd = du_setup
         result = cmd.execute(["--human-readable", "/dir1"])
         assert any(unit in result for unit in ["B", "K"]) or "0" in result
-    
+
     def test_du_human_readable_sizes(self, du_setup):
         """Test human-readable formatting of various sizes."""
         shell, cmd = du_setup
@@ -132,7 +141,7 @@ class TestDuHumanReadable:
 
 class TestDuSummarize:
     """Test summarize option."""
-    
+
     def test_du_s_flag(self, du_setup):
         """Test -s flag for summary only."""
         shell, cmd = du_setup
@@ -143,7 +152,7 @@ class TestDuSummarize:
         assert "/dir1" in result
         # Should not show subdirectories
         assert "subdir" not in result
-    
+
     def test_du_summarize_long(self, du_setup):
         """Test --summarize flag."""
         shell, cmd = du_setup
@@ -151,7 +160,7 @@ class TestDuSummarize:
         lines = result.split("\n")
         assert len(lines) == 1
         assert "/dir2" in result
-    
+
     def test_du_summarize_multiple(self, du_setup):
         """Test summarize with multiple paths."""
         shell, cmd = du_setup
@@ -166,7 +175,7 @@ class TestDuSummarize:
 
 class TestDuTotal:
     """Test total option."""
-    
+
     def test_du_c_flag(self, du_setup):
         """Test -c flag for grand total."""
         shell, cmd = du_setup
@@ -176,13 +185,13 @@ class TestDuTotal:
         assert any("total" in line for line in lines)
         # Total should be 3 (1KB + 2KB)
         assert "3\ttotal" in result
-    
+
     def test_du_total_long(self, du_setup):
         """Test --total flag."""
         shell, cmd = du_setup
         result = cmd.execute(["--total", "/dir1", "/dir2"])
         assert "total" in result
-    
+
     def test_du_total_with_summarize(self, du_setup):
         """Test total with summarize."""
         shell, cmd = du_setup
@@ -195,7 +204,7 @@ class TestDuTotal:
 
 class TestDuAllFiles:
     """Test showing all files."""
-    
+
     def test_du_a_flag(self, du_setup):
         """Test -a flag to show all files."""
         shell, cmd = du_setup
@@ -204,7 +213,7 @@ class TestDuAllFiles:
         assert "file1.txt" in result
         assert "file2.txt" in result
         assert "deep.txt" in result
-    
+
     def test_du_all_long(self, du_setup):
         """Test --all flag."""
         shell, cmd = du_setup
@@ -215,7 +224,7 @@ class TestDuAllFiles:
 
 class TestDuDepthLimit:
     """Test depth limiting options."""
-    
+
     def test_du_max_depth_1(self, du_setup):
         """Test --max-depth=1."""
         shell, cmd = du_setup
@@ -224,7 +233,7 @@ class TestDuDepthLimit:
         # Should show first level directories but not deeper
         assert any("dir1" in line for line in lines)
         assert not any("subdir" in line for line in lines)
-    
+
     def test_du_d_flag(self, du_setup):
         """Test -d flag for depth limit."""
         shell, cmd = du_setup
@@ -233,7 +242,7 @@ class TestDuDepthLimit:
         # Depth 0 should only show the directory itself
         assert len(lines) == 1
         assert "/dir2" in result
-    
+
     def test_du_max_depth_2(self, du_setup):
         """Test depth 2."""
         shell, cmd = du_setup
@@ -247,28 +256,28 @@ class TestDuDepthLimit:
 
 class TestDuUnits:
     """Test different unit options."""
-    
+
     def test_du_k_flag(self, du_setup):
         """Test -k flag for kilobytes."""
         shell, cmd = du_setup
         result = cmd.execute(["-k", "/file1.txt"])
         # Should show in KB (default)
         assert "1\t" in result
-    
+
     def test_du_m_flag(self, du_setup):
         """Test -m flag for megabytes."""
         shell, cmd = du_setup
         result = cmd.execute(["-m", "/large.txt"])
         # 10KB should round up to 1MB
         assert "1\t" in result
-    
+
     def test_du_b_flag(self, du_setup):
         """Test -b flag for bytes."""
         shell, cmd = du_setup
         result = cmd.execute(["-b", "/file1.txt"])
         # Should show exact bytes
         assert "1024\t" in result
-    
+
     def test_du_bytes_long(self, du_setup):
         """Test --bytes flag."""
         shell, cmd = du_setup
@@ -278,7 +287,7 @@ class TestDuUnits:
 
 class TestDuExclude:
     """Test exclude patterns."""
-    
+
     def test_du_exclude_pattern(self, du_setup):
         """Test --exclude with pattern."""
         shell, cmd = du_setup
@@ -288,7 +297,7 @@ class TestDuExclude:
         assert "file2.txt" not in result
         # Should still show directories
         assert "subdir" in result
-    
+
     def test_du_exclude_multiple(self, du_setup):
         """Test multiple exclude patterns."""
         shell, cmd = du_setup
@@ -296,7 +305,7 @@ class TestDuExclude:
         # Should not show txt files or subdir
         assert "file1.txt" not in result
         assert "subdir" not in result
-    
+
     def test_du_exclude_directory(self, du_setup):
         """Test excluding directories."""
         shell, cmd = du_setup
@@ -309,20 +318,20 @@ class TestDuExclude:
 
 class TestDuSpecialFiles:
     """Test with special files."""
-    
+
     def test_du_empty_file(self, du_setup):
         """Test du with empty file."""
         shell, cmd = du_setup
         result = cmd.execute(["/empty.txt"])
         assert "0\t/empty.txt" in result
-    
+
     def test_du_unicode_file(self, du_setup):
         """Test du with Unicode content."""
         shell, cmd = du_setup
         result = cmd.execute(["/unicode.txt"])
         # Should handle Unicode properly
         assert "/unicode.txt" in result
-    
+
     def test_du_binary_file(self, du_setup):
         """Test du with binary file."""
         shell, cmd = du_setup
@@ -330,7 +339,7 @@ class TestDuSpecialFiles:
         assert "/binary.bin" in result
         # Binary is 1KB
         assert "1\t" in result
-    
+
     def test_du_hidden_directory(self, du_setup):
         """Test du with hidden directory."""
         shell, cmd = du_setup
@@ -341,7 +350,7 @@ class TestDuSpecialFiles:
 
 class TestDuCombinations:
     """Test various flag combinations."""
-    
+
     def test_du_hs_flags(self, du_setup):
         """Test combining -h and -s flags."""
         shell, cmd = du_setup
@@ -350,7 +359,7 @@ class TestDuCombinations:
         # Should show human-readable summary
         assert len(lines) == 1
         assert any(unit in result for unit in ["B", "K"]) or "0" in result
-    
+
     def test_du_ahc_flags(self, du_setup):
         """Test combining -a, -h, and -c flags."""
         shell, cmd = du_setup
@@ -360,7 +369,7 @@ class TestDuCombinations:
         assert "file2.txt" in result
         assert "total" in result
         assert any(unit in result for unit in ["B", "K"]) or "0" in result
-    
+
     def test_du_sd_flags(self, du_setup):
         """Test combining -s and -d flags."""
         shell, cmd = du_setup
@@ -368,7 +377,7 @@ class TestDuCombinations:
         result = cmd.execute(["-s", "-d", "2", "/"])
         lines = result.split("\n")
         assert len(lines) == 1
-    
+
     def test_du_am_flags(self, du_setup):
         """Test combining -a and -m flags."""
         shell, cmd = du_setup
@@ -381,33 +390,34 @@ class TestDuCombinations:
 
 class TestDuErrorHandling:
     """Test error handling."""
-    
+
     def test_du_permission_denied_simulation(self, du_setup):
         """Test handling permission denied."""
         shell, cmd = du_setup
+
         # Override read to simulate permission error
         def fail_read(path):
             if "protected" in path:
                 return None
             return shell.fs.read_file(path)
-        
+
         original_read = shell.fs.read_file
         shell.fs.write_file("/protected.txt", "secret")
         shell.fs.read_file = fail_read
-        
+
         result = cmd.execute(["/protected.txt"])
         # Should handle gracefully
         assert "/protected.txt" in result
-        
+
         shell.fs.read_file = original_read
-    
+
     def test_du_invalid_depth(self, du_setup):
         """Test invalid depth value."""
         shell, cmd = du_setup
         result = cmd.execute(["-d", "invalid"])
         # Should show help or error
         assert "du" in result.lower()
-    
+
     def test_du_help_flag(self, du_setup):
         """Test --help flag."""
         shell, cmd = du_setup
@@ -419,7 +429,7 @@ class TestDuErrorHandling:
 
 class TestDuRealWorldScenarios:
     """Test real-world usage scenarios."""
-    
+
     def test_du_find_large_directories(self, du_setup):
         """Test finding large directories."""
         shell, cmd = du_setup
@@ -427,7 +437,7 @@ class TestDuRealWorldScenarios:
         lines = result.split("\n")
         # Should help identify which directories use most space
         assert any("dir" in line for line in lines)
-    
+
     def test_du_project_size(self, du_setup):
         """Test getting project size summary."""
         shell, cmd = du_setup
@@ -445,12 +455,12 @@ class TestDuRealWorldScenarios:
         shell.fs.files["/project"] = {"src": None, "tests": None, "README.md": None}
         shell.fs.files["/project/src"] = {"main.py": None, "utils.py": None}
         shell.fs.files["/project/tests"] = {"test.py": None}
-        
+
         result = cmd.execute(["-sh", "/project"])
         # Should show total project size
         assert "/project" in result
         assert any(unit in result for unit in ["B", "K"]) or "0" in result
-    
+
     def test_du_cleanup_candidates(self, du_setup):
         """Test finding cleanup candidates."""
         shell, cmd = du_setup
@@ -459,7 +469,7 @@ class TestDuRealWorldScenarios:
         lines = result.split("\n")
         # Should list all files with sizes
         assert len(lines) > 10  # Should have many entries
-    
+
     def test_du_exclude_node_modules(self, du_setup):
         """Test excluding node_modules pattern."""
         shell, cmd = du_setup
@@ -467,13 +477,13 @@ class TestDuRealWorldScenarios:
         shell.fs.mkdir("/app/node_modules")
         shell.fs.write_file("/app/node_modules/pkg1/index.js", "x" * 5000)
         shell.fs.write_file("/app/src/main.js", "y" * 1000)
-        
+
         result = cmd.execute(["--exclude=node_modules", "/app"])
         # Should not include node_modules
         assert "node_modules" not in result
         # Should still show app
         assert "/app" in result
-    
+
     def test_du_ci_disk_usage(self, du_setup):
         """Test checking disk usage in CI environment."""
         shell, cmd = du_setup
@@ -484,21 +494,21 @@ class TestDuRealWorldScenarios:
 
 class TestDuExcludePatterns:
     """Test exclude pattern functionality."""
-    
+
     def test_du_exclude_pattern(self, du_setup):
         """Test --exclude option."""
         shell, cmd = du_setup
         result = cmd.execute(["--exclude", "*.txt", "/"])
         # Should exclude txt files from size calculation
         assert result  # Should have some output
-    
+
     def test_du_exclude_multiple_patterns(self, du_setup):
         """Test multiple --exclude options."""
         shell, cmd = du_setup
         result = cmd.execute(["--exclude", "*.txt", "--exclude", "*.bin", "/"])
         # Should exclude both txt and bin files
         assert result  # Should have output but exclude specified patterns
-    
+
     def test_du_exclude_directory(self, du_setup):
         """Test excluding directories."""
         shell, cmd = du_setup
@@ -514,7 +524,7 @@ class TestDuExcludePatterns:
 
 class TestDuTimeOptions:
     """Test time-related options."""
-    
+
     def test_du_time_option(self, du_setup):
         """Test --time option."""
         shell, cmd = du_setup
@@ -522,7 +532,7 @@ class TestDuTimeOptions:
         # Should show modification times (even if mock)
         assert result  # Should produce output
         assert "/dir1" in result
-    
+
     def test_du_time_with_style(self, du_setup):
         """Test --time with --time-style."""
         shell, cmd = du_setup
@@ -531,14 +541,14 @@ class TestDuTimeOptions:
         # Should work with time-style
         assert result
         assert "/dir1" in result
-    
+
     def test_du_time_access(self, du_setup):
         """Test --time=atime option."""
         shell, cmd = du_setup
         result = cmd.execute(["--time=atime", "/"])
         # Should show access times
         assert result
-    
+
     def test_du_time_birth(self, du_setup):
         """Test --time=birth option."""
         shell, cmd = du_setup
@@ -549,14 +559,14 @@ class TestDuTimeOptions:
 
 class TestDuErrorCases:
     """Test error handling cases."""
-    
+
     def test_du_invalid_max_depth(self, du_setup):
         """Test invalid max-depth value."""
         shell, cmd = du_setup
         result = cmd.execute(["--max-depth", "abc", "/"])
         # Should handle invalid depth gracefully or show error
         assert result  # Should produce some output
-    
+
     def test_du_conflicting_options(self, du_setup):
         """Test conflicting options."""
         shell, cmd = du_setup
@@ -564,21 +574,21 @@ class TestDuErrorCases:
         result = cmd.execute(["-s", "-a", "/"])
         # Should still work, one option takes precedence
         assert result
-    
+
     def test_du_permission_denied_simulation(self, du_setup):
         """Test handling of inaccessible paths."""
         shell, cmd = du_setup
         # Try to access a path that doesn't exist
         result = cmd.execute(["/nonexistent/../also_nonexistent"])
         assert "cannot access" in result.lower() or "no such" in result.lower()
-    
+
     def test_du_invalid_block_size(self, du_setup):
         """Test invalid block size."""
         shell, cmd = du_setup
         result = cmd.execute(["-B", "invalid", "/"])
         # Should use default or show error
         assert result
-    
+
     def test_du_threshold_invalid(self, du_setup):
         """Test invalid threshold value."""
         shell, cmd = du_setup
@@ -589,7 +599,7 @@ class TestDuErrorCases:
 
 class TestDuSpecialCases:
     """Test special edge cases."""
-    
+
     def test_du_empty_directory_tree(self, du_setup):
         """Test with only empty directories."""
         shell, cmd = du_setup
@@ -597,11 +607,11 @@ class TestDuSpecialCases:
         shell.fs.mkdir("/empty1")
         shell.fs.mkdir("/empty1/empty2")
         shell.fs.mkdir("/empty1/empty2/empty3")
-        
+
         result = cmd.execute(["/empty1"])
         # Should show all directories even if empty
         assert "/empty1" in result
-    
+
     def test_du_symlink_flag(self, du_setup):
         """Test symbolic link flag handling."""
         shell, cmd = du_setup
@@ -609,21 +619,21 @@ class TestDuSpecialCases:
         result = cmd.execute(["-L", "/"])
         # Should handle -L flag gracefully
         assert result
-    
+
     def test_du_dereference_args(self, du_setup):
         """Test -D/--dereference-args flag."""
         shell, cmd = du_setup
         result = cmd.execute(["-D", "/"])
         # Should handle flag even if no symlinks
         assert result
-    
+
     def test_du_dereference_flag(self, du_setup):
         """Test --dereference flag."""
         shell, cmd = du_setup
         result = cmd.execute(["--dereference", "/"])
         # Should handle flag
         assert result
-    
+
     def test_du_very_deep_nesting(self, du_setup):
         """Test with very deep directory nesting."""
         shell, cmd = du_setup
@@ -633,10 +643,10 @@ class TestDuSpecialCases:
             path = f"/deep{i}" if not path else f"{path}/deep{i}"
             shell.fs.mkdir(path)
             shell.fs.write_file(f"{path}/file.txt", f"content{i}")
-        
+
         # Test without max-depth first
         result_all = cmd.execute(["/deep0"])
-        
+
         # Test with max-depth
         result = cmd.execute(["--max-depth", "5", "/deep0"])
         # Should show top-level directory
@@ -644,21 +654,21 @@ class TestDuSpecialCases:
         # With max-depth=5, it limits recursion depth
         # The result should be shorter than without max-depth
         assert len(result) <= len(result_all)
-    
+
     def test_du_separate_dirs_flag(self, du_setup):
         """Test -S/--separate-dirs flag."""
         shell, cmd = du_setup
         result = cmd.execute(["-S", "/"])
         # Should not include subdirectory sizes in parent
         assert result
-    
+
     def test_du_one_file_system(self, du_setup):
         """Test -x/--one-file-system flag."""
         shell, cmd = du_setup
         result = cmd.execute(["-x", "/"])
         # Should stay on same filesystem
         assert result
-    
+
     def test_du_null_termination(self, du_setup):
         """Test -0/--null flag for null-terminated output."""
         shell, cmd = du_setup
@@ -666,7 +676,7 @@ class TestDuSpecialCases:
         # Should use null terminators instead of newlines
         assert "/dir1" in result
         assert "/dir2" in result
-    
+
     def test_du_files0_from(self, du_setup):
         """Test --files0-from option."""
         shell, cmd = du_setup
@@ -675,14 +685,14 @@ class TestDuSpecialCases:
         result = cmd.execute(["--files0-from", "/paths.txt"])
         # Should process files from the list
         assert result
-    
+
     def test_du_apparent_size(self, du_setup):
         """Test --apparent-size flag."""
         shell, cmd = du_setup
         result = cmd.execute(["--apparent-size", "/"])
         # Should show apparent sizes
         assert result
-    
+
     def test_du_threshold_option(self, du_setup):
         """Test --threshold option."""
         shell, cmd = du_setup

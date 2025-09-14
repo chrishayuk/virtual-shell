@@ -221,8 +221,8 @@ class ExampleRunner:
         total_time = sum(r["execution_time"] for r in self.results)
 
         print(f"Total scripts executed: {total}")
-        print(f"Successful: {successful} ({successful*100/total:.1f}%)")
-        print(f"Failed: {failed} ({failed*100/total:.1f}%)")
+        print(f"Successful: {successful} ({successful * 100 / total:.1f}%)")
+        print(f"Failed: {failed} ({failed * 100 / total:.1f}%)")
         print(f"Total execution time: {total_time:.2f}s")
         print()
 

@@ -21,10 +21,7 @@ def touch_command():
 # Fixture with existing files
 @pytest.fixture
 def touch_command_with_files():
-    files = {
-        "/existing.txt": "Old content",
-        "/dir1": {}
-    }
+    files = {"/existing.txt": "Old content", "/dir1": {}}
     dummy_shell = DummyShell(files)
     command = TouchCommand(shell_context=dummy_shell)
     return command
@@ -52,7 +49,7 @@ def test_touch_failure(touch_command):
     # Override both touch and write_file methods to simulate a failure.
     def fail_touch(path):
         return False
-    
+
     def fail_write(path, content):
         return False
 

@@ -53,22 +53,22 @@ class DummyFileSystem:
     def mkdir(self, path):
         # Resolve path to absolute path first
         resolved_path = self.resolve_path(path)
-        
+
         if self.exists(resolved_path):
             return False
-        
+
         # Create parent directories if they don't exist
         parts = [p for p in resolved_path.split("/") if p]  # Remove empty parts
         current_path = ""
-        
+
         for part in parts:
             current_path = current_path + "/" + part if current_path else "/" + part
             if current_path == "/":
                 continue
-                
+
             if not self.exists(current_path):
                 self.files[current_path] = {}
-        
+
         return True
 
     def rm(self, path):
