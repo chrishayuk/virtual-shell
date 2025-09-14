@@ -3,7 +3,6 @@ chuk_virtual_shell/commands/filesystem/du.py - Display disk usage statistics
 """
 
 import argparse
-import os
 from typing import List, Tuple, Optional
 from chuk_virtual_shell.commands.command_base import ShellCommand
 
@@ -220,7 +219,7 @@ class DuCommand(ShellCommand):
                             if item_path.startswith(abs_path):
                                 rel_path = item_path[len(abs_path) :].lstrip("/")
                                 if rel_path:
-                                    display_path = os.path.join(path, rel_path)
+                                    display_path = f"{path.rstrip('/')}/{rel_path}"
                                 else:
                                     display_path = path
                             else:
@@ -348,7 +347,7 @@ class DuCommand(ShellCommand):
 
         # Calculate size for each item
         for item in contents:
-            item_path = os.path.join(dir_path, item)
+            item_path = f"{dir_path.rstrip('/')}/{item}"
 
             # Check exclude patterns
             if self._should_exclude(item, exclude_patterns):
@@ -419,7 +418,7 @@ class DuCommand(ShellCommand):
             return 0
 
         for item in contents:
-            item_path = os.path.join(dir_path, item)
+            item_path = f"{dir_path.rstrip('/')}/{item}"
 
             if self._should_exclude(item, exclude_patterns):
                 continue
@@ -550,7 +549,7 @@ class DuCommand(ShellCommand):
 
         import fnmatch
 
-        path_basename = os.path.basename(path)
+        path_basename = path.split("/")[-1] if "/" in path else path
 
         for pattern in patterns:
             if fnmatch.fnmatch(path_basename, pattern):
