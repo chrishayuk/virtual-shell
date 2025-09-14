@@ -15,25 +15,44 @@ pytestmark = pytest.mark.skipif(
     reason="MCP server functionality not supported on Windows (uvloop dependency)"
 )
 
-# Import the module under test
-from chuk_virtual_shell.mcp_server import (
-    SessionInfo,
-    get_user_id,
-    get_user_sessions,
-    get_user_tasks,
-    truncate_output,
-    collect_command_output,
-    sessions,
-    background_tasks,
-    bash,
-    get_task_output,
-    cancel_task,
-    list_sessions,
-    destroy_session,
-    get_session_state,
-    whoami,
-    cleanup,
-)
+# Import the module under test - only if not on Windows
+if sys.platform != "win32":
+    from chuk_virtual_shell.mcp_server import (
+        SessionInfo,
+        get_user_id,
+        get_user_sessions,
+        get_user_tasks,
+        truncate_output,
+        collect_command_output,
+        sessions,
+        background_tasks,
+        bash,
+        get_task_output,
+        cancel_task,
+        list_sessions,
+        destroy_session,
+        get_session_state,
+        whoami,
+        cleanup,
+    )
+else:
+    # Define dummy objects for Windows to prevent import errors
+    SessionInfo = None
+    get_user_id = None
+    get_user_sessions = None
+    get_user_tasks = None
+    truncate_output = None
+    collect_command_output = None
+    sessions = None
+    background_tasks = None
+    bash = None
+    get_task_output = None
+    cancel_task = None
+    list_sessions = None
+    destroy_session = None
+    get_session_state = None
+    whoami = None
+    cleanup = None
 
 
 @pytest.fixture
