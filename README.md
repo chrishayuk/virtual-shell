@@ -31,10 +31,13 @@ uv pip install chuk-virtual-shell
 # Or with pip
 pip install chuk-virtual-shell
 
-# For MCP server functionality, install optional dependency
+# For MCP server functionality, install optional dependency (Unix/macOS only)
 uv pip install chuk-virtual-shell[mcp-server]
 # Or with pip
 pip install chuk-virtual-shell[mcp-server]
+
+# Note: MCP server requires Unix-like OS (Linux/macOS) due to uvloop dependency
+# Windows users can use WSL or run the shell without MCP server features
 ```
 
 ### Basic Usage
@@ -339,6 +342,13 @@ uv pip install chuk-virtual-shell[mcp-server]
 # or with pip
 pip install chuk-virtual-shell[mcp-server]
 ```
+
+**Problem**: `RuntimeError: uvloop does not support Windows at the moment`
+
+**Solution**: MCP server functionality requires Unix-like OS due to uvloop dependency:
+- **Linux/macOS**: Install normally with `[mcp-server]` extra
+- **Windows**: Use WSL (Windows Subsystem for Linux) or run without MCP features
+- **Alternative**: Use the shell directly without MCP server integration
 
 **Problem**: MCP demo fails with JSON decode error
 

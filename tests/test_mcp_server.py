@@ -5,8 +5,15 @@ Tests for the MCP server implementation
 import asyncio
 import os
 import pytest
+import sys
 import time
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+# Skip all MCP server tests on Windows due to uvloop dependency
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32", 
+    reason="MCP server functionality not supported on Windows (uvloop dependency)"
+)
 
 # Import the module under test
 from chuk_virtual_shell.mcp_server import (

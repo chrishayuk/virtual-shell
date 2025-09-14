@@ -16,7 +16,19 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from chuk_mcp_server import ChukMCPServer  # type: ignore[import-not-found]
+try:
+    from chuk_mcp_server import ChukMCPServer  # type: ignore[import-not-found]
+except ImportError as e:
+    import sys
+    if sys.platform == "win32":
+        raise ImportError(
+            "MCP server functionality is not available on Windows due to uvloop dependency. "
+            "Please use Linux, macOS, or WSL for MCP server features."
+        ) from e
+    else:
+        raise ImportError(
+            "chuk-mcp-server not installed. Install with: pip install chuk-virtual-shell[mcp-server]"
+        ) from e
 from chuk_virtual_shell.session import ShellSessionManager
 from chuk_virtual_shell.shell_interpreter import ShellInterpreter
 
