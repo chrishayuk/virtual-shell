@@ -105,30 +105,30 @@ Options:
     def _remove_recursive(self, path, force, verbose, results, errors):
         """Recursively remove a directory and its contents"""
         # Handle both DummyFileSystem (with files dict) and FileSystemCompat
-        if hasattr(self.shell.fs, 'files') and isinstance(self.shell.fs.files, dict):
+        if hasattr(self.shell.fs, "files") and isinstance(self.shell.fs.files, dict):
             # DummyFileSystem case - use direct files dict access
             return self._remove_recursive_dummy(path, force, verbose, results, errors)
         else:
             # FileSystemCompat case - use API methods
             return self._remove_recursive_compat(path, force, verbose, results, errors)
-    
+
     def _remove_recursive_dummy(self, path, force, verbose, results, errors):
         """Recursively remove for DummyFileSystem with direct files dict access"""
         to_remove = []
-        
+
         # Collect all paths that are under this directory
         for fs_path in list(self.shell.fs.files.keys()):
             if fs_path == path or fs_path.startswith(path + "/"):
                 to_remove.append(fs_path)
-        
+
         # Sort in reverse order so we remove deepest items first
         to_remove.sort(reverse=True)
-        
+
         # Remove files and empty directories
         for item_path in to_remove:
             if item_path == path:
                 continue  # Handle the parent directory last
-                
+
             if self.shell.fs.is_dir(item_path):
                 # Remove empty directory
                 if hasattr(self.shell.fs, "rmdir"):
@@ -146,7 +146,7 @@ Options:
                 elif not force:
                     errors.append(f"rm: cannot remove '{item_path}'")
                     return False
-        
+
         # Now remove the parent directory itself
         if hasattr(self.shell.fs, "rmdir"):
             # First try to remove it as empty dir
@@ -161,24 +161,24 @@ Options:
                     if verbose:
                         results.append(f"removed directory '{path}'")
                     return True
-        
+
         return False
-    
+
     def _remove_recursive_compat(self, path, force, verbose, results, errors):
         """Recursively remove for FileSystemCompat using API methods"""
         to_remove = []
-        
+
         # Recursively collect all paths under this directory
         self._collect_paths_to_remove(path, to_remove)
-        
+
         # Sort in reverse order so we remove deepest items first
         to_remove.sort(reverse=True)
-        
+
         # Remove files and directories
         for item_path in to_remove:
             if item_path == path:
                 continue  # Handle the parent directory last
-                
+
             if self.shell.fs.is_dir(item_path):
                 # Remove empty directory
                 if hasattr(self.shell.fs, "rmdir"):
@@ -196,7 +196,7 @@ Options:
                 elif not force:
                     errors.append(f"rm: cannot remove '{item_path}'")
                     return False
-        
+
         # Now remove the parent directory itself
         if self.shell.fs.is_dir(path):
             if hasattr(self.shell.fs, "rmdir"):
@@ -209,14 +209,14 @@ Options:
                 if verbose:
                     results.append(f"removed directory '{path}'")
                 return True
-        
+
         return False
-    
+
     def _collect_paths_to_remove(self, path, to_remove):
         """Recursively collect all paths under a directory"""
         # Add the current path
         to_remove.append(path)
-        
+
         # If it's a directory, recursively process its contents
         if self.shell.fs.is_dir(path):
             try:
