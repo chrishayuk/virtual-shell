@@ -20,10 +20,7 @@ print(f"Endpoint: {endpoint_url}")
 print()
 
 # Create S3 client
-config = Config(
-    signature_version='s3v4',
-    s3={'addressing_style': 'path'}
-)
+config = Config(signature_version="s3v4", s3={"addressing_style": "path"})
 
 client = boto3.client(
     "s3",
@@ -31,29 +28,31 @@ client = boto3.client(
     aws_access_key_id=access_key,
     aws_secret_access_key=secret_key,
     region_name=region,
-    config=config
+    config=config,
 )
 
 # List all objects in the bucket
 try:
     response = client.list_objects_v2(Bucket=bucket_name)
-    objects = response.get('Contents', [])
-    
+    objects = response.get("Contents", [])
+
     if objects:
         print(f"Found {len(objects)} objects in bucket:")
         for obj in objects:
-            print(f"  - {obj['Key']} ({obj['Size']} bytes, modified: {obj['LastModified']})")
-            
+            print(
+                f"  - {obj['Key']} ({obj['Size']} bytes, modified: {obj['LastModified']})"
+            )
+
             # Try to get content of small text files
-            if obj['Size'] < 1000 and not obj['Key'].endswith('.json'):
+            if obj["Size"] < 1000 and not obj["Key"].endswith(".json"):
                 try:
-                    resp = client.get_object(Bucket=bucket_name, Key=obj['Key'])
-                    content = resp['Body'].read().decode('utf-8')
+                    resp = client.get_object(Bucket=bucket_name, Key=obj["Key"])
+                    content = resp["Body"].read().decode("utf-8")
                     print(f"    Content: {content[:100]}")
                 except Exception as e:
                     print(f"    Could not read content: {e}")
     else:
         print("Bucket is empty")
-        
+
 except Exception as e:
     print(f"Error: {e}")

@@ -15,7 +15,7 @@ endpoint_url = os.environ.get("AWS_ENDPOINT_URL_S3")
 bucket_name = os.environ.get("S3_BUCKET_NAME", "").strip('"')
 region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
 
-print(f"Testing Tigris connection:")
+print("Testing Tigris connection:")
 print(f"  Endpoint: {endpoint_url}")
 print(f"  Bucket: {bucket_name}")
 print(f"  Region: {region}")
@@ -31,13 +31,13 @@ try:
         aws_secret_access_key=secret_key,
         region_name=region,
     )
-    
+
     # Try to list buckets
     print("Listing buckets:")
     response = s3_client.list_buckets()
     for bucket in response.get("Buckets", []):
         print(f"  - {bucket['Name']}")
-    
+
     # Try to check if our bucket exists
     print(f"\nChecking bucket '{bucket_name}':")
     try:
@@ -45,7 +45,7 @@ try:
         print(f"  ✓ Bucket '{bucket_name}' exists and is accessible")
     except Exception as e:
         print(f"  ✗ Error accessing bucket '{bucket_name}': {e}")
-        
+
         # Try to create the bucket
         print(f"\nAttempting to create bucket '{bucket_name}':")
         try:
@@ -53,7 +53,7 @@ try:
             print(f"  ✓ Bucket '{bucket_name}' created successfully")
         except Exception as create_error:
             print(f"  ✗ Error creating bucket: {create_error}")
-    
+
     # Try to list objects in the bucket
     print(f"\nListing objects in '{bucket_name}':")
     try:
@@ -66,6 +66,6 @@ try:
             print("  (bucket is empty)")
     except Exception as e:
         print(f"  ✗ Error listing objects: {e}")
-        
+
 except Exception as e:
     print(f"Error creating S3 client: {e}")

@@ -9,7 +9,6 @@ and virtual filesystem, showing various integration patterns.
 import os
 import sys
 import json
-from pathlib import Path
 
 # Add parent directory to path to import shell
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,16 +26,16 @@ def print_section(title):
 def demo_basic_shell_commands(shell):
     """Demonstrate basic shell command execution from Python"""
     print_section("1. Executing Shell Commands from Python")
-    
+
     # Execute simple commands
     print("\nExecuting 'pwd':")
     result = shell.execute("pwd")
     print(f"  Current directory: {result}")
-    
+
     print("\nExecuting 'whoami':")
     result = shell.execute("whoami")
     print(f"  Current user: {result}")
-    
+
     print("\nCreating directory structure:")
     shell.execute("mkdir -p /demo/data /demo/scripts /demo/output")
     result = shell.execute("ls /demo")
@@ -46,23 +45,23 @@ def demo_basic_shell_commands(shell):
 def demo_filesystem_interaction(shell):
     """Demonstrate filesystem operations"""
     print_section("2. Virtual Filesystem Operations")
-    
+
     # Write files using shell commands
     print("\nCreating files with shell commands:")
     shell.execute("echo 'Hello from shell' > /demo/shell_file.txt")
-    
+
     # Write files directly through the filesystem
     print("Writing file directly via filesystem:")
     shell.fs.write_file("/demo/python_file.txt", "Hello from Python filesystem API")
-    
+
     # Read files
     print("\nReading files:")
     content = shell.fs.read_file("/demo/shell_file.txt")
     print(f"  shell_file.txt: {content.strip()}")
-    
+
     content = shell.fs.read_file("/demo/python_file.txt")
     print(f"  python_file.txt: {content.strip()}")
-    
+
     # List directory
     print("\nListing /demo directory:")
     result = shell.execute("ls -la /demo/*.txt")
@@ -72,7 +71,7 @@ def demo_filesystem_interaction(shell):
 def demo_data_processing(shell):
     """Demonstrate data processing with Python and shell"""
     print_section("3. Data Processing Example")
-    
+
     # Create sample data
     print("\nCreating sample CSV data:")
     csv_data = """name,age,city
@@ -80,33 +79,33 @@ Alice,30,New York
 Bob,25,San Francisco
 Charlie,35,Boston
 Diana,28,Seattle"""
-    
+
     shell.fs.write_file("/demo/data/people.csv", csv_data)
-    
+
     # Process with Python
     print("\nProcessing with Python:")
     content = shell.fs.read_file("/demo/data/people.csv")
-    lines = content.strip().split('\n')
-    header = lines[0]
+    lines = content.strip().split("\n")
+    # Skip header line
     data_lines = lines[1:]
-    
+
     print(f"  Found {len(data_lines)} records")
-    
+
     # Calculate average age
     ages = []
     for line in data_lines:
-        parts = line.split(',')
+        parts = line.split(",")
         if len(parts) >= 2:
             ages.append(int(parts[1]))
-    
+
     avg_age = sum(ages) / len(ages) if ages else 0
     print(f"  Average age: {avg_age:.1f}")
-    
+
     # Use shell commands for processing
     print("\nProcessing with shell commands:")
     result = shell.execute("cat /demo/data/people.csv | wc -l")
     print(f"  Total lines: {result.strip()}")
-    
+
     result = shell.execute("cat /demo/data/people.csv | grep -c Seattle")
     print(f"  People in Seattle: {result.strip()}")
 
@@ -114,29 +113,25 @@ Diana,28,Seattle"""
 def demo_json_processing(shell):
     """Demonstrate JSON data handling"""
     print_section("4. JSON Data Processing")
-    
+
     # Create JSON data
     data = {
         "project": "Virtual Shell Demo",
         "version": "1.0.0",
         "features": ["filesystem", "commands", "python"],
-        "stats": {
-            "files": 10,
-            "directories": 5,
-            "total_size": 1024
-        }
+        "stats": {"files": 10, "directories": 5, "total_size": 1024},
     }
-    
+
     print("\nCreating JSON file:")
     json_str = json.dumps(data, indent=2)
     shell.fs.write_file("/demo/data/config.json", json_str)
     print("  Created /demo/data/config.json")
-    
+
     # Read and process JSON
     print("\nReading and processing JSON:")
     content = shell.fs.read_file("/demo/data/config.json")
     loaded_data = json.loads(content)
-    
+
     print(f"  Project: {loaded_data['project']}")
     print(f"  Version: {loaded_data['version']}")
     print(f"  Features: {', '.join(loaded_data['features'])}")
@@ -146,9 +141,9 @@ def demo_json_processing(shell):
 def demo_script_generation(shell):
     """Generate and execute shell scripts from Python"""
     print_section("5. Dynamic Script Generation")
-    
+
     print("\nGenerating shell script from Python:")
-    
+
     # Generate a shell script
     script = """#!/bin/sh
 # Generated script
@@ -174,16 +169,16 @@ echo "/demo/scripts/" >> /demo/output/report.txt
 
 echo "Report generated at /demo/output/report.txt"
 """
-    
+
     shell.fs.write_file("/demo/scripts/generate_report.sh", script)
     print("  Script created: /demo/scripts/generate_report.sh")
-    
+
     print("\nExecuting generated script:")
     # Use sh instead of bash since bash may not be available
     result = shell.execute("sh /demo/scripts/generate_report.sh")
     if result:
         print(result)
-    
+
     print("\nReport contents:")
     report = shell.fs.read_file("/demo/output/report.txt")
     if report:
@@ -195,7 +190,7 @@ echo "Report generated at /demo/output/report.txt"
 def demo_pipeline_integration(shell):
     """Demonstrate pipeline processing between Python and shell"""
     print_section("6. Pipeline Integration")
-    
+
     print("\nCreating test data:")
     # Create log-like data
     log_data = """2024-01-01 10:00:00 INFO Application started
@@ -205,51 +200,51 @@ def demo_pipeline_integration(shell):
 2024-01-01 10:00:04 ERROR Connection timeout
 2024-01-01 10:00:05 INFO Using cache instead
 2024-01-01 10:00:06 DEBUG Cache loaded successfully"""
-    
+
     shell.fs.write_file("/demo/data/app.log", log_data)
-    
+
     print("\nProcessing with shell pipeline:")
     # Count error lines
     result = shell.execute("cat /demo/data/app.log | grep ERROR | wc -l")
     error_count = int(result.strip())
     print(f"  Errors found: {error_count}")
-    
+
     # Extract error messages
     result = shell.execute("cat /demo/data/app.log | grep ERROR | sed 's/.*ERROR //'")
     print(f"  Error messages:\n{result}")
-    
+
     print("\nHybrid processing (shell + Python):")
     # Get all ERROR lines via shell
     error_lines = shell.execute("grep ERROR /demo/data/app.log")
-    
+
     # Process in Python
     if error_lines:
-        errors = error_lines.strip().split('\n')
+        errors = error_lines.strip().split("\n")
         print(f"  Processing {len(errors)} errors in Python:")
         for error in errors:
-            parts = error.split(' ')
+            parts = error.split(" ")
             if len(parts) >= 4:
                 timestamp = f"{parts[0]} {parts[1]}"
-                message = ' '.join(parts[3:])
+                message = " ".join(parts[3:])
                 print(f"    [{timestamp}] {message}")
 
 
 def demo_environment_variables(shell):
     """Demonstrate environment variable handling"""
     print_section("7. Environment Variables")
-    
+
     print("\nSetting environment variables:")
     shell.execute("export DEMO_VAR='Hello from environment'")
     shell.execute("export DEMO_COUNT=42")
-    
+
     print("\nAccessing from shell:")
     result = shell.execute("echo $DEMO_VAR")
     print(f"  DEMO_VAR: {result.strip()}")
-    
+
     print("\nAccessing from Python:")
     print(f"  DEMO_VAR via environ: {shell.environ.get('DEMO_VAR', 'not set')}")
     print(f"  DEMO_COUNT via environ: {shell.environ.get('DEMO_COUNT', 'not set')}")
-    
+
     print("\nUsing in calculations:")
     result = shell.execute("echo $((DEMO_COUNT * 2))")
     print(f"  DEMO_COUNT * 2 = {result.strip()}")
@@ -258,31 +253,31 @@ def demo_environment_variables(shell):
 def demo_control_flow(shell):
     """Demonstrate control flow execution from Python"""
     print_section("8. Control Flow from Python")
-    
+
     print("\nExecuting if statement:")
     # Use single-line format for control flow
     result = shell.execute(
         "if [ -e /demo/data/people.csv ]; then "
         "echo 'CSV file exists'; "
         "lines=$(cat /demo/data/people.csv | wc -l); "
-        "echo \"It has $lines lines\"; "
+        'echo "It has $lines lines"; '
         "else "
         "echo 'CSV file not found'; "
         "fi"
     )
     if result:
         print(result)
-    
+
     print("\nExecuting for loop:")
     # Create some test files first
     shell.execute("touch /demo/data/test.txt /demo/data/test2.json")
-    
+
     # Use single-line format for the loop
     result = shell.execute(
         "for ext in txt json csv log; do "
         "count=$(ls /demo/data/*.$ext 2>/dev/null | wc -l); "
         "if [ $count -gt 0 ]; then "
-        "echo \"  Found $count .$ext files\"; "
+        'echo "  Found $count .$ext files"; '
         "fi; "
         "done"
     )
@@ -295,10 +290,10 @@ def main():
     print("\n" + "=" * 50)
     print("   CHUK VIRTUAL SHELL - PYTHON INTEGRATION DEMO")
     print("=" * 50)
-    
+
     # Initialize shell
     shell = ShellInterpreter()
-    
+
     # Run demos
     try:
         demo_basic_shell_commands(shell)
@@ -309,19 +304,20 @@ def main():
         demo_pipeline_integration(shell)
         demo_environment_variables(shell)
         demo_control_flow(shell)
-        
+
         print_section("Demo Complete!")
-        
+
         # Cleanup
         print("\nCleaning up demo files...")
         shell.execute("rm -rf /demo")
         print("✓ Demo files removed")
-        
+
     except Exception as e:
         print(f"\n❌ Error during demo: {e}")
         import traceback
+
         traceback.print_exc()
-    
+
     print("\n" + "=" * 50)
     print("  Thank you for trying Chuk Virtual Shell!")
     print("=" * 50)

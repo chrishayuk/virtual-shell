@@ -110,9 +110,9 @@ class TestShellInterpreter:
         shell = ShellInterpreter()
 
         # Create test data
-        shell.execute('echo apple > /fruits.txt')
-        shell.execute('echo banana >> /fruits.txt')
-        shell.execute('echo cherry >> /fruits.txt')
+        shell.execute("echo apple > /fruits.txt")
+        shell.execute("echo banana >> /fruits.txt")
+        shell.execute("echo cherry >> /fruits.txt")
 
         # Test single pipe
         result = shell.execute("cat /fruits.txt | grep a")
@@ -317,8 +317,16 @@ class TestShellInterpreter:
 
         # File not found
         result = shell.execute("cat /nonexistent/file.txt")
-        assert "no such file" in result.lower() or "not found" in result.lower() or "error" in result.lower()
+        assert (
+            "no such file" in result.lower()
+            or "not found" in result.lower()
+            or "error" in result.lower()
+        )
 
         # Directory operations on files
         result = shell.execute("touch /file.txt && cd /file.txt")
-        assert "no such directory" in result.lower() or "not a directory" in result.lower() or "error" in result.lower()
+        assert (
+            "no such directory" in result.lower()
+            or "not a directory" in result.lower()
+            or "error" in result.lower()
+        )

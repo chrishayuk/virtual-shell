@@ -22,6 +22,7 @@ class ShellCommand:
 
     def __init__(self, shell_context):
         self.shell = shell_context
+        self._stderr = []  # Buffer for stderr output
 
     def execute(self, args):
         """
@@ -91,3 +92,19 @@ class ShellCommand:
     def get_category(self):
         """Return the command category"""
         return self.category
+
+    def write_stderr(self, message: str):
+        """Write to stderr buffer"""
+        self._stderr.append(message)
+        # Also add to shell's stderr buffer if it exists
+        if hasattr(self.shell, "_stderr_buffer"):
+            if self.shell._stderr_buffer:
+                self.shell._stderr_buffer += "\n" + message
+            else:
+                self.shell._stderr_buffer = message
+
+    def get_stderr(self) -> str:
+        """Get and clear stderr buffer"""
+        result = "\n".join(self._stderr)
+        self._stderr = []
+        return result

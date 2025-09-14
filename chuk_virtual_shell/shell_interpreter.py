@@ -81,6 +81,9 @@ class ShellInterpreter:
         # Stdin buffer for piping between commands
         self._stdin_buffer: Optional[str] = None
 
+        # Stderr buffer for redirection
+        self._stderr_buffer: str = ""
+
         # Set current user from environment
         self.current_user = self.environ.get("USER", "user")
 

@@ -38,11 +38,15 @@ class ScriptRunner:
         Run a shell script from a string, supporting heredocs and multi-line control flow
 
         Args:
-            script_content: String containing the script commands
+            script_content: String or bytes containing the script commands
 
         Returns:
             str: Output from the script execution
         """
+        # Handle both bytes and string content
+        if isinstance(script_content, bytes):
+            script_content = script_content.decode("utf-8")
+
         # Split the script into lines
         lines = script_content.splitlines()
 

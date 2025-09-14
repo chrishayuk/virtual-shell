@@ -434,7 +434,8 @@ class TestFunctions:
 
     def test_recursive_function(self):
         """Test recursive function."""
-        self.shell.execute("""
+        self.shell.execute(
+            """
             factorial() {
                 if [ $1 -le 1 ]; then
                     echo 1
@@ -444,7 +445,8 @@ class TestFunctions:
                     echo $(($n * $prev))
                 fi
             }
-        """)
+        """
+        )
         result = self.shell.execute("factorial 5")
         assert "120" in result
 
@@ -572,7 +574,8 @@ class TestControlFlowCombinations:
 
     def test_function_with_loops(self):
         """Test function containing loops."""
-        self.shell.execute("""
+        self.shell.execute(
+            """
             process_list() {
                 for item in $@; do
                     if [ "$item" = "skip" ]; then
@@ -581,7 +584,8 @@ class TestControlFlowCombinations:
                     echo Processing: $item
                 done
             }
-        """)
+        """
+        )
         result = self.shell.execute("process_list one skip two three")
         assert "Processing: one" in result
         assert "Processing: skip" not in result

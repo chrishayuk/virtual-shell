@@ -30,9 +30,9 @@ print()
 
 # Create config
 config = Config(
-    signature_version='s3v4',
-    s3={'addressing_style': 'path'},
-    retries={'max_attempts': 3}
+    signature_version="s3v4",
+    s3={"addressing_style": "path"},
+    retries={"max_attempts": 3},
 )
 
 # Create client
@@ -42,43 +42,49 @@ client = boto3.client(
     aws_access_key_id=access_key,
     aws_secret_access_key=secret_key,
     region_name=region,
-    config=config
+    config=config,
 )
 
 # Test 1: List all buckets
 print("1. Listing all buckets:")
 try:
     response = client.list_buckets()
-    buckets = response.get('Buckets', [])
+    buckets = response.get("Buckets", [])
     for bucket in buckets:
         print(f"   - {bucket['Name']} (created: {bucket.get('CreationDate', 'N/A')})")
-        
+
         # Try to get bucket info
         print(f"     Testing access to {bucket['Name']}:")
-        
+
         # Try list objects
         try:
-            resp = client.list_objects_v2(Bucket=bucket['Name'], MaxKeys=1)
-            obj_count = resp.get('KeyCount', 0)
+            resp = client.list_objects_v2(Bucket=bucket["Name"], MaxKeys=1)
+            obj_count = resp.get("KeyCount", 0)
             print(f"       list_objects_v2: ✓ ({obj_count} objects)")
         except Exception as e:
-            error_code = e.response.get('Error', {}).get('Code', 'Unknown') if hasattr(e, 'response') else str(e)
+            error_code = (
+                e.response.get("Error", {}).get("Code", "Unknown")
+                if hasattr(e, "response")
+                else str(e)
+            )
             print(f"       list_objects_v2: ✗ {error_code}")
-        
+
         # Try put object
         try:
             client.put_object(
-                Bucket=bucket['Name'],
-                Key='_test_permission.txt',
-                Body=b'test'
+                Bucket=bucket["Name"], Key="_test_permission.txt", Body=b"test"
             )
-            print(f"       put_object: ✓")
+            print("       put_object: ✓")
             # Clean up
-            client.delete_object(Bucket=bucket['Name'], Key='_test_permission.txt')
+            client.delete_object(Bucket=bucket["Name"], Key="_test_permission.txt")
         except Exception as e:
-            error_code = e.response.get('Error', {}).get('Code', 'Unknown') if hasattr(e, 'response') else str(e)
+            error_code = (
+                e.response.get("Error", {}).get("Code", "Unknown")
+                if hasattr(e, "response")
+                else str(e)
+            )
             print(f"       put_object: ✗ {error_code}")
-            
+
 except Exception as e:
     print(f"   Error: {e}")
 
@@ -90,56 +96,72 @@ print(f"2. Attempting to create new bucket: {new_bucket_name}")
 try:
     response = client.create_bucket(Bucket=new_bucket_name)
     print(f"   ✓ Successfully created bucket: {new_bucket_name}")
-    
+
     # Test operations on new bucket
-    print(f"   Testing operations on new bucket:")
-    
+    print("   Testing operations on new bucket:")
+
     # List objects
     try:
         client.list_objects_v2(Bucket=new_bucket_name, MaxKeys=1)
-        print(f"     list_objects_v2: ✓")
+        print("     list_objects_v2: ✓")
     except Exception as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown') if hasattr(e, 'response') else str(e)
+        error_code = (
+            e.response.get("Error", {}).get("Code", "Unknown")
+            if hasattr(e, "response")
+            else str(e)
+        )
         print(f"     list_objects_v2: ✗ {error_code}")
-    
+
     # Put object
     try:
         client.put_object(
-            Bucket=new_bucket_name,
-            Key='test.txt',
-            Body=b'Hello from test'
+            Bucket=new_bucket_name, Key="test.txt", Body=b"Hello from test"
         )
-        print(f"     put_object: ✓")
+        print("     put_object: ✓")
     except Exception as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown') if hasattr(e, 'response') else str(e)
+        error_code = (
+            e.response.get("Error", {}).get("Code", "Unknown")
+            if hasattr(e, "response")
+            else str(e)
+        )
         print(f"     put_object: ✗ {error_code}")
-    
+
     # Get object
     try:
-        response = client.get_object(Bucket=new_bucket_name, Key='test.txt')
-        content = response['Body'].read()
+        response = client.get_object(Bucket=new_bucket_name, Key="test.txt")
+        content = response["Body"].read()
         print(f"     get_object: ✓ (got {len(content)} bytes)")
     except Exception as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown') if hasattr(e, 'response') else str(e)
+        error_code = (
+            e.response.get("Error", {}).get("Code", "Unknown")
+            if hasattr(e, "response")
+            else str(e)
+        )
         print(f"     get_object: ✗ {error_code}")
-    
+
     # Clean up - delete the test bucket
     try:
         # First delete all objects
         response = client.list_objects_v2(Bucket=new_bucket_name)
-        for obj in response.get('Contents', []):
-            client.delete_object(Bucket=new_bucket_name, Key=obj['Key'])
+        for obj in response.get("Contents", []):
+            client.delete_object(Bucket=new_bucket_name, Key=obj["Key"])
         # Then delete bucket
         client.delete_bucket(Bucket=new_bucket_name)
-        print(f"   ✓ Cleaned up test bucket")
+        print("   ✓ Cleaned up test bucket")
     except Exception as e:
         print(f"   Note: Could not clean up test bucket: {e}")
-        
+
 except Exception as e:
-    error_code = e.response.get('Error', {}).get('Code', 'Unknown') if hasattr(e, 'response') else str(e)
+    error_code = (
+        e.response.get("Error", {}).get("Code", "Unknown")
+        if hasattr(e, "response")
+        else str(e)
+    )
     print(f"   ✗ Could not create bucket: {error_code}")
-    if 'InvalidBucketName' in str(e):
-        print(f"   Note: Bucket name format issue. Tigris may have specific naming requirements.")
+    if "InvalidBucketName" in str(e):
+        print(
+            "   Note: Bucket name format issue. Tigris may have specific naming requirements."
+        )
 
 print()
 
@@ -148,12 +170,15 @@ print(f"3. Detailed error analysis for bucket '{bucket_name}':")
 
 # Try different operations to understand the permission model
 operations = [
-    ('HEAD bucket', lambda: client.head_bucket(Bucket=bucket_name)),
-    ('GET bucket location', lambda: client.get_bucket_location(Bucket=bucket_name)),
-    ('GET bucket ACL', lambda: client.get_bucket_acl(Bucket=bucket_name)),
-    ('LIST objects v1', lambda: client.list_objects(Bucket=bucket_name, MaxKeys=1)),
-    ('LIST objects v2', lambda: client.list_objects_v2(Bucket=bucket_name, MaxKeys=1)),
-    ('PUT object', lambda: client.put_object(Bucket=bucket_name, Key='test.txt', Body=b'test')),
+    ("HEAD bucket", lambda: client.head_bucket(Bucket=bucket_name)),
+    ("GET bucket location", lambda: client.get_bucket_location(Bucket=bucket_name)),
+    ("GET bucket ACL", lambda: client.get_bucket_acl(Bucket=bucket_name)),
+    ("LIST objects v1", lambda: client.list_objects(Bucket=bucket_name, MaxKeys=1)),
+    ("LIST objects v2", lambda: client.list_objects_v2(Bucket=bucket_name, MaxKeys=1)),
+    (
+        "PUT object",
+        lambda: client.put_object(Bucket=bucket_name, Key="test.txt", Body=b"test"),
+    ),
 ]
 
 for op_name, op_func in operations:
@@ -161,10 +186,10 @@ for op_name, op_func in operations:
         result = op_func()
         print(f"   {op_name:20} : ✓")
     except Exception as e:
-        if hasattr(e, 'response'):
-            error = e.response.get('Error', {})
-            code = error.get('Code', 'Unknown')
-            msg = error.get('Message', '')[:50]
+        if hasattr(e, "response"):
+            error = e.response.get("Error", {})
+            code = error.get("Code", "Unknown")
+            msg = error.get("Message", "")[:50]
             print(f"   {op_name:20} : ✗ {code} - {msg}")
         else:
             print(f"   {op_name:20} : ✗ {str(e)[:50]}")
@@ -174,7 +199,8 @@ print("=" * 60)
 print("Recommendations:")
 print("=" * 60)
 
-print("""
+print(
+    """
 Based on the tests above:
 
 1. If you can create and use new buckets: 
@@ -190,4 +216,5 @@ Based on the tests above:
    - Verify credentials are active and not expired
    - Check if there are IP restrictions or other security policies
    - Try regenerating the access keys in Tigris console
-""")
+"""
+)

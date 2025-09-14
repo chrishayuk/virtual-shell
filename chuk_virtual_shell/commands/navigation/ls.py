@@ -59,7 +59,10 @@ class LsCommand(ShellCommand):
                 node_info = None
 
             if not node_info:
-                results.append(f"ls: cannot access '{path}': No such file or directory")
+                error_msg = f"ls: cannot access '{path}': No such file or directory"
+                self.write_stderr(error_msg)
+                self.shell.return_code = 1
+                # Don't add to results - stderr buffer will be used by executor
                 continue
 
             if node_info.is_dir:
@@ -86,7 +89,10 @@ class LsCommand(ShellCommand):
         """List contents of a directory"""
         # Verify the directory exists and is a directory
         if not self._directory_exists(resolved_dir):
-            return f"ls: cannot access '{resolved_dir}': No such file or directory"
+            error_msg = f"ls: cannot access '{resolved_dir}': No such file or directory"
+            self.write_stderr(error_msg)
+            self.shell.return_code = 1
+            return ""
 
         try:
             files = self.shell.fs.ls(resolved_dir)

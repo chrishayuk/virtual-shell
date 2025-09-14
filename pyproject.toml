@@ -1,6 +1,6 @@
 [project]
 name = "chuk-virtual-shell"
-version = "0.1.5"
+version = "0.1.6"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,6 +23,9 @@ sandbox-cli = "chuk_virtual_shell.cli.sandbox_cli:main"
 [project.optional-dependencies]
 boto3 = [
     "chuk-virtual-shell",
+]
+mcp-server = [
+    "chuk-mcp-server>=0.1.0",
 ]
 
 [dependency-groups]

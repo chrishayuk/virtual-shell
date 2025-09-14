@@ -155,9 +155,11 @@ def test_ls_nonexistent_directory():
     dummy_shell = DummyShell({"/": {}})
     ls_cmd = LsCommand(shell_context=dummy_shell)
 
-    output = ls_cmd.execute(["/nonexistent"])
-    # Should return error message
-    assert "No such file or directory" in output
+    ls_cmd.execute(["/nonexistent"])  # Execute command (output not needed)
+    # Error should be in stderr, not output
+    stderr = ls_cmd.get_stderr()
+    assert "No such file or directory" in stderr
+    assert dummy_shell.return_code == 1
 
 
 def test_ls_filesystem_error():
@@ -416,10 +418,12 @@ def test_ls_directory_exists_ls_fallback_fails():
 
     try:
         ls_cmd = LsCommand(shell_context=dummy_shell)
-        output = ls_cmd.execute(["/nonexistent"])
+        ls_cmd.execute(["/nonexistent"])  # Execute command (output not needed)
 
-        # Should return error when directory doesn't exist
-        assert "No such file or directory" in output
+        # Error should be in stderr
+        stderr = ls_cmd.get_stderr()
+        assert "No such file or directory" in stderr
+        assert dummy_shell.return_code == 1
     finally:
         builtins.hasattr = original_hasattr
         dummy_shell.fs.ls = original_ls

@@ -19,12 +19,21 @@ if TYPE_CHECKING:
 class ExpansionHandler:
     """Handles all shell expansions (variables, globs, tilde, command substitution)."""
 
+    # Placeholders for escaped special characters
+    ESCAPED_STAR = "\x00ESCAPED_STAR\x00"
+    ESCAPED_QUEST = "\x00ESCAPED_QUEST\x00"
+    ESCAPED_LBRACK = "\x00ESCAPED_LBRACK\x00"
+    ESCAPED_PIPE = "\x00ESCAPED_PIPE\x00"
+    ESCAPED_DOLLAR = "\x00ESCAPED_DOLLAR\x00"
+    ESCAPED_SPACE = "\x00ESCAPED_SPACE\x00"
+
     def __init__(self, shell: "ShellInterpreter"):
         self.shell = shell
 
     def expand_all(self, cmd_line: str) -> str:
         """
         Apply all expansions in the correct order.
+        Respects quoting rules - no expansion in single quotes.
 
         Args:
             cmd_line: Command line to expand
@@ -32,14 +41,49 @@ class ExpansionHandler:
         Returns:
             Fully expanded command line
         """
+        # The order is important:
+        # 1. Command substitution (respects single quotes)
+        # 2. Variable expansion (respects single quotes, uses placeholders for escaped chars)
+        # 3. Glob expansion (after quotes are processed, avoids escaped chars)
+        # 4. Tilde expansion (at the beginning of words)
+        # 5. Restore escaped characters
+        cmd_line = self.expand_command_substitution(cmd_line)
         cmd_line = self.expand_variables(cmd_line)
         cmd_line = self.expand_globs(cmd_line)
         cmd_line = self.expand_tilde(cmd_line)
+        cmd_line = self._restore_escaped_chars(cmd_line)
         return cmd_line
+
+    def _is_in_single_quotes(self, text: str, position: int) -> bool:
+        """
+        Check if a position in text is inside single quotes.
+
+        Args:
+            text: The text to check
+            position: The position to check
+
+        Returns:
+            True if the position is inside single quotes
+        """
+        in_single = False
+        escaped = False
+
+        for i in range(position):
+            if escaped:
+                escaped = False
+                continue
+
+            if text[i] == "\\":
+                escaped = True
+            elif text[i] == "'":
+                in_single = not in_single
+
+        return in_single
 
     def expand_command_substitution(self, cmd_line: str, depth: int = 0) -> str:
         """
         Expand command substitutions $(command) and `command`.
+        Respects single quotes - no expansion inside them.
 
         Args:
             cmd_line: Command line potentially containing substitutions
@@ -60,6 +104,12 @@ class ExpansionHandler:
                 idx = cmd_line.find("$(", start)
                 if idx == -1:
                     break
+
+                # Skip if inside single quotes
+                if self._is_in_single_quotes(cmd_line, idx):
+                    start = idx + 2
+                    continue
+
                 # Check if it's arithmetic $((
                 if idx + 2 < len(cmd_line) and cmd_line[idx + 2] == "(":
                     start = idx + 3
@@ -107,6 +157,18 @@ class ExpansionHandler:
             idx = cmd_line.find("`")
             if idx == -1:
                 break
+
+            # Skip if inside single quotes
+            if self._is_in_single_quotes(cmd_line, idx):
+                # Find next backtick to skip the whole thing
+                next_idx = cmd_line.find("`", idx + 1)
+                if next_idx == -1:
+                    break
+                idx = cmd_line.find("`", next_idx + 1)
+                if idx == -1:
+                    break
+                continue
+
             end = cmd_line.find("`", idx + 1)
             if end == -1:
                 break
@@ -197,40 +259,99 @@ class ExpansionHandler:
         return "".join(result)
 
     def _expand_segment(self, segment: str) -> str:
-        """Expand variables in an unquoted segment."""
-        # Handle escaped dollar signs first
-        # Replace \$ with a placeholder to protect it from expansion
-        placeholder = "\x00ESCAPED_DOLLAR\x00"
-        segment = segment.replace("\\$", placeholder)
+        """Expand variables in an unquoted segment, respecting backslash escapes."""
+        # Replace escaped glob/special characters with placeholders
+        result = []
+        i = 0
+        while i < len(segment):
+            if segment[i] == "\\" and i + 1 < len(segment):
+                next_char = segment[i + 1]
+                if next_char == "*":
+                    result.append(self.ESCAPED_STAR)
+                    i += 2
+                elif next_char == "?":
+                    result.append(self.ESCAPED_QUEST)
+                    i += 2
+                elif next_char == "[":
+                    result.append(self.ESCAPED_LBRACK)
+                    i += 2
+                elif next_char == "|":
+                    result.append(self.ESCAPED_PIPE)
+                    i += 2
+                elif next_char == "$":
+                    result.append(self.ESCAPED_DOLLAR)
+                    i += 2
+                elif next_char == " ":
+                    result.append(self.ESCAPED_SPACE)
+                    i += 2
+                else:
+                    # Other escaped characters - just remove the backslash
+                    result.append(next_char)
+                    i += 2
+            elif segment[i] == "$" and i + 1 < len(segment):
+                # Variable expansion
+                if segment[i + 1] == "?":
+                    result.append(str(self.shell.return_code))
+                    i += 2
+                elif segment[i + 1] == "$":
+                    result.append(str(id(self.shell)))
+                    i += 2
+                elif segment[i + 1] == "#":
+                    result.append("0")
+                    i += 2
+                elif segment[i + 1] == "{":
+                    # ${VAR} format
+                    end = segment.find("}", i + 2)
+                    if end != -1:
+                        var_name = segment[i + 2 : end]
+                        result.append(self.shell.environ.get(var_name, ""))
+                        i = end + 1
+                    else:
+                        result.append(segment[i])
+                        i += 1
+                else:
+                    # $VAR format
+                    match = re.match(r"\$([A-Za-z_][A-Za-z0-9_]*)", segment[i:])
+                    if match:
+                        var_name = match.group(1)
+                        result.append(self.shell.environ.get(var_name, ""))
+                        i += len(match.group(0))
+                    else:
+                        result.append(segment[i])
+                        i += 1
+            else:
+                result.append(segment[i])
+                i += 1
 
-        # Special variables
-        segment = segment.replace("$?", str(self.shell.return_code))
-        segment = segment.replace("$$", str(id(self.shell)))
-        segment = segment.replace("$#", "0")
+        return "".join(result)
 
-        # ${VAR} format
-        def expand_braces(match):
-            var_name = match.group(1)
-            return self.shell.environ.get(var_name, "")
+    def _restore_escaped_chars(self, text: str) -> str:
+        """Restore escaped characters from placeholders."""
+        text = text.replace(self.ESCAPED_STAR, "*")
+        text = text.replace(self.ESCAPED_QUEST, "?")
+        text = text.replace(self.ESCAPED_LBRACK, "[")
+        # Don't restore ESCAPED_PIPE or ESCAPED_SPACE here - they need special handling
+        # text = text.replace(self.ESCAPED_PIPE, '|')
+        # text = text.replace(self.ESCAPED_SPACE, ' ')
+        text = text.replace(self.ESCAPED_DOLLAR, "$")
+        return text
 
-        segment = re.sub(r"\$\{([^}]+)\}", expand_braces, segment)
+    def restore_escaped_pipes(self, text: str) -> str:
+        """Restore escaped pipes - called after pipeline processing."""
+        return text.replace(self.ESCAPED_PIPE, "|")
 
-        # $VAR format
-        def expand_simple(match):
-            var_name = match.group(1)
-            return self.shell.environ.get(var_name, "")
+    def restore_escaped_spaces(self, text: str) -> str:
+        """Restore escaped spaces - called after command parsing."""
+        return text.replace(self.ESCAPED_SPACE, " ")
 
-        # Match $VARNAME where VARNAME is alphanumeric starting with letter/underscore
-        segment = re.sub(r"\$([A-Za-z_][A-Za-z0-9_]*)", expand_simple, segment)
-
-        # Restore escaped dollar signs
-        segment = segment.replace(placeholder, "$")
-
-        return segment
+    def restore_escaped_spaces_in_args(self, args: list) -> list:
+        """Restore escaped spaces in argument list."""
+        return [self.restore_escaped_spaces(arg) for arg in args]
 
     def expand_arithmetic(self, cmd_line: str) -> str:
         """
         Expand arithmetic expressions $((...)).
+        Respects single quotes - no expansion inside them.
 
         Args:
             cmd_line: Command line containing arithmetic expressions
@@ -238,45 +359,74 @@ class ExpansionHandler:
         Returns:
             Command line with arithmetic evaluated
         """
+        result = []
+        i = 0
 
-        def evaluate_arithmetic(match):
-            expr = match.group(1)
+        while i < len(cmd_line):
+            # Check for single quotes
+            if cmd_line[i] == "'":
+                # Find closing quote
+                end = cmd_line.find("'", i + 1)
+                if end == -1:
+                    # No closing quote, take rest of string
+                    result.append(cmd_line[i:])
+                    break
+                else:
+                    # Copy content without expansion
+                    result.append(cmd_line[i : end + 1])
+                    i = end + 1
+            # Check for arithmetic expansion
+            elif cmd_line[i : i + 3] == "$((" and not self._is_in_single_quotes(
+                cmd_line, i
+            ):
+                # Find closing ))
+                end = cmd_line.find("))", i + 3)
+                if end == -1:
+                    result.append(cmd_line[i])
+                    i += 1
+                else:
+                    expr = cmd_line[i + 3 : end]
 
-            # First expand any $VAR references to their values
-            def expand_var(m):
-                var_name = m.group(1)
-                return self.shell.environ.get(var_name, "0")
+                    # First expand any $VAR references to their values
+                    def expand_var(m):
+                        var_name = m.group(1)
+                        return self.shell.environ.get(var_name, "0")
 
-            expr = re.sub(r"\$([A-Za-z_][A-Za-z0-9_]*)", expand_var, expr)
+                    expr = re.sub(r"\$([A-Za-z_][A-Za-z0-9_]*)", expand_var, expr)
 
-            # Then replace bare variable names
-            for var_name in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", expr):
-                if var_name in self.shell.environ:
-                    var_value = self.shell.environ[var_name]
-                    # Try to convert to int, default to 0 if not numeric
+                    # Then replace bare variable names
+                    for var_name in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", expr):
+                        if var_name in self.shell.environ:
+                            var_value = self.shell.environ[var_name]
+                            # Try to convert to int, default to 0 if not numeric
+                            try:
+                                var_value = str(int(var_value))
+                            except (ValueError, TypeError):
+                                var_value = "0"
+                            expr = re.sub(r"\b" + var_name + r"\b", var_value, expr)
+
+                    # Safely evaluate the arithmetic expression
                     try:
-                        var_value = str(int(var_value))
-                    except (ValueError, TypeError):
-                        var_value = "0"
-                    expr = re.sub(r"\b" + var_name + r"\b", var_value, expr)
+                        # Only allow safe operations
+                        evaluated = eval(expr, {"__builtins__": {}}, {})
+                        result.append(str(evaluated))
+                    except Exception:
+                        # If evaluation fails, return the original expression
+                        result.append(f"$(({expr}))")
 
-            # Safely evaluate the arithmetic expression
-            try:
-                # Only allow safe operations
-                result = eval(expr, {"__builtins__": {}}, {})
-                return str(result)
-            except Exception:
-                # If evaluation fails, return the original expression
-                return f"$(({expr}))"
+                    i = end + 2
+            else:
+                # Regular character
+                result.append(cmd_line[i])
+                i += 1
 
-        # Match $((...)) pattern
-        cmd_line = re.sub(r"\$\(\(([^)]+)\)\)", evaluate_arithmetic, cmd_line)
-        return cmd_line
+        return "".join(result)
 
     def expand_globs(self, cmd_line: str) -> str:
         """
         Expand glob patterns (wildcards) in the command line.
         Supports *, ?, and [].
+        Respects quotes - no expansion in single or double quotes.
 
         Args:
             cmd_line: Command line containing glob patterns
@@ -284,29 +434,112 @@ class ExpansionHandler:
         Returns:
             Command line with globs expanded
         """
-        try:
-            # Parse the command line preserving quotes
-            parts = shlex.split(cmd_line)
-        except ValueError:
-            # If shlex fails, return as-is
-            return cmd_line
+        # We need to manually parse the command line to preserve quote information
+        result = []
+        current_word = []
+        in_single_quote = False
+        in_double_quote = False
+        escaped = False
+        i = 0
 
-        expanded_parts = []
-        for part in parts:
-            # Check if this part contains glob characters
-            if any(char in part for char in ["*", "?", "["]):
-                # Try to expand the glob pattern
-                matches = self._match_glob_pattern(part)
-                if matches:
-                    expanded_parts.extend(matches)
+        while i < len(cmd_line):
+            char = cmd_line[i]
+
+            if escaped:
+                current_word.append(char)
+                escaped = False
+                i += 1
+                continue
+
+            if char == "\\":
+                escaped = True
+                current_word.append(char)
+                i += 1
+                continue
+
+            if char == "'" and not in_double_quote:
+                in_single_quote = not in_single_quote
+                current_word.append(char)
+                i += 1
+                continue
+
+            if char == '"' and not in_single_quote:
+                in_double_quote = not in_double_quote
+                current_word.append(char)
+                i += 1
+                continue
+
+            if char in " \t" and not in_single_quote and not in_double_quote:
+                # End of word
+                if current_word:
+                    word = "".join(current_word)
+                    # Check if word needs glob expansion
+                    if not (word.startswith('"') or word.startswith("'")):
+                        # Check for glob characters that are not escaped (placeholders)
+                        if any(c in word for c in ["*", "?", "["]) and not any(
+                            placeholder in word
+                            for placeholder in [
+                                self.ESCAPED_STAR,
+                                self.ESCAPED_QUEST,
+                                self.ESCAPED_LBRACK,
+                            ]
+                        ):
+                            # Has unescaped glob chars, try to expand
+                            matches = self._match_glob_pattern(word)
+                            if matches:
+                                # Add each match with space separation
+                                for idx, match in enumerate(matches):
+                                    if idx > 0:
+                                        result.append(" ")
+                                    result.append(match)
+                            else:
+                                result.append(word)
+                        else:
+                            # No unescaped glob chars or contains escaped placeholders
+                            result.append(word)
+                    else:
+                        # Word is quoted, no expansion
+                        result.append(word)
+                    current_word = []
+                result.append(char)
+                i += 1
+                continue
+
+            current_word.append(char)
+            i += 1
+
+        # Handle last word
+        if current_word:
+            word = "".join(current_word)
+            # Check if word needs glob expansion
+            if not (word.startswith('"') or word.startswith("'")):
+                # Check for glob characters that are not escaped (placeholders)
+                if any(c in word for c in ["*", "?", "["]) and not any(
+                    placeholder in word
+                    for placeholder in [
+                        self.ESCAPED_STAR,
+                        self.ESCAPED_QUEST,
+                        self.ESCAPED_LBRACK,
+                    ]
+                ):
+                    # Has unescaped glob chars, try to expand
+                    matches = self._match_glob_pattern(word)
+                    if matches:
+                        # Add each match with space separation
+                        for idx, match in enumerate(matches):
+                            if idx > 0:
+                                result.append(" ")
+                            result.append(match)
+                    else:
+                        result.append(word)
                 else:
-                    # No matches, keep the pattern as-is
-                    expanded_parts.append(part)
+                    # No unescaped glob chars or contains escaped placeholders
+                    result.append(word)
             else:
-                expanded_parts.append(part)
+                # Word is quoted, no expansion
+                result.append(word)
 
-        # Reconstruct the command line
-        return self._reconstruct_command_line(expanded_parts)
+        return "".join(result)
 
     def expand_tilde(self, cmd_line: str) -> str:
         """

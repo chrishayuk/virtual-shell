@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "chuk-virtual-shell": {
+      "command": "python",
+      "args": [
+        "-m", 
+        "chuk_virtual_shell.mcp_server"
+      ],
+      "env": {
+        "CHUK_SANDBOX": "ai_sandbox",
+        "CHUK_FS_PROVIDER": "memory",
+        "CHUK_LOG_LEVEL": "INFO"
+      }
+    },
+    "chuk-virtual-shell-dev": {
+      "command": "python",
+      "args": [
+        "-m", 
+        "chuk_virtual_shell.mcp_server"
+      ],
+      "env": {
+        "CHUK_SANDBOX": "default",
+        "CHUK_FS_PROVIDER": "sqlite",
+        "CHUK_LOG_LEVEL": "DEBUG"
+      }
+    },
+    "chuk-virtual-shell-persistent": {
+      "command": "python", 
+      "args": [
+        "-m",
+        "chuk_virtual_shell.mcp_server"
+      ],
+      "env": {
+        "CHUK_SANDBOX": "none",
+        "CHUK_FS_PROVIDER": "sqlite",
+        "CHUK_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

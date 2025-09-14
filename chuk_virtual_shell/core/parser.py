@@ -72,6 +72,27 @@ class CommandParser:
         return False
 
     @staticmethod
+    def is_escaped(text: str, position: int) -> bool:
+        """
+        Check if a character at position is escaped with backslash.
+
+        Args:
+            text: Text to check
+            position: Position to check
+
+        Returns:
+            True if character is escaped, False otherwise
+        """
+        if position == 0:
+            return False
+        if position > 0 and text[position - 1] == "\\":
+            # Check if the backslash itself is escaped
+            if position > 1 and text[position - 2] == "\\":
+                return False
+            return True
+        return False
+
+    @staticmethod
     def contains_quoted_operator(cmd_line: str) -> bool:
         """
         Check if logical operators or semicolons are within quotes.

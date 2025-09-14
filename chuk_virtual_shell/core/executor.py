@@ -24,6 +24,7 @@ class CommandExecutor:
         # Lazy imports to avoid circular dependencies
         self._parser = None
         self._expansion = None
+        self._redirection_parser = None
 
     @property
     def parser(self):
@@ -42,6 +43,15 @@ class CommandExecutor:
 
             self._expansion = ExpansionHandler(self.shell)
         return self._expansion
+
+    @property
+    def redirection_parser(self):
+        """Lazy load advanced redirection parser."""
+        if self._redirection_parser is None:
+            from chuk_virtual_shell.core.redirection import RedirectionParser
+
+            self._redirection_parser = RedirectionParser()
+        return self._redirection_parser
 
     def execute_line(self, cmd_line: str) -> str:
         """
@@ -70,9 +80,13 @@ class CommandExecutor:
         if self._has_operators(cmd_line):
             return self._execute_with_operators(cmd_line)
 
-        # Check for pipes
-        if "|" in cmd_line and not self.parser.is_quoted(cmd_line, cmd_line.index("|")):
-            return self._execute_pipeline(cmd_line)
+        # Check for pipes (not quoted or escaped)
+        if "|" in cmd_line:
+            pipe_idx = cmd_line.index("|")
+            if not self.parser.is_quoted(
+                cmd_line, pipe_idx
+            ) and not self.parser.is_escaped(cmd_line, pipe_idx):
+                return self._execute_pipeline(cmd_line)
 
         # Simple command with possible redirection
         return self._execute_single(cmd_line)
@@ -98,9 +112,13 @@ class CommandExecutor:
         cmd_line = self.expansion.expand_globs(cmd_line)
         cmd_line = self.expansion.expand_tilde(cmd_line)
 
-        # Check for pipes
-        if "|" in cmd_line and not self.parser.is_quoted(cmd_line, cmd_line.index("|")):
-            return self._execute_pipeline_no_substitution(cmd_line)
+        # Check for pipes (not quoted or escaped)
+        if "|" in cmd_line:
+            pipe_idx = cmd_line.index("|")
+            if not self.parser.is_quoted(
+                cmd_line, pipe_idx
+            ) and not self.parser.is_escaped(cmd_line, pipe_idx):
+                return self._execute_pipeline_no_substitution(cmd_line)
 
         # Parse redirection
         redirect_info = self.parser.parse_redirection(cmd_line)
@@ -117,6 +135,10 @@ class CommandExecutor:
         cmd, args = self.parser.parse_command(cmd_line)
         if not cmd:
             return ""
+
+        # Restore escaped spaces in arguments after parsing
+        cmd = self.expansion.restore_escaped_spaces(cmd)
+        args = self.expansion.restore_escaped_spaces_in_args(args)
 
         if cmd in self.shell.commands:
             try:
@@ -204,6 +226,9 @@ class CommandExecutor:
         # Apply expansions to whole pipeline
         cmd_line = self.expansion.expand_all(cmd_line)
 
+        # Restore escaped pipes in pipeline
+        cmd_line = self.expansion.restore_escaped_pipes(cmd_line)
+
         # Parse for redirection
         pipeline_info = self.parser.parse_pipeline_redirection(cmd_line)
         cmd_line = pipeline_info["pipeline"]
@@ -266,6 +291,9 @@ class CommandExecutor:
 
     def _execute_pipeline_no_substitution(self, cmd_line: str) -> str:
         """Execute pipeline without command substitution."""
+        # Restore escaped pipes first
+        cmd_line = self.expansion.restore_escaped_pipes(cmd_line)
+
         # Similar to _execute_pipeline but without expansion
         commands = cmd_line.split("|")
         result = ""
@@ -309,10 +337,17 @@ class CommandExecutor:
         # Apply expansions
         cmd_line = self.expansion.expand_all(cmd_line)
 
-        # Check for pipes after expansion
-        if "|" in cmd_line and not self.parser.is_quoted(cmd_line, cmd_line.index("|")):
-            return self._execute_pipeline(cmd_line)
+        # Check for pipes after expansion (not quoted or escaped)
+        # Also check for escaped pipe placeholders - they should not be treated as pipes
+        if "|" in cmd_line and self.expansion.ESCAPED_PIPE not in cmd_line:
+            pipe_idx = cmd_line.index("|")
+            if not self.parser.is_quoted(
+                cmd_line, pipe_idx
+            ) and not self.parser.is_escaped(cmd_line, pipe_idx):
+                return self._execute_pipeline(cmd_line)
 
+        # Restore escaped pipes before simple execution
+        cmd_line = self.expansion.restore_escaped_pipes(cmd_line)
         return self._execute_simple(cmd_line)
 
     def _execute_simple(self, cmd_line: str) -> str:
@@ -340,34 +375,68 @@ class CommandExecutor:
                 self.shell.return_code = 0
                 return ""
 
-        # Parse redirection
-        redirect_info = self.parser.parse_redirection(cmd_line)
-        cmd_line = redirect_info["command"]
+        # Parse advanced redirection
+        redirect_info = self.redirection_parser.parse(cmd_line)
+        cmd_line = redirect_info.command
 
         # Handle input redirection
-        if redirect_info["input"]:
-            content = self.shell.fs.read_file(redirect_info["input"])
+        if redirect_info.stdin_file:
+            # Restore escaped spaces in filename
+            stdin_file = self.expansion.restore_escaped_spaces(redirect_info.stdin_file)
+            content = self.shell.fs.read_file(stdin_file)
             if content is None:
                 self.shell.return_code = 1
-                return f"bash: {redirect_info['input']}: No such file or directory"
+                return f"bash: {stdin_file}: No such file or directory"
+            # Handle both bytes and string content
+            if isinstance(content, bytes):
+                content = content.decode("utf-8")
             self.shell._stdin_buffer = content
+        # Handle here-documents
+        elif redirect_info.heredoc_content:
+            self.shell._stdin_buffer = redirect_info.heredoc_content
 
         # Parse and execute command
         cmd, args = self.parser.parse_command(cmd_line)
         if not cmd:
             return ""
 
+        # Restore escaped spaces in arguments after parsing
+        cmd = self.expansion.restore_escaped_spaces(cmd)
+        args = self.expansion.restore_escaped_spaces_in_args(args)
+
         if cmd in self.shell.commands:
             try:
                 # Track command timing if enabled
                 start_time = time.time() if self.shell.enable_timing else None
 
-                # Execute command
+                # Execute command and capture both stdout and stderr
                 # Reset return code before execution
                 self.shell.return_code = 0
+
+                # Store original stderr if we need to redirect it
+                original_stderr = None
+                if (
+                    redirect_info.stderr_file
+                    or redirect_info.stderr_to_stdout
+                    or redirect_info.combined_file
+                ):
+                    original_stderr = getattr(self.shell, "_stderr_buffer", "")
+                    self.shell._stderr_buffer = ""
+
                 result = self.shell.commands[cmd].run(args)
-                # The command may have set a specific return code (e.g., false sets it to 1)
-                # If it didn't, return_code will still be 0 (success)
+
+                # Get stderr if it was captured
+                stderr_output = ""
+                if original_stderr is not None:
+                    stderr_output = getattr(self.shell, "_stderr_buffer", "")
+                    # For commands that don't produce stderr, simulate it for errors
+                    if not stderr_output and self.shell.return_code != 0:
+                        if (
+                            "No such file or directory" in result
+                            or "not found" in result
+                        ):
+                            stderr_output = result
+                            result = ""  # Move error to stderr
 
                 # Record timing statistics
                 if self.shell.enable_timing and start_time:
@@ -381,22 +450,115 @@ class CommandExecutor:
                 if hasattr(self.shell, "_stdin_buffer"):
                     del self.shell._stdin_buffer
 
-                # Handle output redirection
-                if redirect_info["output"]:
-                    self._write_redirect(
-                        redirect_info["output"], result, redirect_info["append"]
-                    )
-                    return ""
+                # Clear stderr buffer
+                if hasattr(self.shell, "_stderr_buffer"):
+                    del self.shell._stderr_buffer
 
-                return result
+                # Handle output redirection with advanced features
+                return self._handle_advanced_redirection(
+                    redirect_info, result, stderr_output
+                )
 
             except Exception as e:
                 logger.error(f"Error executing command '{cmd}': {e}")
                 self.shell.return_code = 1
-                return f"Error executing command: {e}"
+                error_msg = f"Error executing command: {e}"
+
+                # Handle stderr redirection for errors
+                if redirect_info.stderr_file:
+                    self._write_redirect(
+                        redirect_info.stderr_file,
+                        error_msg,
+                        redirect_info.stderr_append,
+                    )
+                    return ""
+                elif redirect_info.stderr_to_stdout or redirect_info.combined_file:
+                    return error_msg
+                else:
+                    return error_msg
         else:
             self.shell.return_code = 127  # Command not found
-            return f"{cmd}: command not found"
+            error_msg = f"{cmd}: command not found"
+
+            # Handle stderr redirection for command not found
+            if redirect_info.stderr_file:
+                self._write_redirect(
+                    redirect_info.stderr_file, error_msg, redirect_info.stderr_append
+                )
+                return ""
+            elif redirect_info.stderr_to_stdout or redirect_info.combined_file:
+                if redirect_info.combined_file:
+                    self._write_redirect(
+                        redirect_info.combined_file,
+                        error_msg,
+                        redirect_info.combined_append,
+                    )
+                    return ""
+                return error_msg
+            else:
+                return error_msg
+
+    def _handle_advanced_redirection(
+        self, redirect_info, stdout: str, stderr: str
+    ) -> str:
+        """
+        Handle advanced redirection scenarios.
+
+        Args:
+            redirect_info: RedirectionInfo object with redirection settings
+            stdout: Standard output from command
+            stderr: Standard error from command
+
+        Returns:
+            Final output to return to caller
+        """
+        # Handle combined redirection (&> or &>>)
+        if redirect_info.combined_file:
+            combined = stdout
+            if stderr:
+                combined = combined + "\n" + stderr if combined else stderr
+            # Note: _write_redirect handles restoring escaped spaces
+            self._write_redirect(
+                redirect_info.combined_file, combined, redirect_info.combined_append
+            )
+            return ""
+
+        # Handle stderr to stdout (2>&1)
+        if redirect_info.stderr_to_stdout:
+            combined = stdout
+            if stderr:
+                combined = combined + "\n" + stderr if combined else stderr
+            # If stdout is also redirected, write combined output there
+            if redirect_info.stdout_file:
+                # Note: _write_redirect handles restoring escaped spaces
+                self._write_redirect(
+                    redirect_info.stdout_file, combined, redirect_info.stdout_append
+                )
+                return ""
+            return combined
+
+        # Handle separate stderr redirection
+        if redirect_info.stderr_file:
+            # Note: _write_redirect handles restoring escaped spaces
+            self._write_redirect(
+                redirect_info.stderr_file, stderr, redirect_info.stderr_append
+            )
+            # stderr is redirected, don't include it in output
+        else:
+            # stderr is not redirected, combine it with stdout for output
+            # But avoid duplicating if stderr is already in stdout (e.g., from ls command)
+            if stderr and stderr not in stdout:
+                stdout = stdout + "\n" + stderr if stdout else stderr
+
+        # Handle stdout redirection
+        if redirect_info.stdout_file:
+            # Note: _write_redirect handles restoring escaped spaces
+            self._write_redirect(
+                redirect_info.stdout_file, stdout, redirect_info.stdout_append
+            )
+            return ""
+
+        return stdout
 
     def _write_redirect(self, filename: str, content: str, append: bool) -> None:
         """
@@ -407,9 +569,15 @@ class CommandExecutor:
             content: Content to write
             append: Whether to append or overwrite
         """
+        # Restore escaped spaces in filename
+        filename = self.expansion.restore_escaped_spaces(filename)
+
         if append:
             # Append to file
             existing = self.shell.fs.read_file(filename) or ""
+            # Handle both bytes and string content
+            if isinstance(existing, bytes):
+                existing = existing.decode("utf-8")
             if existing and not existing.endswith("\n"):
                 content = existing + "\n" + content
             elif existing:
