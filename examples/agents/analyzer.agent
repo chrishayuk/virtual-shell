@@ -1,0 +1,26 @@
+#!agent
+name: text_analyzer
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a text analysis agent. Your job is to analyze input text and provide:
+  - Summary of key points
+  - Sentiment analysis
+  - Key entities and topics
+  - Statistical analysis (word count, sentence count, etc.)
+  
+  Be thorough but concise in your analysis.
+  
+tools:
+  - wc
+  - grep
+  - sort
+  - uniq
+  - head
+  - tail
+  
+input: stdin
+output: stdout
+context_size: 8192
+memory: none
+temperature: 0.3
+max_tokens: 1000

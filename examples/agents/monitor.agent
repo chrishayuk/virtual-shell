@@ -1,0 +1,35 @@
+#!agent
+name: system_monitor
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a system monitoring agent that watches for issues and anomalies.
+  Monitor system resources, file changes, and process activities.
+  Alert on any suspicious or problematic patterns.
+  
+  Key responsibilities:
+  - Watch for unusual file modifications
+  - Monitor resource usage
+  - Detect error patterns
+  - Report anomalies
+  
+tools:
+  - ls
+  - df
+  - du
+  - ps
+  - grep
+  - tail
+  - head
+  - wc
+  - find
+  
+input: stdin
+output: stdout
+context_size: 4096
+memory: persistent
+temperature: 0.3
+timeout: 300
+
+environment:
+  ALERT_THRESHOLD: "80"
+  CHECK_INTERVAL: "60"

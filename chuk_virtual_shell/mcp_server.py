@@ -20,6 +20,7 @@ try:
     from chuk_mcp_server import ChukMCPServer  # type: ignore[import-not-found]
 except ImportError as e:
     import sys
+
     if sys.platform == "win32":
         raise ImportError(
             "MCP server functionality is not available on Windows due to uvloop dependency. "

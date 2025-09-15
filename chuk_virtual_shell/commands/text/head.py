@@ -83,6 +83,9 @@ Options:
                 results.append(f"head: {filepath}: No such file or directory")
                 continue
 
+            # Convert bytes to string if necessary
+            content = self.ensure_string(content)
+
             # Add header if needed
             if show_headers:
                 if i > 0:

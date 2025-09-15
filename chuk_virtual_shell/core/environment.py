@@ -58,21 +58,37 @@ class EnvironmentManager:
             existing_node = self.shell.fs.get_node_info(resolved_home_dir)
 
             if not existing_node:
+                # Try to create the home directory
                 if not self.shell.fs.mkdir(resolved_home_dir):
-                    logger.warning(
-                        f"Could not create home directory {resolved_home_dir}"
-                    )
+                    # Try creating with parent directories
+                    try:
+                        if not self.shell.fs.mkdir(resolved_home_dir, parents=True):
+                            logger.debug(
+                                f"Could not create home directory {resolved_home_dir}"
+                            )
+                    except Exception:
+                        logger.debug(
+                            f"Could not create home directory {resolved_home_dir}"
+                        )
             elif not existing_node.is_dir:
-                logger.warning(
+                logger.debug(
                     f"Home path {resolved_home_dir} exists but is not a directory"
                 )
 
-            # Try to change to home directory
+            # Try to change to home directory - if it fails, that's okay
+            # We'll work from root directory
             if not self.shell.fs.cd(home_dir):
-                logger.warning(f"Could not change to home directory {home_dir}")
+                logger.debug(f"Working from root directory instead of {home_dir}")
+                # Ensure we're in root directory at least
+                self.shell.fs.cd("/")
 
         except Exception as e:
-            logger.error(f"Error setting up home directory {home_dir}: {e}")
+            logger.debug(f"Home directory setup issue (working from root): {e}")
+            # Ensure we're in root directory
+            try:
+                self.shell.fs.cd("/")
+            except Exception:
+                pass
 
     def load_shellrc(self) -> None:
         """Load and execute .shellrc file if it exists."""

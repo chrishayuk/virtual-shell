@@ -52,8 +52,8 @@ class RedirectionParser:
         "stdout_append": re.compile(r'(?<!2)>>\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))'),
         "stdout": re.compile(r'(?<![2&])>\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))'),
         # Here-documents (must come before stdin to avoid matching << as <)
-        "heredoc_strip": re.compile(r"<<-\s*(\S+)"),
-        "heredoc": re.compile(r"<<\s*(\S+)"),
+        "heredoc_strip": re.compile(r'<<-\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))'),
+        "heredoc": re.compile(r'<<\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))'),
         # Input redirection (negative lookbehind to avoid matching <<)
         "stdin": re.compile(r'(?<!<)<(?!<)\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))'),
     }
@@ -122,15 +122,23 @@ class RedirectionParser:
         # Here-documents (<< and <<-) - must come before stdin
         match = self.PATTERNS["heredoc_strip"].search(remaining)
         if match:
-            info.heredoc_delimiter = match.group(1)
+            info.heredoc_delimiter = self._extract_filename(match)
             info.heredoc_strip_tabs = True
             remaining = self.PATTERNS["heredoc_strip"].sub("", remaining, count=1)
+            # Extract heredoc content if multi-line
+            remaining, info.heredoc_content = self._extract_heredoc_from_remaining(
+                remaining, info.heredoc_delimiter, info.heredoc_strip_tabs
+            )
         else:
             match = self.PATTERNS["heredoc"].search(remaining)
             if match:
-                info.heredoc_delimiter = match.group(1)
+                info.heredoc_delimiter = self._extract_filename(match)
                 info.heredoc_strip_tabs = False
                 remaining = self.PATTERNS["heredoc"].sub("", remaining, count=1)
+                # Extract heredoc content if multi-line
+                remaining, info.heredoc_content = self._extract_heredoc_from_remaining(
+                    remaining, info.heredoc_delimiter, info.heredoc_strip_tabs
+                )
 
         # Input redirection (<)
         match = self.PATTERNS["stdin"].search(remaining)
@@ -235,6 +243,57 @@ class RedirectionParser:
             return "", start_index
 
         return "\n".join(content_lines), end_index
+
+    def _extract_heredoc_from_remaining(
+        self, remaining: str, delimiter: str, strip_tabs: bool = False
+    ) -> Tuple[str, Optional[str]]:
+        """
+        Extract heredoc content from remaining command text if multi-line.
+
+        Args:
+            remaining: Remaining command text after removing heredoc syntax
+            delimiter: Heredoc delimiter to look for
+            strip_tabs: Whether to strip leading tabs
+
+        Returns:
+            Tuple of (cleaned_command, heredoc_content)
+        """
+        if "\n" not in remaining:
+            return remaining, None
+
+        lines = remaining.split("\n")
+
+        # First line is the command, rest might be heredoc content
+        command_line = lines[0].strip()
+
+        if len(lines) == 1:
+            return command_line, None
+
+        # Look for heredoc content in subsequent lines
+        content_lines = []
+        found_delimiter = False
+
+        for i in range(1, len(lines)):
+            line = lines[i]
+
+            # Check if this line is the delimiter
+            if line.strip() == delimiter:
+                found_delimiter = True
+                break
+
+            # Process line content
+            if strip_tabs:
+                line = line.lstrip("\t")
+
+            content_lines.append(line)
+
+        if found_delimiter:
+            # Empty heredoc is valid (no content lines)
+            heredoc_content = "\n".join(content_lines) if content_lines else ""
+            return command_line, heredoc_content
+        else:
+            # No heredoc delimiter found, return original
+            return remaining, None
 
 
 class RedirectionHandler:

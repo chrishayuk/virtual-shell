@@ -124,6 +124,12 @@ def needs_continuation(cmd_line):
     if cmd.endswith(" then") or cmd == "then":
         return True
 
+    # Check for heredoc syntax (<<)
+    import re
+
+    if re.search(r"<<\s*(\S+)", cmd):
+        return True
+
     return False
 
 
@@ -138,6 +144,25 @@ def is_command_complete(combined_command):
         bool: True if the command is complete
     """
     lines = combined_command.strip().split("\n")
+
+    # Check for heredoc completion first
+    import re
+
+    heredoc_delimiter = None
+
+    # Find heredoc start in the first line (handle both << and <<-)
+    for line in lines:
+        heredoc_match = re.search(r'<<-?\s*([\'"]?)(\S+)\1', line)
+        if heredoc_match:
+            heredoc_delimiter = heredoc_match.group(2)
+            break
+
+    if heredoc_delimiter:
+        # Look for the closing delimiter
+        for i, line in enumerate(lines[1:], 1):  # Start from second line
+            if line.strip() == heredoc_delimiter:
+                return True
+        return False  # Heredoc not complete yet
 
     # Track nesting levels for different structures
     if_count = 0
@@ -244,9 +269,16 @@ def run_interactive_shell(provider=None, provider_args=None, sandbox_yaml=None):
                     # Check if we have a complete command
                     combined = "\n".join(full_command)
                     if is_command_complete(combined):
-                        cmd_line = " ".join(
-                            full_command
-                        )  # Join with spaces for single-line execution
+                        # Check if this is a heredoc command - if so, preserve newlines
+                        import re
+
+                        # Use the same regex pattern as is_command_complete for consistency
+                        if re.search(r'<<-?\s*([\'"]?)(\S+)\1', full_command[0]):
+                            cmd_line = combined  # Keep newlines for heredoc
+                        else:
+                            cmd_line = " ".join(
+                                full_command
+                            )  # Join with spaces for other multi-line commands
                         break
 
             try:

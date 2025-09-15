@@ -7,6 +7,7 @@ shell by coordinating between specialized components for parsing, expansion,
 execution, and environment management.
 """
 
+import asyncio
 import logging
 import time
 import inspect
@@ -361,8 +362,67 @@ class ShellInterpreter:
         Returns:
             Completed text or None
         """
-        # TODO: Implement tab completion
         return None
+
+    def _load_shellrc(self):
+        """Load and execute .shellrc file if it exists."""
+        shellrc_paths = [
+            f"{self.environ.get('HOME', '/home/user')}/.shellrc",
+            "/.shellrc",
+        ]
+
+        for rc_path in shellrc_paths:
+            try:
+                if self.fs.exists(rc_path) and self.fs.is_file(rc_path):
+                    content = self.fs.read_file(rc_path)
+                    if content:
+                        logger.info(f"Loading shell configuration from {rc_path}")
+                        # Execute each line in the .shellrc file
+                        for line in content.splitlines():
+                            line = line.strip()
+                            # Skip comments and empty lines
+                            if line and not line.startswith("#"):
+                                try:
+                                    # Execute the command silently
+                                    result = self.execute(line)
+                                    # Check if command was not found
+                                    if result and "command not found" in result.lower():
+                                        logger.warning(
+                                            f"Error executing .shellrc line '{line}': {result}"
+                                        )
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Error executing .shellrc line '{line}': {e}"
+                                    )
+                        break  # Only load the first found .shellrc
+            except Exception as e:
+                logger.debug(f"Could not load {rc_path}: {e}")
+
+    def _cleanup(self):
+        """Clean up resources on exit"""
+        # Clean up agent processes if they exist
+        if hasattr(self, "agent_manager"):
+            # Cancel all active agent processes
+            for pid, process in list(self.agent_manager.processes.items()):
+                if process.is_active():
+                    process.terminate()
+
+            # Clean up any pending async tasks
+            try:
+                loop = asyncio.get_event_loop()
+                if loop and not loop.is_closed():
+                    # Cancel all tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+
+                    # Give tasks a chance to cleanup
+                    if pending:
+                        loop.run_until_complete(
+                            asyncio.gather(*pending, return_exceptions=True)
+                        )
+            except Exception:
+                pass  # Ignore cleanup errors
 
     # Helper methods for backward compatibility
     def user_exists(self, target: str) -> bool:

@@ -1,18 +1,40 @@
 # Chuk Virtual Shell 🐚
 
-A powerful virtual shell environment with MCP (Model Context Protocol) integration, perfect for AI agents and sandboxed execution environments.
+A powerful virtual shell environment with MCP (Model Context Protocol) integration and AI agents as Unix processes, perfect for AI automation and sandboxed execution environments.
 
 [![Tests](https://img.shields.io/badge/tests-1420%20passing-green)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-85%25-yellow)](tests/)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+## 🌟 Highlight: AI Agents as Unix Processes
+
+**Revolutionary Feature**: Run AI agents as first-class shell processes! Agents behave like Unix commands with PIDs, pipes, background execution, and process management.
+
+```bash
+# Run agents like shell commands
+echo "Hello" | agent assistant.agent
+
+# Agent pipelines
+cat data.csv | agent analyzer.agent | agent reporter.agent > report.md
+
+# Background agents
+agent monitor.agent -b &
+
+# Process management
+agent -l  # List agents
+agent -k agent_1  # Kill agent
+```
+
+🎬 **[Watch the Demo](examples/README_AGENTS.md)** | 📖 **[Full Documentation](docs/AGENTS.md)**
+
 ## 🌟 Overview
 
 Chuk Virtual Shell provides a complete POSIX-like virtual shell environment designed specifically for AI agents and automation:
 
-- **🤖 MCP Server Integration**: Full Model Context Protocol support for AI agents like Claude, Cline, and Aider
-- **🔄 Persistent Sessions**: Stateful command execution with maintained context across interactions
+- **🤖 AI Agents as Shell Processes**: Run AI agents as first-class Unix processes with PIDs, piping, and background execution
+- **🔄 MCP Server Integration**: Full Model Context Protocol support for AI agents like Claude, Cline, and Aider
+- **📊 Persistent Sessions**: Stateful command execution with maintained context across interactions
 - **🔒 User Isolation**: Complete session and task isolation between users
 - **📁 Virtual Filesystem**: Pluggable storage providers (memory, SQLite, S3)
 - **🎯 50+ Built-in Commands**: Comprehensive Unix-like command set
@@ -171,6 +193,52 @@ result = await manager.run_command(session_id, "pwd && echo $API_KEY && cat file
 # Output: /project\nsecret\ndata
 ```
 
+### 🎯 Built for AI Agents
+
+Perfect for agentic coding workflows where context matters:
+
+```python
+# See examples/agentic_coding_demo.py for full example
+agent = CodingAgent(session_manager)
+await agent.start_project("api-service", "FastAPI")
+await agent.execute_task(create_structure_task)
+await agent.execute_task(implement_endpoints_task)
+await agent.execute_task(add_tests_task)
+# Context maintained throughout!
+```
+
+### 🤖 AI Agents as Unix Processes
+
+Revolutionary feature: AI agents run as shell processes with full Unix semantics:
+
+```bash
+# Run an agent like any command
+agent assistant.agent
+
+# Pipe input to agents
+echo "analyze this" | agent analyzer.agent
+
+# Chain agents in pipelines
+cat data.csv | agent parser.agent | agent reporter.agent > report.txt
+
+# Background execution
+agent monitor.agent -b &
+
+# Process management
+agent -l                    # List running agents
+agent -k agent_123          # Kill an agent
+agent -s agent_123          # Check agent status
+```
+
+**Agent Features:**
+- **Process IDs**: Each agent gets a unique PID
+- **I/O Redirection**: Full support for `<`, `>`, `>>`, and `|`
+- **Background Execution**: Run agents with `&` or `-b` flag
+- **Process Management**: List, kill, and monitor agent processes
+- **Tool Access**: Agents can execute shell commands
+- **Memory Modes**: Session or persistent memory across invocations
+- **LLM Integration**: Supports OpenAI, Anthropic, and other providers via [chuk-llm](https://github.com/chrishayuk/chuk-llm)
+
 ### 📋 Advanced I/O Redirection
 
 Comprehensive redirection support (see [docs/features/redirection.md](docs/features/redirection.md)):
@@ -259,7 +327,7 @@ Available sandboxes:
 | | Input redirect (`<`) | ✅ | Read from files |
 | | Stderr redirect (`2>`, `2>>`) | ✅ | Full stderr redirection |
 | | Combined (`2>&1`, `&>`, `&>>`) | ✅ | Merge stdout/stderr |
-| | Here-docs (`<<`) | ⚡ | Works in script runner |
+| | Here-docs (`<<`, `<<-`) | ✅ | Full interactive & script support |
 | **Shell Operators** | Chaining (`&&`, `\|\|`, `;`) | ✅ | Full conditional execution |
 | | Command substitution (`$()`) | ✅ | Both syntaxes supported |
 | | Variable expansion | ✅ | `$VAR`, `${VAR}` |
@@ -387,6 +455,430 @@ timings -e
 EOF
 ```
 
+### Command Aliases
+
+Create shortcuts for frequently used commands:
+```bash
+alias ll="ls -la"          # Create alias
+alias                      # List all aliases
+unalias ll                 # Remove alias
+```
+
+### Command History
+
+Track and search through your command history:
+```bash
+history                    # Show all history
+history 10                 # Show last 10 commands
+history grep              # Search for commands containing 'grep'
+history -c                # Clear history
+```
+
+### Command Timing Statistics
+
+Monitor command execution performance:
+```bash
+timings -e                # Enable timing
+timings                   # Show statistics
+timings -s avg            # Sort by average time
+timings -c                # Clear statistics
+timings -d                # Disable timing
+```
+
+### Directory Tree Visualization
+
+Visualize directory structures with the `tree` command:
+```bash
+tree                      # Show current directory tree
+tree -L 2                 # Limit depth to 2 levels
+tree -d                   # Show directories only
+tree -a                   # Include hidden files
+```
+
+### Command Location (which)
+
+Find where commands are located:
+```bash
+which ls                  # Find the ls command
+which -a python          # Find all python executables
+```
+
+### Modular Design
+
+- Each component is isolated in its own module
+- Commands are organized by category
+- Filesystem components are separated by responsibility
+
+### Cross-Platform Compatibility
+
+PyodideShell is fully compatible across multiple operating systems:
+
+- **Windows** - Full support with native path handling
+- **macOS** - Complete functionality on Apple Silicon and Intel Macs  
+- **Linux** - Tested on Ubuntu, Debian, and other distributions
+
+The virtual filesystem uses forward slashes (`/`) for all path operations internally, ensuring consistent behavior across platforms. The CI/CD pipeline automatically tests on all three major operating systems with Python versions 3.9 through 3.12.
+
+### Pluggable Storage Architecture
+
+The filesystem now supports multiple storage backends through a provider-based architecture:
+
+- **Memory Provider**: Fast, in-memory storage (default)
+- **SQLite Provider**: Persistent storage using SQLite database
+- **S3 Provider**: Cloud storage using Amazon S3 or compatible services
+
+You can easily switch between providers or create custom ones to suit your needs.
+
+### Virtual Filesystem
+
+- Hierarchical directory structure with files and folders
+- Support for absolute and relative paths
+- Common operations: create, read, write, delete
+- Consistent API regardless of the underlying storage
+
+### Command System
+
+All commands are implemented as separate classes that extend the `ShellCommand` base class, making it easy to add new commands.
+
+### Available Commands
+
+The shell includes 50+ commands organized into logical categories. For complete documentation with usage examples, options, and integration guides, see the [Command Documentation](docs/README.md).
+
+- **[Navigation](docs/commands/navigation/README.md)**: ls, cd, pwd, tree
+- **[File Management](docs/commands/filesystem/README.md)**: cat, cp, echo, find, mkdir, more, mv, rm, rmdir, touch, df, du, quota  
+- **[Text Processing](docs/commands/text/README.md)**: awk, diff, grep, head, patch, sed, sort, tail, uniq, wc
+- **[Environment](docs/commands/environment/README.md)**: env, export, alias, unalias
+- **[System](docs/commands/system/README.md)**: clear, exit, help, history, python, script, sh, time, timings, uptime, which, whoami, **agent**
+- **[MCP Integration](docs/commands/mcp/README.md)**: Dynamically loaded MCP server commands
+
+### Shell Redirection and Pipelines
+
+The virtual shell supports full input/output redirection and pipelines, enabling powerful command composition:
+
+#### Here-Documents (Heredoc)
+- `<<` - Here-document for multi-line input
+- `<<-` - Here-document with leading tab stripping
+
+```bash
+# Create multi-line file content
+cat > config.txt << EOF
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/html;
+}
+EOF
+
+# With tab stripping (<<-)
+cat > script.sh <<- 'SCRIPT'
+	#!/bin/bash
+	echo "Indented script"
+	if [ -f file.txt ]; then
+		echo "File exists"
+	fi
+SCRIPT
+```
+
+#### Output Redirection
+- `>` - Redirect output to a file (overwrites existing content)
+- `>>` - Append output to a file
+
+```bash
+echo "Hello" > file.txt          # Write to file
+echo "World" >> file.txt         # Append to file
+ls -la > directory_list.txt      # Save directory listing
+grep ERROR log.txt > errors.txt  # Save filtered output
+```
+
+#### Input Redirection
+- `<` - Redirect input from a file
+
+```bash
+wc < file.txt                    # Count lines/words/bytes from file
+sort < unsorted.txt              # Sort file contents
+grep pattern < input.txt         # Search in redirected input
+sed 's/old/new/g' < input.txt    # Process redirected input
+```
+
+#### Pipelines
+- `|` - Pipe output of one command to input of another
+
+```bash
+cat file.txt | grep pattern      # Search in file output
+ls -la | grep ".txt"             # Filter directory listing
+cat data.csv | awk -F, '{print $1}' | sort  # Extract and sort CSV column
+cat log.txt | grep ERROR | wc -l # Count error lines
+```
+
+#### Combined Redirection and Pipelines
+
+```bash
+# Sort numbers and save top 3
+cat numbers.txt | sort -n | head -n 3 > top3.txt
+
+# Process CSV and save results
+awk -F, '{print $1,$3}' < data.csv | sort > names_roles.txt
+
+# Filter logs and save errors
+grep ERROR < app.log | sort | uniq > unique_errors.txt
+
+# Complex pipeline with multiple stages
+cat access.log | awk '{print $1}' | sort | uniq -c | sort -rn > ip_stats.txt
+```
+
+## Documentation
+
+### Command Reference
+
+Complete documentation for all shell commands is available in the [`docs/`](docs/) directory:
+
+- **[Command Documentation Overview](docs/README.md)** - Summary of all command categories
+- **[Command Taxonomy Analysis](docs/COMMAND_TAXONOMY.md)** - Detailed analysis of command organization
+- **Individual Command Categories:**
+  - **[Filesystem Commands](docs/commands/filesystem/README.md)** - File and directory operations
+  - **[Navigation Commands](docs/commands/navigation/README.md)** - Directory navigation and listing
+  - **[Text Processing Commands](docs/commands/text/README.md)** - Text manipulation and analysis
+  - **[System Commands](docs/commands/system/README.md)** - Shell control and system utilities
+  - **[Environment Commands](docs/commands/environment/README.md)** - Environment variable management
+  - **[MCP Commands](docs/commands/mcp/README.md)** - Dynamic Model Context Protocol integration
+
+Each command includes detailed documentation with:
+- **Synopsis and description** - What the command does
+- **Options and arguments** - All available flags and parameters
+- **Usage examples** - Practical examples from basic to advanced
+- **Error handling** - Common error conditions and solutions
+- **Integration guides** - How commands work together
+- **Implementation notes** - Technical details for advanced users
+
+### Quick Command Reference
+
+For a quick overview of available commands by category:
+
+```bash
+help                    # Show all available commands
+help <command>          # Show detailed help for specific command
+```
+
+## Running Examples
+
+The `examples/` directory contains several demonstration scripts showing the virtual shell's capabilities:
+
+- `hello_world.sh` - Basic shell script demonstration
+- `file_operations.sh` - File system operations
+- `text_processing.sh` - Text processing commands (grep, awk, sed, etc.)
+- `diff_patch_demo.sh` - Demonstrating diff and patch commands
+- `redirection_pipeline_demo.sh` - Comprehensive redirection and pipeline examples
+- `control_flow.sh` - Shell control flow structures
+- `hello_world.py` - Python script execution
+- `data_processing.py` - Python data processing
+- `file_operations.py` - Python file operations
+- `system_interaction.py` - Python system interaction
+
+To run an example script:
+
+```bash
+# Method 1: As a command-line argument
+uv run python -m chuk_virtual_shell.main examples/text_processing.sh
+
+# Method 2: From within the interactive shell
+uv run virtual-shell
+$ script /path/to/example.sh
+
+# Method 3: Using Python
+from chuk_virtual_shell.shell_interpreter import ShellInterpreter
+from chuk_virtual_shell.script_runner import ScriptRunner
+
+shell = ShellInterpreter()
+runner = ScriptRunner(shell)
+
+# Copy script to virtual filesystem
+with open('examples/text_processing.sh', 'r') as f:
+    content = f.read()
+shell.fs.write_file('/tmp/script.sh', content)
+
+# Run it
+result = runner.run_script('/tmp/script.sh')
+print(result)
+```
+
+## Usage
+
+### Interactive Mode with Default Provider
+
+```bash
+# Using uvx (no installation required)
+uvx virtual-shell
+
+# Using uv (if cloned locally)
+uv run virtual-shell
+
+# Using pip install
+virtual-shell
+```
+
+### Interactive Mode with Specific Provider
+
+```bash
+# Use SQLite storage
+uvx virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+
+# Use S3 storage  
+uvx virtual-shell --fs-provider s3 --fs-provider-args '{"bucket_name": "my-bucket", "prefix": "shell1"}'
+
+# Or with uv run if cloned locally
+uv run virtual-shell --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+```
+
+### List Available Providers
+
+```bash
+python main.py --fs-provider list
+```
+
+### Telnet Server Mode
+
+```bash
+# With default memory provider
+python main.py --telnet
+
+# With SQLite provider
+python main.py --telnet --fs-provider sqlite --fs-provider-args 'db_path=telnet_shell.db'
+```
+
+Then connect using any telnet client:
+
+```bash
+telnet localhost 8023
+```
+
+### Script Execution
+
+```bash
+# Run a script with specific provider
+python main.py --script my_script.sh --fs-provider sqlite --fs-provider-args 'db_path=my_shell.db'
+```
+
+### Pyodide Mode
+
+When running in a browser environment with Pyodide, the shell operates in interactive mode:
+
+```python
+import main
+main.run_interactive_shell("sqlite", {"db_path": ":memory:"})  # With provider selection
+```
+
+## Examples
+
+### AI Agent Demos
+
+#### Single Agent Demo
+Run AI agents as shell processes:
+
+```bash
+# Clean demo with filtered output
+uv run python demo.py
+
+# Full demo with all output
+uv run python examples/agent_clean_demo.py
+```
+
+#### Multi-Agent Collaboration
+Watch multiple agents work together as a team:
+
+```bash
+# Software development team simulation
+uv run python examples/software_team_demo.py
+
+# Multi-agent collaboration with pipelines
+uv run python run_multi_agent.py
+```
+
+These demos showcase:
+- ✅ AI agents running as Unix processes with PIDs
+- ✅ Agent pipelines and I/O redirection
+- ✅ Parallel agent execution
+- ✅ Multi-agent collaboration and communication
+- ✅ Real LLM integration (OpenAI, Anthropic via chuk-llm)
+- ✅ Background agent processes
+
+### Session Management Demo
+
+Run the session demo to see all session features in action:
+
+```bash
+uv run python examples/session_demo.py
+```
+
+This demonstrates:
+- ✅ Stateful command execution with persistent context
+- ✅ Working directory and environment persistence  
+- ✅ Command history tracking
+- ✅ Streaming output with sequence IDs for proper ordering
+- ✅ Process cancellation and timeout support (configurable up to 10 minutes)
+- ✅ Multi-session isolation with concurrent execution
+
+#### Streaming Output Example
+
+The shell provides real-time streaming output with sequence IDs to ensure proper ordering:
+
+```python
+# Stream output from long-running commands
+async for chunk in manager.run_command(session_id, "ls -la /large_directory"):
+    print(f"[Seq {chunk.sequence_id}] {chunk.data}")
+    # Output arrives in real-time with sequence IDs
+```
+
+#### Cancellation and Timeout Support
+
+Control long-running processes with cancellation and timeouts:
+
+```python
+# Set timeout for command execution (in milliseconds)
+try:
+    async for chunk in manager.run_command(
+        session_id, 
+        "python long_script.py",
+        timeout_ms=5000  # 5 second timeout
+    ):
+        print(chunk.data)
+except asyncio.TimeoutError:
+    print("Command timed out")
+
+# Cancel a running command
+task = asyncio.create_task(
+    manager.run_command(session_id, "sleep 100")
+)
+# ... later ...
+task.cancel()  # Cancel the running command
+```
+
+### Agentic Coding Demo
+
+See how AI agents can use sessions for complex development tasks:
+
+```bash
+uv run python examples/agentic_coding_demo.py
+```
+
+This shows:
+- Building a complete FastAPI project step-by-step
+- Maintaining context across 50+ commands
+- Creating interdependent files and configurations
+- Simulating real developer workflows
+
+### Other Examples
+
+```bash
+# Basic shell operations
+uv run python examples/hello_world.sh
+
+# File operations with new commands
+uv run python examples/file_operations.sh  
+
+# All new features (aliases, history, tree, etc.)
+uv run python examples/new_features_demo.sh
+```
+
 ## 📝 Command Examples
 
 ### Basic Navigation and File Management
@@ -432,6 +924,464 @@ sort file.txt | uniq -c         # Count occurrences
 # head/tail
 head -n 5 file.txt              # First 5 lines
 tail -n 5 file.txt              # Last 5 lines
+```
+
+### AI Agents as Shell Processes
+
+Create and work with AI agents as first-class shell processes:
+
+#### Quick Start: Create and Run Your First Agent
+
+Here's a complete example of creating and running an agent from within the shell:
+
+```bash
+# Start the virtual shell
+$ uv run chuk-virtual-shell
+
+# Create a simple assistant agent using heredoc
+$ cat > my_assistant.agent << 'EOF'
+#!agent
+name: my_assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful programming assistant.
+  Answer questions about code, debugging, and best practices.
+  Keep responses concise and practical.
+tools:
+  - cat
+  - ls
+  - grep
+  - echo
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 300
+timeout: 30
+EOF
+
+# Verify the agent file was created
+$ ls -la *.agent
+-rw-r--r-- 1 user user 234 Dec 14 10:30 my_assistant.agent
+
+# View the agent definition
+$ cat my_assistant.agent
+#!agent
+name: my_assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful programming assistant.
+  Answer questions about code, debugging, and best practices.
+  Keep responses concise and practical.
+tools:
+  - cat
+  - ls
+  - grep
+  - echo
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 300
+timeout: 30
+
+# List available agents
+$ agent -l
+Available agents:
+  my_assistant.agent
+
+# Run the agent with a simple question
+$ echo "How do I create a Python list?" | agent my_assistant.agent
+To create a Python list, use square brackets:
+
+# Empty list
+my_list = []
+
+# List with items
+my_list = [1, 2, 3, "hello", True]
+
+# Using list() constructor
+my_list = list([1, 2, 3])
+
+You can add items with append(), extend(), or insert() methods.
+
+# Interactive session with the agent
+$ agent my_assistant.agent
+> What's the difference between a list and a tuple in Python?
+
+Lists are mutable (can be modified) and use square brackets [1, 2, 3].
+Tuples are immutable (cannot be modified) and use parentheses (1, 2, 3).
+Lists are for collections that change, tuples for fixed data.
+
+> How do I handle exceptions in Python?
+
+Use try-except blocks:
+
+```python
+try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("Cannot divide by zero")
+except Exception as e:
+    print(f"An error occurred: {e}")
+finally:
+    print("This always runs")
+```
+
+> ^D  # Press Ctrl+D to exit interactive mode
+
+# Create a data file and use the agent to analyze it
+$ cat > sample_code.py << 'EOF'
+def calculate_average(numbers):
+    total = sum(numbers)
+    return total / len(numbers)
+
+result = calculate_average([1, 2, 3, 4, 5])
+print(result)
+EOF
+
+# Have the agent review the code
+$ agent my_assistant.agent < sample_code.py
+This code calculates the average of a list of numbers. It's mostly good but has one issue:
+
+**Potential Problem:** Division by zero if empty list is passed.
+
+**Improved version:**
+```python
+def calculate_average(numbers):
+    if not numbers:
+        return 0  # or raise ValueError("Empty list")
+    total = sum(numbers)
+    return total / len(numbers)
+```
+
+The rest of the code looks clean and functional.
+
+# Run agent in background for long-running tasks
+$ agent my_assistant.agent -b &
+[1] 12345
+Agent my_assistant started with PID 12345
+
+# Check running agents
+$ agent -l
+Running agents:
+  PID 12345: my_assistant.agent (background)
+
+# Send input to background agent
+$ echo "Explain Python decorators briefly" | agent -p 12345
+Decorators modify or extend function behavior without changing the function itself.
+
+Basic syntax:
+```python
+@decorator
+def function():
+    pass
+```
+
+Common example:
+```python
+@property
+def name(self):
+    return self._name
+```
+
+They're functions that take functions as input and return modified functions.
+
+# Stop the background agent
+$ agent -k 12345
+Agent 12345 terminated
+
+# Create multiple agents for different tasks
+$ cat > code_reviewer.agent << 'EOF'
+#!agent
+name: code_reviewer
+model: gpt-4
+system_prompt: |
+  You are a code reviewer. Focus on finding bugs, security issues,
+  and suggesting improvements. Be specific and constructive.
+tools: [cat, grep, find]
+temperature: 0.3
+max_tokens: 500
+EOF
+
+# Use agents in a pipeline
+$ cat sample_code.py | agent my_assistant.agent | agent code_reviewer.agent
+[Assistant analyzes code, then reviewer provides detailed feedback]
+
+The code structure is good, but here are specific improvements:
+
+1. **Error Handling**: Add validation for empty lists
+2. **Type Hints**: Consider adding type annotations
+3. **Documentation**: Add docstring explaining the function
+4. **Testing**: Should include unit tests
+
+**Recommended revision:**
+```python
+def calculate_average(numbers: list[float]) -> float:
+    """Calculate the arithmetic mean of a list of numbers.
+    
+    Args:
+        numbers: List of numeric values
+        
+    Returns:
+        The average as a float
+        
+    Raises:
+        ValueError: If the list is empty
+    """
+    if not numbers:
+        raise ValueError("Cannot calculate average of empty list")
+    return sum(numbers) / len(numbers)
+```
+```
+
+#### Creating Agent Definitions
+
+Create an agent definition file using heredoc:
+
+```bash
+# Create a helpful assistant agent
+cat > assistant.agent << 'EOF'
+#!agent
+name: assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful AI assistant.
+  Answer questions concisely and clearly.
+  Use the available tools when helpful.
+tools:
+  - ls
+  - cat
+  - echo
+  - grep
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 500
+timeout: 30
+EOF
+
+# Create a code reviewer agent
+cat > code_reviewer.agent << 'EOF'
+#!agent
+name: code_reviewer
+model: gpt-4
+system_prompt: |
+  You are an expert code reviewer.
+  Analyze code for bugs, security issues, and best practices.
+  Provide specific, actionable feedback.
+tools:
+  - cat
+  - grep
+  - find
+input: stdin
+output: stdout
+memory: session
+temperature: 0.3
+max_tokens: 1000
+timeout: 60
+EOF
+
+# Create a data analyzer agent
+cat > analyzer.agent << 'EOF'
+#!agent
+name: analyzer
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a data analysis expert.
+  Process CSV data and provide insights.
+  Focus on patterns, trends, and anomalies.
+tools:
+  - cat
+  - awk
+  - sort
+  - uniq
+  - wc
+input: stdin
+output: stdout
+memory: session
+temperature: 0.2
+max_tokens: 800
+timeout: 45
+EOF
+```
+
+#### Basic Agent Operations
+
+```bash
+# List available agents
+agent -l
+
+# Get agent status
+agent -s
+
+# Run an agent with input
+echo "What is Python?" | agent assistant.agent
+
+# Run agent with file input
+agent assistant.agent < question.txt
+
+# Interactive agent session
+agent assistant.agent
+# Type your questions, press Ctrl+D to end
+```
+
+#### Agent Pipelines and Collaboration
+
+```bash
+# Create sample data
+cat > data.csv << EOF
+name,age,city
+Alice,25,New York
+Bob,30,Boston
+Charlie,35,Chicago
+Diana,28,Denver
+EOF
+
+# Multi-agent data processing pipeline
+cat data.csv | \
+  agent analyzer.agent | \
+  agent assistant.agent > analysis_report.txt
+
+# Code review workflow
+find . -name "*.py" | \
+  head -1 | \
+  xargs cat | \
+  agent code_reviewer.agent > review.txt
+
+# Parallel agent processing
+for file in *.txt; do
+  echo "Analyzing $file..."
+  agent analyzer.agent < "$file" > "analysis_$file" &
+done
+wait  # Wait for all background agents to complete
+
+# Agent chain with file processing
+echo "Explain this data structure" > prompt.txt
+cat data.csv >> prompt.txt
+agent assistant.agent < prompt.txt | \
+  agent code_reviewer.agent > detailed_analysis.txt
+```
+
+#### Background Agent Processes
+
+```bash
+# Start agent in background
+agent assistant.agent -b &
+AGENT_PID=$!
+
+# Check running agents
+agent -l
+
+# Send input to background agent
+echo "Hello from background" | agent -p $AGENT_PID
+
+# Kill background agent
+agent -k $AGENT_PID
+
+# Multiple background agents
+agent analyzer.agent -b &
+agent code_reviewer.agent -b &
+agent assistant.agent -b &
+
+# List all running agents
+agent -l
+
+# Kill all agents
+agent -k all
+```
+
+#### Advanced Agent Scenarios
+
+```bash
+# Software development team simulation
+mkdir -p /project/src /project/tests /project/docs
+
+# Create specialized agents
+cat > product_owner.agent << 'EOF'
+#!agent
+name: product_owner
+model: gpt-4
+system_prompt: |
+  You are a product owner. Create user stories and requirements
+  from high-level product descriptions. Focus on user value.
+tools: [echo, cat]
+temperature: 0.5
+EOF
+
+cat > tech_lead.agent << 'EOF'
+#!agent
+name: tech_lead
+model: gpt-4
+system_prompt: |
+  You are a technical lead. Design system architecture
+  and break down user stories into technical tasks.
+tools: [cat, echo, find]
+temperature: 0.4
+EOF
+
+# Development workflow
+echo "Build a user authentication system" | \
+  agent product_owner.agent > /project/requirements.txt
+
+cat /project/requirements.txt | \
+  agent tech_lead.agent > /project/architecture.md
+
+# Code generation and review cycle
+echo "Implement login function based on requirements" | \
+  agent assistant.agent > /project/src/auth.py
+
+agent code_reviewer.agent < /project/src/auth.py > /project/review.txt
+
+# Documentation generation
+cat /project/src/auth.py | \
+  agent assistant.agent -p "Generate API documentation for this code" > /project/docs/api.md
+```
+
+#### Agent Monitoring and Management
+
+```bash
+# Monitor agent performance
+agent -l --verbose    # Detailed agent status
+
+# Set resource limits
+export AGENT_TIMEOUT=120    # 2 minute timeout
+export AGENT_MAX_TOKENS=1500
+
+# Agent health checks
+agent -h assistant.agent    # Check agent health
+
+# Agent logs
+agent -logs assistant.agent  # View agent execution logs
+
+# Agent metrics
+agent -metrics               # Show performance metrics
+```
+
+#### Agent Configuration Management
+
+```bash
+# Create agent configurations directory
+mkdir -p ~/.agents/config
+
+# Global agent settings
+cat > ~/.agents/config/global.yaml << EOF
+default_timeout: 60
+default_model: gpt-3.5-turbo
+default_temperature: 0.7
+max_concurrent_agents: 5
+EOF
+
+# Per-agent overrides
+cat > ~/.agents/config/code_reviewer.yaml << EOF
+model: gpt-4
+temperature: 0.1
+timeout: 120
+EOF
+
+# Load configuration
+agent --config ~/.agents/config/global.yaml assistant.agent
 ```
 
 ### Environment and System Commands
@@ -790,6 +1740,100 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - GitHub: [@chrishayuk](https://github.com/chrishayuk)
 - Issues: [GitHub Issues](https://github.com/chrishayuk/chuk-virtual-shell/issues)
+
+---
+
+Run `make help` to see all available targets:
+
+- **Testing**: `test`, `coverage`, `coverage-html`
+- **Code Quality**: `lint`, `format`, `typecheck`
+- **Building**: `build`, `check-build`, `clean`
+- **Publishing**: `publish`, `publish-test`
+- **Version Management**: `version`, `bump-patch`, `bump-minor`, `bump-major`
+- **Release Workflow**: `release-patch`, `release-minor`, `release-major`
+
+## AI Agent System
+
+### Creating Agent Definitions
+
+Agents are defined in YAML files with a special `#!agent` shebang:
+
+```yaml
+#!agent
+name: assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful AI assistant.
+  Use the available tools to help users.
+tools:
+  - ls
+  - cat
+  - echo
+  - grep
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 500
+timeout: 30
+```
+
+### Multi-Agent Collaboration Example
+
+Create specialized agents that work together:
+
+```python
+# From examples/software_team_demo.py
+shell.execute("agent /team/product_owner.agent < requirements.txt")
+shell.execute("agent /team/tech_lead.agent < user_stories.txt")
+shell.execute("agent /team/backend_dev.agent -b")  # Background
+shell.execute("agent /team/qa_engineer.agent < code.py")
+```
+
+### Agent Pipeline Processing
+
+```bash
+# Data processing pipeline
+cat raw_data.csv | \
+  agent parser.agent | \
+  agent analyzer.agent | \
+  agent formatter.agent > report.md
+
+# Parallel processing
+for file in *.txt; do
+  agent processor.agent < "$file" &
+done
+wait  # Wait for all background agents
+```
+
+### Configuring LLM Providers
+
+Set up your API keys for real LLM integration:
+
+```bash
+# In .env file or environment
+export OPENAI_API_KEY=your_key
+export ANTHROPIC_API_KEY=your_key
+
+# Install chuk-llm for LLM support
+pip install chuk-llm
+```
+
+## Future Enhancements
+
+- User authentication and permissions system
+- Multi-user support with session isolation
+- Command history and tab completion
+- More advanced file operations
+- Additional storage providers (Redis, IndexedDB, etc.)
+- Provider data migration tools
+- **AI Agent Enhancements**:
+  - Agent-to-agent direct communication protocols
+  - Distributed agent execution across machines
+  - Agent marketplace for sharing definitions
+  - Visual agent pipeline builder
+  - Agent resource limits and quotas
+  - Event-triggered agent activation
 
 ---
 
