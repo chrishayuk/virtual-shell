@@ -64,7 +64,10 @@ Options:
         # Check if we have stdin input (from input redirection or pipe)
         if not files:
             # If no arguments, read from stdin if available
-            if hasattr(self.shell, "_stdin_buffer") and self.shell._stdin_buffer:
+            if (
+                hasattr(self.shell, "_stdin_buffer")
+                and self.shell._stdin_buffer is not None
+            ):
                 content = self.shell._stdin_buffer
                 # Clear the buffer after use
                 self.shell._stdin_buffer = None
@@ -94,6 +97,9 @@ Options:
             if content is None:
                 errors.append(f"cat: {path}: No such file or directory")
                 continue
+
+            # Convert bytes to string if necessary
+            content = self.ensure_string(content)
 
             # Process content with flags
             processed = self._process_content_with_state(

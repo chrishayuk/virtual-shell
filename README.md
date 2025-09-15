@@ -327,7 +327,7 @@ Available sandboxes:
 | | Input redirect (`<`) | ✅ | Read from files |
 | | Stderr redirect (`2>`, `2>>`) | ✅ | Full stderr redirection |
 | | Combined (`2>&1`, `&>`, `&>>`) | ✅ | Merge stdout/stderr |
-| | Here-docs (`<<`) | ⚡ | Works in script runner |
+| | Here-docs (`<<`, `<<-`) | ✅ | Full interactive & script support |
 | **Shell Operators** | Chaining (`&&`, `\|\|`, `;`) | ✅ | Full conditional execution |
 | | Command substitution (`$()`) | ✅ | Both syntaxes supported |
 | | Variable expansion | ✅ | `$VAR`, `${VAR}` |
@@ -455,7 +455,6 @@ timings -e
 EOF
 ```
 
-<<<<<<< HEAD
 ### Command Aliases
 
 Create shortcuts for frequently used commands:
@@ -555,6 +554,30 @@ The shell includes 50+ commands organized into logical categories. For complete 
 ### Shell Redirection and Pipelines
 
 The virtual shell supports full input/output redirection and pipelines, enabling powerful command composition:
+
+#### Here-Documents (Heredoc)
+- `<<` - Here-document for multi-line input
+- `<<-` - Here-document with leading tab stripping
+
+```bash
+# Create multi-line file content
+cat > config.txt << EOF
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/html;
+}
+EOF
+
+# With tab stripping (<<-)
+cat > script.sh <<- 'SCRIPT'
+	#!/bin/bash
+	echo "Indented script"
+	if [ -f file.txt ]; then
+		echo "File exists"
+	fi
+SCRIPT
+```
 
 #### Output Redirection
 - `>` - Redirect output to a file (overwrites existing content)
@@ -856,10 +879,7 @@ uv run python examples/file_operations.sh
 uv run python examples/new_features_demo.sh
 ```
 
-## Command Examples
-=======
 ## 📝 Command Examples
->>>>>>> main
 
 ### Basic Navigation and File Management
 ```bash
@@ -904,6 +924,464 @@ sort file.txt | uniq -c         # Count occurrences
 # head/tail
 head -n 5 file.txt              # First 5 lines
 tail -n 5 file.txt              # Last 5 lines
+```
+
+### AI Agents as Shell Processes
+
+Create and work with AI agents as first-class shell processes:
+
+#### Quick Start: Create and Run Your First Agent
+
+Here's a complete example of creating and running an agent from within the shell:
+
+```bash
+# Start the virtual shell
+$ uv run chuk-virtual-shell
+
+# Create a simple assistant agent using heredoc
+$ cat > my_assistant.agent << 'EOF'
+#!agent
+name: my_assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful programming assistant.
+  Answer questions about code, debugging, and best practices.
+  Keep responses concise and practical.
+tools:
+  - cat
+  - ls
+  - grep
+  - echo
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 300
+timeout: 30
+EOF
+
+# Verify the agent file was created
+$ ls -la *.agent
+-rw-r--r-- 1 user user 234 Dec 14 10:30 my_assistant.agent
+
+# View the agent definition
+$ cat my_assistant.agent
+#!agent
+name: my_assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful programming assistant.
+  Answer questions about code, debugging, and best practices.
+  Keep responses concise and practical.
+tools:
+  - cat
+  - ls
+  - grep
+  - echo
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 300
+timeout: 30
+
+# List available agents
+$ agent -l
+Available agents:
+  my_assistant.agent
+
+# Run the agent with a simple question
+$ echo "How do I create a Python list?" | agent my_assistant.agent
+To create a Python list, use square brackets:
+
+# Empty list
+my_list = []
+
+# List with items
+my_list = [1, 2, 3, "hello", True]
+
+# Using list() constructor
+my_list = list([1, 2, 3])
+
+You can add items with append(), extend(), or insert() methods.
+
+# Interactive session with the agent
+$ agent my_assistant.agent
+> What's the difference between a list and a tuple in Python?
+
+Lists are mutable (can be modified) and use square brackets [1, 2, 3].
+Tuples are immutable (cannot be modified) and use parentheses (1, 2, 3).
+Lists are for collections that change, tuples for fixed data.
+
+> How do I handle exceptions in Python?
+
+Use try-except blocks:
+
+```python
+try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("Cannot divide by zero")
+except Exception as e:
+    print(f"An error occurred: {e}")
+finally:
+    print("This always runs")
+```
+
+> ^D  # Press Ctrl+D to exit interactive mode
+
+# Create a data file and use the agent to analyze it
+$ cat > sample_code.py << 'EOF'
+def calculate_average(numbers):
+    total = sum(numbers)
+    return total / len(numbers)
+
+result = calculate_average([1, 2, 3, 4, 5])
+print(result)
+EOF
+
+# Have the agent review the code
+$ agent my_assistant.agent < sample_code.py
+This code calculates the average of a list of numbers. It's mostly good but has one issue:
+
+**Potential Problem:** Division by zero if empty list is passed.
+
+**Improved version:**
+```python
+def calculate_average(numbers):
+    if not numbers:
+        return 0  # or raise ValueError("Empty list")
+    total = sum(numbers)
+    return total / len(numbers)
+```
+
+The rest of the code looks clean and functional.
+
+# Run agent in background for long-running tasks
+$ agent my_assistant.agent -b &
+[1] 12345
+Agent my_assistant started with PID 12345
+
+# Check running agents
+$ agent -l
+Running agents:
+  PID 12345: my_assistant.agent (background)
+
+# Send input to background agent
+$ echo "Explain Python decorators briefly" | agent -p 12345
+Decorators modify or extend function behavior without changing the function itself.
+
+Basic syntax:
+```python
+@decorator
+def function():
+    pass
+```
+
+Common example:
+```python
+@property
+def name(self):
+    return self._name
+```
+
+They're functions that take functions as input and return modified functions.
+
+# Stop the background agent
+$ agent -k 12345
+Agent 12345 terminated
+
+# Create multiple agents for different tasks
+$ cat > code_reviewer.agent << 'EOF'
+#!agent
+name: code_reviewer
+model: gpt-4
+system_prompt: |
+  You are a code reviewer. Focus on finding bugs, security issues,
+  and suggesting improvements. Be specific and constructive.
+tools: [cat, grep, find]
+temperature: 0.3
+max_tokens: 500
+EOF
+
+# Use agents in a pipeline
+$ cat sample_code.py | agent my_assistant.agent | agent code_reviewer.agent
+[Assistant analyzes code, then reviewer provides detailed feedback]
+
+The code structure is good, but here are specific improvements:
+
+1. **Error Handling**: Add validation for empty lists
+2. **Type Hints**: Consider adding type annotations
+3. **Documentation**: Add docstring explaining the function
+4. **Testing**: Should include unit tests
+
+**Recommended revision:**
+```python
+def calculate_average(numbers: list[float]) -> float:
+    """Calculate the arithmetic mean of a list of numbers.
+    
+    Args:
+        numbers: List of numeric values
+        
+    Returns:
+        The average as a float
+        
+    Raises:
+        ValueError: If the list is empty
+    """
+    if not numbers:
+        raise ValueError("Cannot calculate average of empty list")
+    return sum(numbers) / len(numbers)
+```
+```
+
+#### Creating Agent Definitions
+
+Create an agent definition file using heredoc:
+
+```bash
+# Create a helpful assistant agent
+cat > assistant.agent << 'EOF'
+#!agent
+name: assistant
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a helpful AI assistant.
+  Answer questions concisely and clearly.
+  Use the available tools when helpful.
+tools:
+  - ls
+  - cat
+  - echo
+  - grep
+input: stdin
+output: stdout
+memory: session
+temperature: 0.7
+max_tokens: 500
+timeout: 30
+EOF
+
+# Create a code reviewer agent
+cat > code_reviewer.agent << 'EOF'
+#!agent
+name: code_reviewer
+model: gpt-4
+system_prompt: |
+  You are an expert code reviewer.
+  Analyze code for bugs, security issues, and best practices.
+  Provide specific, actionable feedback.
+tools:
+  - cat
+  - grep
+  - find
+input: stdin
+output: stdout
+memory: session
+temperature: 0.3
+max_tokens: 1000
+timeout: 60
+EOF
+
+# Create a data analyzer agent
+cat > analyzer.agent << 'EOF'
+#!agent
+name: analyzer
+model: gpt-3.5-turbo
+system_prompt: |
+  You are a data analysis expert.
+  Process CSV data and provide insights.
+  Focus on patterns, trends, and anomalies.
+tools:
+  - cat
+  - awk
+  - sort
+  - uniq
+  - wc
+input: stdin
+output: stdout
+memory: session
+temperature: 0.2
+max_tokens: 800
+timeout: 45
+EOF
+```
+
+#### Basic Agent Operations
+
+```bash
+# List available agents
+agent -l
+
+# Get agent status
+agent -s
+
+# Run an agent with input
+echo "What is Python?" | agent assistant.agent
+
+# Run agent with file input
+agent assistant.agent < question.txt
+
+# Interactive agent session
+agent assistant.agent
+# Type your questions, press Ctrl+D to end
+```
+
+#### Agent Pipelines and Collaboration
+
+```bash
+# Create sample data
+cat > data.csv << EOF
+name,age,city
+Alice,25,New York
+Bob,30,Boston
+Charlie,35,Chicago
+Diana,28,Denver
+EOF
+
+# Multi-agent data processing pipeline
+cat data.csv | \
+  agent analyzer.agent | \
+  agent assistant.agent > analysis_report.txt
+
+# Code review workflow
+find . -name "*.py" | \
+  head -1 | \
+  xargs cat | \
+  agent code_reviewer.agent > review.txt
+
+# Parallel agent processing
+for file in *.txt; do
+  echo "Analyzing $file..."
+  agent analyzer.agent < "$file" > "analysis_$file" &
+done
+wait  # Wait for all background agents to complete
+
+# Agent chain with file processing
+echo "Explain this data structure" > prompt.txt
+cat data.csv >> prompt.txt
+agent assistant.agent < prompt.txt | \
+  agent code_reviewer.agent > detailed_analysis.txt
+```
+
+#### Background Agent Processes
+
+```bash
+# Start agent in background
+agent assistant.agent -b &
+AGENT_PID=$!
+
+# Check running agents
+agent -l
+
+# Send input to background agent
+echo "Hello from background" | agent -p $AGENT_PID
+
+# Kill background agent
+agent -k $AGENT_PID
+
+# Multiple background agents
+agent analyzer.agent -b &
+agent code_reviewer.agent -b &
+agent assistant.agent -b &
+
+# List all running agents
+agent -l
+
+# Kill all agents
+agent -k all
+```
+
+#### Advanced Agent Scenarios
+
+```bash
+# Software development team simulation
+mkdir -p /project/src /project/tests /project/docs
+
+# Create specialized agents
+cat > product_owner.agent << 'EOF'
+#!agent
+name: product_owner
+model: gpt-4
+system_prompt: |
+  You are a product owner. Create user stories and requirements
+  from high-level product descriptions. Focus on user value.
+tools: [echo, cat]
+temperature: 0.5
+EOF
+
+cat > tech_lead.agent << 'EOF'
+#!agent
+name: tech_lead
+model: gpt-4
+system_prompt: |
+  You are a technical lead. Design system architecture
+  and break down user stories into technical tasks.
+tools: [cat, echo, find]
+temperature: 0.4
+EOF
+
+# Development workflow
+echo "Build a user authentication system" | \
+  agent product_owner.agent > /project/requirements.txt
+
+cat /project/requirements.txt | \
+  agent tech_lead.agent > /project/architecture.md
+
+# Code generation and review cycle
+echo "Implement login function based on requirements" | \
+  agent assistant.agent > /project/src/auth.py
+
+agent code_reviewer.agent < /project/src/auth.py > /project/review.txt
+
+# Documentation generation
+cat /project/src/auth.py | \
+  agent assistant.agent -p "Generate API documentation for this code" > /project/docs/api.md
+```
+
+#### Agent Monitoring and Management
+
+```bash
+# Monitor agent performance
+agent -l --verbose    # Detailed agent status
+
+# Set resource limits
+export AGENT_TIMEOUT=120    # 2 minute timeout
+export AGENT_MAX_TOKENS=1500
+
+# Agent health checks
+agent -h assistant.agent    # Check agent health
+
+# Agent logs
+agent -logs assistant.agent  # View agent execution logs
+
+# Agent metrics
+agent -metrics               # Show performance metrics
+```
+
+#### Agent Configuration Management
+
+```bash
+# Create agent configurations directory
+mkdir -p ~/.agents/config
+
+# Global agent settings
+cat > ~/.agents/config/global.yaml << EOF
+default_timeout: 60
+default_model: gpt-3.5-turbo
+default_temperature: 0.7
+max_concurrent_agents: 5
+EOF
+
+# Per-agent overrides
+cat > ~/.agents/config/code_reviewer.yaml << EOF
+model: gpt-4
+temperature: 0.1
+timeout: 120
+EOF
+
+# Load configuration
+agent --config ~/.agents/config/global.yaml assistant.agent
 ```
 
 ### Environment and System Commands
@@ -1265,7 +1743,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-<<<<<<< HEAD
 Run `make help` to see all available targets:
 
 - **Testing**: `test`, `coverage`, `coverage-html`

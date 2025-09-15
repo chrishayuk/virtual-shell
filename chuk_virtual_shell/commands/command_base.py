@@ -86,7 +86,7 @@ class ShellCommand:
                         # Properly close the loop
                         try:
                             loop.close()
-                        except:
+                        except Exception:
                             pass
             except Exception as e:
                 logger.exception(f"Error executing async command '{self.name}': {e}")
@@ -118,3 +118,12 @@ class ShellCommand:
         result = "\n".join(self._stderr)
         self._stderr = []
         return result
+
+    def ensure_string(self, content):
+        """Convert bytes to string if necessary"""
+        if isinstance(content, bytes):
+            try:
+                return content.decode("utf-8")
+            except UnicodeDecodeError:
+                return content.decode("utf-8", errors="replace")
+        return content

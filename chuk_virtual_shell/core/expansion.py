@@ -195,6 +195,34 @@ class ExpansionHandler:
         Returns:
             Command line with variables expanded
         """
+        # Check if this is a heredoc command - if so, only process the first line
+        if "\n" in cmd_line and ("<<" in cmd_line):
+            lines = cmd_line.split("\n")
+            first_line = lines[0]
+            rest_lines = lines[1:]
+
+            # Process only the first line for variable expansion
+            expanded_first = self._expand_variables_line(first_line)
+
+            # Reconstruct with original newlines (heredoc content unchanged)
+            if rest_lines:
+                return expanded_first + "\n" + "\n".join(rest_lines)
+            else:
+                return expanded_first
+        else:
+            # Regular variable expansion for non-heredoc commands
+            return self._expand_variables_line(cmd_line)
+
+    def _expand_variables_line(self, cmd_line: str) -> str:
+        """
+        Expand variables in a single line.
+
+        Args:
+            cmd_line: Single line to expand
+
+        Returns:
+            Line with variables expanded
+        """
         # First expand arithmetic expressions $((...))
         cmd_line = self.expand_arithmetic(cmd_line)
 
@@ -434,6 +462,34 @@ class ExpansionHandler:
         Returns:
             Command line with globs expanded
         """
+        # Check if this is a heredoc command - if so, only process the first line
+        if "\n" in cmd_line and ("<<" in cmd_line):
+            lines = cmd_line.split("\n")
+            first_line = lines[0]
+            rest_lines = lines[1:]
+
+            # Process only the first line for glob expansion
+            expanded_first = self._expand_globs_line(first_line)
+
+            # Reconstruct with original newlines (heredoc content unchanged)
+            if rest_lines:
+                return expanded_first + "\n" + "\n".join(rest_lines)
+            else:
+                return expanded_first
+        else:
+            # Regular glob expansion for non-heredoc commands
+            return self._expand_globs_line(cmd_line)
+
+    def _expand_globs_line(self, cmd_line: str) -> str:
+        """
+        Expand globs in a single line.
+
+        Args:
+            cmd_line: Single line to expand
+
+        Returns:
+            Line with globs expanded
+        """
         # We need to manually parse the command line to preserve quote information
         result = []
         current_word = []
@@ -551,10 +607,38 @@ class ExpansionHandler:
         Returns:
             Command line with tildes expanded
         """
+        # Check if this is a heredoc command - if so, only process the first line
+        if "\n" in cmd_line and ("<<" in cmd_line):
+            lines = cmd_line.split("\n")
+            first_line = lines[0]
+            rest_lines = lines[1:]
+
+            # Process only the first line for tilde expansion
+            expanded_first = self._expand_tilde_line(first_line)
+
+            # Reconstruct with original newlines
+            if rest_lines:
+                return expanded_first + "\n" + "\n".join(rest_lines)
+            else:
+                return expanded_first
+        else:
+            # Regular tilde expansion for non-heredoc commands
+            return self._expand_tilde_line(cmd_line)
+
+    def _expand_tilde_line(self, line: str) -> str:
+        """
+        Expand tilde in a single line.
+
+        Args:
+            line: Single line to expand
+
+        Returns:
+            Line with tildes expanded
+        """
         try:
-            parts = shlex.split(cmd_line)
+            parts = shlex.split(line)
         except ValueError:
-            parts = cmd_line.split()
+            parts = line.split()
 
         expanded_parts = []
         home = self.shell.environ.get("HOME", "/home/user")

@@ -7,6 +7,7 @@ shell by coordinating between specialized components for parsing, expansion,
 execution, and environment management.
 """
 
+import asyncio
 import logging
 import time
 import inspect
@@ -362,14 +363,14 @@ class ShellInterpreter:
             Completed text or None
         """
         return None
-    
+
     def _load_shellrc(self):
         """Load and execute .shellrc file if it exists."""
         shellrc_paths = [
             f"{self.environ.get('HOME', '/home/user')}/.shellrc",
-            "/.shellrc"
+            "/.shellrc",
         ]
-        
+
         for rc_path in shellrc_paths:
             try:
                 if self.fs.exists(rc_path) and self.fs.is_file(rc_path):
@@ -380,28 +381,32 @@ class ShellInterpreter:
                         for line in content.splitlines():
                             line = line.strip()
                             # Skip comments and empty lines
-                            if line and not line.startswith('#'):
+                            if line and not line.startswith("#"):
                                 try:
                                     # Execute the command silently
                                     result = self.execute(line)
                                     # Check if command was not found
                                     if result and "command not found" in result.lower():
-                                        logger.warning(f"Error executing .shellrc line '{line}': {result}")
+                                        logger.warning(
+                                            f"Error executing .shellrc line '{line}': {result}"
+                                        )
                                 except Exception as e:
-                                    logger.warning(f"Error executing .shellrc line '{line}': {e}")
+                                    logger.warning(
+                                        f"Error executing .shellrc line '{line}': {e}"
+                                    )
                         break  # Only load the first found .shellrc
             except Exception as e:
                 logger.debug(f"Could not load {rc_path}: {e}")
-    
+
     def _cleanup(self):
         """Clean up resources on exit"""
         # Clean up agent processes if they exist
-        if hasattr(self, 'agent_manager'):
+        if hasattr(self, "agent_manager"):
             # Cancel all active agent processes
             for pid, process in list(self.agent_manager.processes.items()):
                 if process.is_active():
                     process.terminate()
-            
+
             # Clean up any pending async tasks
             try:
                 loop = asyncio.get_event_loop()
@@ -410,59 +415,14 @@ class ShellInterpreter:
                     pending = asyncio.all_tasks(loop)
                     for task in pending:
                         task.cancel()
-                    
+
                     # Give tasks a chance to cleanup
                     if pending:
                         loop.run_until_complete(
                             asyncio.gather(*pending, return_exceptions=True)
                         )
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
-    
-    def _expand_aliases(self, cmd_line):
-        """Expand aliases in the command line."""
-        if not hasattr(self, 'aliases') or not self.aliases:
-            return cmd_line
-        
-        # Split the command line to get the first word (command)
-        import shlex
-        try:
-            parts = shlex.split(cmd_line)
-            if not parts:
-                return cmd_line
-        except ValueError:
-            # If shlex fails, try simple split
-            parts = cmd_line.split()
-            if not parts:
-                return cmd_line
-        
-        # Check if the first word is an alias
-        cmd = parts[0]
-        if cmd in self.aliases:
-            # Replace with alias value
-            alias_value = self.aliases[cmd]
-            if len(parts) > 1:
-                # Append remaining arguments
-                expanded = alias_value + " " + " ".join(parts[1:])
-            else:
-                expanded = alias_value
-            
-            # Prevent infinite recursion by tracking expansion depth
-            if not hasattr(self, '_alias_depth'):
-                self._alias_depth = 0
-            
-            self._alias_depth += 1
-            if self._alias_depth < 10:  # Max recursion depth
-                # Recursively expand in case alias contains other aliases
-                expanded = self._expand_aliases(expanded)
-            
-            self._alias_depth -= 1
-            if self._alias_depth == 0:
-                del self._alias_depth
-            
-            return expanded
-        
-        return cmd_line
 
     # Helper methods for backward compatibility
     def user_exists(self, target: str) -> bool:

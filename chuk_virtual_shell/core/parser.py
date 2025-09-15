@@ -41,15 +41,19 @@ class CommandParser:
     @staticmethod
     def is_quoted(text: str, position: int) -> bool:
         """
-        Check if a position in text is within quotes.
+        Check if a position in text is within quotes or heredoc content.
 
         Args:
             text: Text to check
             position: Position to check
 
         Returns:
-            True if position is within quotes, False otherwise
+            True if position is within quotes or heredoc content, False otherwise
         """
+        # First check if we're inside heredoc content
+        if CommandParser._is_in_heredoc(text, position):
+            return True
+            
         in_single = False
         in_double = False
         escaped = False
@@ -69,6 +73,48 @@ class CommandParser:
             elif char == "'" and not in_double:
                 in_single = not in_single
 
+        return False
+
+    @staticmethod
+    def _is_in_heredoc(text: str, position: int) -> bool:
+        """
+        Check if a position is within heredoc content.
+        
+        Args:
+            text: Text to check
+            position: Position to check
+            
+        Returns:
+            True if position is within heredoc content, False otherwise
+        """
+        import re
+        
+        # Look for heredoc patterns before the position
+        heredoc_pattern = r'<<-?\s*([\'"]?)(\S+)\1'
+        
+        # Find all heredoc starts in the text before position
+        for match in re.finditer(heredoc_pattern, text[:position]):
+            delimiter = match.group(2)
+            heredoc_start = match.end()
+            
+            # Look for the closing delimiter after the heredoc start
+            # Split into lines starting from the heredoc content
+            remaining_text = text[heredoc_start:]
+            lines = remaining_text.split('\n')
+            
+            if len(lines) <= 1:
+                continue  # No heredoc content
+                
+            # Find where the heredoc ends
+            heredoc_end = heredoc_start
+            for i, line in enumerate(lines[1:], 1):  # Skip first line (command line)
+                heredoc_end += len(lines[i-1]) + 1  # +1 for newline
+                if line.strip() == delimiter:
+                    # Found closing delimiter
+                    if heredoc_start <= position < heredoc_end:
+                        return True
+                    break
+                    
         return False
 
     @staticmethod

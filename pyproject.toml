@@ -27,6 +27,10 @@ boto3 = [
 mcp-server = [
     "chuk-mcp-server>=0.1.0; sys_platform != 'win32'",
 ]
+ai-agents = [
+    "chuk-llm>=0.5.0",
+    "openai>=1.0.0",
+]
 
 [dependency-groups]
 dev = [

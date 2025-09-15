@@ -11,8 +11,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 # Skip all MCP server tests on Windows due to uvloop dependency
 pytestmark = pytest.mark.skipif(
-    sys.platform == "win32", 
-    reason="MCP server functionality not supported on Windows (uvloop dependency)"
+    sys.platform == "win32",
+    reason="MCP server functionality not supported on Windows (uvloop dependency)",
 )
 
 # Import the module under test - only if not on Windows

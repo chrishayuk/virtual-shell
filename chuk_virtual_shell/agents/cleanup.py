@@ -2,7 +2,6 @@
 Cleanup utilities for agent processes.
 """
 
-import asyncio
 import atexit
 import warnings
 import logging
@@ -34,42 +33,66 @@ def _cleanup_all():
     # Suppress warnings during cleanup
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     warnings.filterwarnings("ignore", message=".*Task.*")
-    
-    if _background_tasks:
-        # Cancel all tasks
-        for task in _background_tasks:
-            if not task.done():
-                task.cancel()
-        
-        # Try to run cleanup if event loop exists
+    warnings.filterwarnings("ignore", message=".*Event loop is closed.*")
+    warnings.filterwarnings("ignore", message=".*Task was destroyed.*")
+
+    if not _background_tasks:
+        return
+
+    # Simply cancel tasks without trying to wait for them
+    # At exit time, it's better to just cancel and let the interpreter handle cleanup
+    for task in list(_background_tasks):
         try:
-            loop = asyncio.get_event_loop()
-            if loop and not loop.is_closed():
-                # Create a cleanup coroutine
-                async def cleanup():
-                    await asyncio.gather(*_background_tasks, return_exceptions=True)
-                
-                # Run cleanup with timeout
-                loop.run_until_complete(
-                    asyncio.wait_for(cleanup(), timeout=1.0)
-                )
-        except:
-            pass  # Ignore all cleanup errors
-        
-        _background_tasks.clear()
+            if not task.done() and not task.cancelled():
+                task.cancel()
+        except Exception:
+            pass  # Ignore tasks that are already gone
+
+    # Clear the set without trying to wait for completion
+    _background_tasks.clear()
 
 
 def suppress_cleanup_warnings():
     """Suppress all async cleanup warnings"""
     import sys
-    import io
-    
+
     # Suppress specific warnings
     warnings.filterwarnings("ignore", message=".*Task was destroyed.*")
     warnings.filterwarnings("ignore", message=".*Event loop is closed.*")
+    warnings.filterwarnings("ignore", message=".*coroutine.*was never awaited.*")
     warnings.filterwarnings("ignore", category=RuntimeWarning)
-    
+
     # Also configure logging
     logging.getLogger("asyncio").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.ERROR)
     logging.getLogger("httpcore").setLevel(logging.ERROR)
+
+    # Suppress stderr warnings at the interpreter level
+    original_stderr = sys.stderr
+
+    class FilteredStderr:
+        def __init__(self, original):
+            self.original = original
+
+        def write(self, text):
+            # Filter out asyncio cleanup warnings
+            if any(
+                msg in text
+                for msg in [
+                    "Task was destroyed",
+                    "Event loop is closed",
+                    "coroutine",
+                    "was never awaited",
+                    "RuntimeWarning",
+                ]
+            ):
+                return  # Suppress these messages
+            return self.original.write(text)
+
+        def flush(self):
+            return self.original.flush()
+
+        def __getattr__(self, name):
+            return getattr(self.original, name)
+
+    sys.stderr = FilteredStderr(original_stderr)

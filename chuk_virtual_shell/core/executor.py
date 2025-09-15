@@ -392,7 +392,7 @@ class CommandExecutor:
                 content = content.decode("utf-8")
             self.shell._stdin_buffer = content
         # Handle here-documents
-        elif redirect_info.heredoc_content:
+        elif redirect_info.heredoc_content is not None:
             self.shell._stdin_buffer = redirect_info.heredoc_content
 
         # Parse and execute command
