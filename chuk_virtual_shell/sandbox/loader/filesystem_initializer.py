@@ -40,9 +40,13 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
     security_profile = security_config.get("profile")
 
     logger.debug(f"Creating filesystem with provider {provider_name}")
-    fs = VirtualFileSystem(
-        provider_name=provider_name, security_profile=security_profile, **provider_args
-    )
+    # Create VirtualFileSystem without security_profile in constructor
+    # (newer versions handle security differently)
+    fs = VirtualFileSystem(provider_name=provider_name, **provider_args)
+
+    # Set security profile as an attribute if provided
+    if security_profile and hasattr(fs, 'security_profile'):
+        fs.security_profile = security_profile
 
     # Apply additional security settings
     if (
@@ -63,13 +67,18 @@ def create_filesystem(config: Dict[str, Any]) -> VirtualFileSystem:
         else:
             template_name = template_config["name"]
             template_variables = template_config.get("variables", {})
-            template_loader = TemplateLoader(fs)
             try:
                 template_path = _find_template(template_name)
                 if template_path:
-                    template_loader.load_template(
-                        template_path, variables=template_variables
-                    )
+                    # Use VFS's sync wrapper to properly handle async template loading
+                    template_loader = TemplateLoader(fs._async_fs)
+                    if hasattr(fs, '_run_async'):
+                        fs._run_async(template_loader.load_template(
+                            template_path, variables=template_variables
+                        ))
+                    else:
+                        # Fallback for sync-only mode
+                        logger.warning("Template loading requires async support, skipping")
                 else:
                     logger.warning(f"Filesystem template '{template_name}' not found.")
             except Exception as e:

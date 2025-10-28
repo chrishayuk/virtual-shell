@@ -1,9 +1,13 @@
 """
 Test date command implementation
 """
+import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
 from chuk_virtual_shell.commands.system.date import DateCommand
+
+# Suppress false positive warnings about unawaited coroutines during Mock/inspect introspection
+pytestmark = pytest.mark.filterwarnings("ignore:coroutine.*was never awaited:RuntimeWarning")
 
 
 class TestDateCommand:

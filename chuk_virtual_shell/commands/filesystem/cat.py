@@ -26,6 +26,14 @@ class CatCommand(ShellCommand):
             content = self.shell.fs.read_file(path)
             if content is None:
                 return f"cat: {path}: No such file"
+
+            # Decode bytes to string if necessary
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode("utf-8")
+                except UnicodeDecodeError:
+                    return f"cat: {path}: Cannot display binary file"
+
             result.append(content)
 
         return "".join(result)

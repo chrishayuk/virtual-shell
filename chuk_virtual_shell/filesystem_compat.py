@@ -14,7 +14,15 @@ class FileSystemCompat:
 
     # Basic file operations
     def read_file(self, path):
-        return self.fs.read_file(path)
+        content = self.fs.read_file(path)
+        # Decode bytes to string if necessary for text commands
+        if content is not None and isinstance(content, bytes):
+            try:
+                content = content.decode("utf-8")
+            except UnicodeDecodeError:
+                # Return bytes as-is for binary files
+                pass
+        return content
 
     def write_file(self, path, content):
         return self.fs.write_file(path, content)
@@ -61,7 +69,7 @@ class FileSystemCompat:
         """List directory contents"""
         result = self.fs.ls(path)
         return result if result is not None else []
-    
+
     def list_directory(self, path):
         """List directory contents (alias for list_dir)"""
         return self.list_dir(path)

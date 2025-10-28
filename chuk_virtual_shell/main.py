@@ -253,18 +253,27 @@ def main():
             return
 
     # If the user just runs `chuk-virtual-shell` with no --sandbox, fall back to default.yaml
+    # But only if they haven't explicitly specified a different provider
     if not args.sandbox:
-        # Construct a path to default.yaml (adjust as needed for your project structure)
-        default_config_path = os.path.join(
-            os.path.dirname(__file__), "config", "default.yaml"
+        # Check if user explicitly specified a non-default provider
+        fs_provider_explicitly_set = (
+            "--fs-provider" in sys.argv and args.fs_provider != "memory"
         )
-        if os.path.exists(default_config_path):
-            args.sandbox = default_config_path
-            logger.info(f"No sandbox specified, defaulting to {args.sandbox}")
-        else:
-            logger.warning(
-                "No sandbox specified, and default.yaml not found. Proceeding without a sandbox config."
+
+        if not fs_provider_explicitly_set:
+            # Construct a path to default.yaml (adjust as needed for your project structure)
+            default_config_path = os.path.join(
+                os.path.dirname(__file__), "config", "default.yaml"
             )
+            if os.path.exists(default_config_path):
+                args.sandbox = default_config_path
+                logger.info(f"No sandbox specified, defaulting to {args.sandbox}")
+            else:
+                logger.warning(
+                    "No sandbox specified, and default.yaml not found. Proceeding without a sandbox config."
+                )
+        else:
+            logger.info(f"Using explicitly specified provider: {args.fs_provider}")
 
     if args.list_sandboxes:
         from chuk_virtual_shell.sandbox.loader import list_available_configs
@@ -278,6 +287,36 @@ def main():
     provider_args = (
         parse_provider_args(args.fs_provider_args) if args.fs_provider_args else {}
     )
+
+    # Auto-configure S3 from environment variables if not explicitly provided
+    if args.fs_provider == "s3":
+        if "bucket_name" not in provider_args:
+            # Read S3 configuration from environment variables
+            s3_bucket = os.environ.get("S3_BUCKET_NAME")
+            s3_prefix = os.environ.get("S3_PREFIX", "")
+            aws_region = os.environ.get("AWS_REGION")
+            aws_endpoint = os.environ.get("AWS_ENDPOINT_URL_S3")
+
+            if not s3_bucket:
+                print(
+                    "Error: S3_BUCKET_NAME environment variable is required when using --fs-provider s3"
+                )
+                print(
+                    "Either set S3_BUCKET_NAME in your .env file or use --fs-provider-args to specify configuration"
+                )
+                return
+
+            provider_args["bucket_name"] = s3_bucket
+            if s3_prefix:
+                provider_args["prefix"] = s3_prefix
+            if aws_region:
+                provider_args["region_name"] = aws_region
+            if aws_endpoint:
+                provider_args["endpoint_url"] = aws_endpoint
+
+            print(f"Using S3 bucket from environment: {s3_bucket}")
+            if s3_prefix:
+                print(f"Using S3 prefix: {s3_prefix}")
 
     if args.fs_provider == "list":
         logger.info("Available filesystem providers:")

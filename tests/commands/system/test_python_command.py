@@ -6,6 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.system.python import PythonCommand, Python3Command
 
+# Suppress false positive warnings about unawaited coroutines during Mock/inspect introspection
+pytestmark = pytest.mark.filterwarnings("ignore:coroutine.*was never awaited:RuntimeWarning")
+
 
 class TestPythonCommand:
     """Test cases for the python command"""

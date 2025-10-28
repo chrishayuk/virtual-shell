@@ -26,6 +26,13 @@ class MoreCommand(ShellCommand):
             if content is None:
                 return f"more: {path}: No such file"
 
+            # Decode bytes to string if necessary
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode("utf-8")
+                except UnicodeDecodeError:
+                    return f"more: {path}: Cannot display binary file"
+
             # Split content into lines
             lines = content.splitlines()
 

@@ -1,9 +1,13 @@
 """
 tests/chuk_virtual_shell/commands/test_command_loader.py
 """
+import pytest
 from chuk_virtual_shell.commands.command_loader import CommandLoader
 from chuk_virtual_shell.commands.command_base import ShellCommand
 from tests.dummy_shell import DummyShell
+
+# Suppress false positive warnings about unawaited coroutines during Mock/inspect introspection
+pytestmark = pytest.mark.filterwarnings("ignore:coroutine.*was never awaited:RuntimeWarning")
 
 # Test for discover_commands
 def test_discover_commands():

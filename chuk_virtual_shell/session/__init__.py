@@ -12,15 +12,15 @@ from .shell_session import (
     SessionMode,
     CommandState,
     CommandResult,
-    StreamChunk
+    StreamChunk,
 )
 
 __all__ = [
     "ShellSession",
-    "ShellSessionManager", 
+    "ShellSessionManager",
     "ShellSessionState",
     "SessionMode",
     "CommandState",
     "CommandResult",
-    "StreamChunk"
+    "StreamChunk",
 ]

@@ -13,7 +13,7 @@ SAMPLE_FS_CONFIG = {
     },
     "filesystem": {
         "provider": "memory",
-        "provider_args": {"compression_threshold": 1024}
+        "provider_args": {}
     },
     "filesystem-template": {
         "name": "python_project",

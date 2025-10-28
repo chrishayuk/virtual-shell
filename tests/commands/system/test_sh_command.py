@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, patch
 from tests.dummy_shell import DummyShell
 from chuk_virtual_shell.commands.system.sh import ShCommand
 
+# Suppress false positive warnings about unawaited coroutines during Mock/inspect introspection
+pytestmark = pytest.mark.filterwarnings("ignore:coroutine.*was never awaited:RuntimeWarning")
+
 
 class TestShCommand:
     """Test cases for the sh command"""

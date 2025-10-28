@@ -44,9 +44,13 @@ class CommandLoader:
                     except Exception as e:
                         # Only log MCP-related imports at debug level since MCP is optional
                         if "mcp" in full_module_name.lower():
-                            logger.debug(f"Optional module not available: {full_module_name}")
+                            logger.debug(
+                                f"Optional module not available: {full_module_name}"
+                            )
                         else:
-                            logger.warning(f"Error importing module {full_module_name}: {e}")
+                            logger.warning(
+                                f"Error importing module {full_module_name}: {e}"
+                            )
                         continue
 
                     # Inspect module for command classes.
